@@ -224,7 +224,6 @@ fundTrader/                    # Monorepo 根目录
 │   │   │   ├── app.module.ts
 │   │   │   └── main.ts
 │   │   ├── config/          # 配置文件
-│   │   ├── docs/            # 文档
 │   │   └── package.json
 │   ├── shared/              # 前后端共享代码
 │   │   ├── src/
@@ -233,7 +232,13 @@ fundTrader/                    # Monorepo 根目录
 │   │   │   └── index.ts
 │   │   └── package.json
 │   └── frontend/            # 前端应用（待开发）
+├── docs/                    # 项目文档
+│   ├── PLAN.md             # 技术方案
+│   ├── IMPLEMENTATION.md   # 实施总结
+│   ├── QUICKSTART.md       # 快速开始
+│   └── SECURITY_FIXES.md   # 安全修复
 ├── pnpm-workspace.yaml      # pnpm workspace 配置
+├── MONOREPO.md              # Monorepo 使用指南
 └── package.json             # 根 package.json
 ```
 

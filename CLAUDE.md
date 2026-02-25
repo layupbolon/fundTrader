@@ -73,11 +73,6 @@ fundTrader/                        # Monorepo 根目录
 │   │   │   └── main.ts         # 应用入口
 │   │   ├── config/             # 配置文件
 │   │   │   └── default.yml
-│   │   ├── docs/               # 文档
-│   │   │   ├── PLAN.md        # 技术方案
-│   │   │   ├── IMPLEMENTATION.md  # 实施总结
-│   │   │   ├── QUICKSTART.md  # 快速开始
-│   │   │   └── SECURITY_FIXES.md  # 安全修复记录
 │   │   ├── .env.example       # 环境变量模板
 │   │   ├── docker-compose.yml # 数据库服务
 │   │   ├── tsconfig.json      # TypeScript 配置
@@ -91,8 +86,16 @@ fundTrader/                        # Monorepo 根目录
 │   │   ├── tsconfig.json     # TypeScript 配置
 │   │   └── package.json      # Shared 包配置
 │   └── frontend/             # 前端应用包（待开发）
+├── docs/                     # 项目文档
+│   ├── PLAN.md              # 技术方案
+│   ├── IMPLEMENTATION.md    # 实施总结
+│   ├── QUICKSTART.md        # 快速开始
+│   ├── SECURITY_FIXES.md    # 安全修复记录
+│   ├── CHECKLIST.md         # 开发检查清单
+│   └── SETUP.md             # 环境配置指南
 ├── pnpm-workspace.yaml       # pnpm workspace 配置
 ├── package.json              # 根 package.json（workspace 脚本）
+├── MONOREPO.md               # Monorepo 使用指南
 ├── CLAUDE.md                 # AI Agent 上下文文档
 └── README.md                 # 项目说明
 ```
@@ -333,8 +336,8 @@ src/
 
 4. **文档同步**
    - 更新 README.md 的功能列表
-   - 更新 packages/backend/docs/IMPLEMENTATION.md 的完成状态
-   - 如有重大变更，更新 packages/backend/docs/PLAN.md
+   - 更新 docs/IMPLEMENTATION.md 的完成状态
+   - 如有重大变更，更新 docs/PLAN.md
 
 ### 禁止的操作
 
