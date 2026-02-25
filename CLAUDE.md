@@ -155,6 +155,117 @@ fundTrader/
 - 交易平台凭证加密存储在数据库
 - API 接口需要添加认证和限流
 
+### 测试规范
+
+#### 测试框架
+
+- **测试框架**: Jest 30.2.0
+- **测试工具**: @nestjs/testing + ts-jest
+- **覆盖率目标**: 80% (statements, branches, functions, lines)
+- **测试类型**: 单元测试、集成测试
+
+#### 测试命令
+
+```bash
+pnpm test          # 运行所有测试
+pnpm test:watch    # 监听模式（开发时使用）
+pnpm test:cov      # 生成覆盖率报告
+```
+
+#### 测试文件组织
+
+测试文件放在被测试文件同级的 `__tests__` 目录中：
+
+```
+src/
+├── utils/
+│   ├── time.util.ts
+│   ├── crypto.util.ts
+│   └── __tests__/
+│       ├── time.util.test.ts
+│       └── crypto.util.test.ts
+├── core/
+│   └── strategy/
+│       ├── auto-invest.strategy.ts
+│       └── __tests__/
+│           └── auto-invest.strategy.test.ts
+└── services/
+    └── data/
+        ├── fund-data.service.ts
+        └── __tests__/
+            └── fund-data.service.test.ts
+```
+
+#### 测试覆盖率现状
+
+**当前覆盖率**: 47.73% (78 个测试通过)
+
+**已完成测试** (100% 覆盖):
+- ✅ `utils/` - 工具函数 (时间、加密)
+- ✅ `services/data/` - 基金数据服务
+- ✅ `services/notify/notify.service.ts` - 通知服务
+- ✅ `core/strategy/` - 定投和止盈止损策略 (98.71%)
+
+**部分覆盖**:
+- 🟡 `core/backtest/` - 回测引擎 (68.26%)
+
+**待测试模块**:
+- ⚪ `api/` - REST API 控制器
+- ⚪ `scheduler/` - 定时任务处理器
+- ⚪ `services/broker/` - 交易平台接入
+- ⚪ `services/notify/` - Telegram/飞书服务
+
+#### 编写测试的最佳实践
+
+1. **使用 NestJS Testing 模块**
+   ```typescript
+   import { Test, TestingModule } from '@nestjs/testing';
+
+   const module: TestingModule = await Test.createTestingModule({
+     providers: [ServiceToTest, MockDependency],
+   }).compile();
+   ```
+
+2. **Mock 外部依赖**
+   - 使用 `jest.fn()` 创建 mock 函数
+   - 使用 `jest.Mocked<Type>` 类型化 mock 对象
+   - Mock 数据库 Repository、外部 API、浏览器自动化
+
+3. **测试命名规范**
+   - 文件名: `*.test.ts` 或 `*.spec.ts`
+   - describe: 描述被测试的类或函数
+   - it: 描述具体的测试场景（使用 should 语句）
+
+4. **测试覆盖要点**
+   - ✅ 正常流程（happy path）
+   - ✅ 边界条件（空值、极值）
+   - ✅ 错误处理（异常、失败场景）
+   - ✅ 业务逻辑分支
+
+5. **时间相关测试**
+   ```typescript
+   jest.useFakeTimers();
+   jest.setSystemTime(new Date('2026-02-25T14:00:00'));
+   // ... 测试代码
+   jest.useRealTimers();
+   ```
+
+6. **异步测试**
+   ```typescript
+   it('should handle async operation', async () => {
+     const result = await service.asyncMethod();
+     expect(result).toBeDefined();
+   });
+   ```
+
+#### 测试注意事项
+
+- **不要测试外部服务**: Mock 所有外部 API 调用
+- **不要依赖真实数据库**: 使用 Mock Repository
+- **不要依赖网络**: Mock axios 等 HTTP 客户端
+- **隔离测试**: 每个测试独立，不依赖其他测试的状态
+- **清理副作用**: 使用 `afterEach` 清理 mock 和定时器
+
 ## AI Agent 工作指南
 
 ### 修改代码时的注意事项
@@ -316,6 +427,12 @@ pnpm start:dev
 
 - `src/utils/crypto.util.ts` - 加密工具（AES-256-GCM）
 - `src/utils/time.util.ts` - 时间工具（交易时间判断）
+
+### 测试文件
+
+- `jest.config.js` - Jest 配置文件
+- `src/**/__tests__/*.test.ts` - 单元测试文件
+- 测试覆盖率报告: `coverage/` 目录（运行 `pnpm test:cov` 后生成）
 
 ## 风险提示
 

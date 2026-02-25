@@ -9,7 +9,9 @@
     "start:dev": "nodemon --watch src --exec ts-node src/main.ts",
     "dcup": "docker-compose up -d",
     "start:prod": "node dist/main.js",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:cov": "jest --coverage",
     "lint": "eslint \"src/**/*.ts\" --fix",
     "format": "prettier --write \"src/**/*.ts\""
   },
@@ -47,6 +49,7 @@
     "@nestjs/cli": "^11.0.16",
     "@nestjs/testing": "^11.1.14",
     "@types/bull": "^3.15.9",
+    "@types/jest": "^30.0.0",
     "@types/node": "^25.3.0",
     "@types/node-telegram-bot-api": "^0.64.13",
     "@typescript-eslint/eslint-plugin": "^8.56.1",
@@ -54,8 +57,10 @@
     "eslint": "^10.0.2",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
+    "jest": "^30.2.0",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
+    "ts-jest": "^29.4.6",
     "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }
