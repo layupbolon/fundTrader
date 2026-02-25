@@ -1,0 +1,30 @@
+database:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  database: ${DB_DATABASE}
+  username: ${DB_USERNAME}
+  password: ${DB_PASSWORD}
+
+redis:
+  host: ${REDIS_HOST}
+  port: ${REDIS_PORT}
+
+broker:
+  tiantian:
+    login_url: https://trade.1234567.com.cn/login
+    session_timeout: 1800
+
+scheduler:
+  timezone: Asia/Shanghai
+  trading_hours:
+    start: "09:30"
+    end: "15:00"
+
+notify:
+  telegram:
+    bot_token: ${TELEGRAM_BOT_TOKEN}
+    chat_id: ${TELEGRAM_CHAT_ID}
+  feishu:
+    app_id: ${FEISHU_APP_ID}
+    app_secret: ${FEISHU_APP_SECRET}
+    user_id: ${FEISHU_USER_ID}

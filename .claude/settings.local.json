@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git init)",
+      "Bash(git add -A)",
+      "Bash(npm audit --audit-level=high 2>&1 || true)",
+      "Bash(find . -name \"*.ts\" -type f ! -path \"./node_modules/*\" -exec grep -l \"process\\\\.env\\\\.\" {} \\\\;)",
+      "Bash(npm install helmet class-validator class-transformer @nestjs/throttler)",
+      "Bash(npm run build)",
+      "Bash(pnpm install)",
+      "Bash(pnpm build)",
+      "Bash(test -f .env && echo \"exists\" || echo \"not exists\")",
+      "Bash(find src -name \"*.ts\" -exec wc -l {} + | tail -1)"
+    ]
+  }
+}
