@@ -36,7 +36,12 @@ npm run start:prod
 
 ## 4. 验证服务
 
-访问 http://localhost:3000/api/funds 验证服务是否正常运行。
+访问以下地址验证服务是否正常运行：
+
+- **API 接口**: http://localhost:3000/api/funds
+- **Swagger 文档**: http://localhost:3000/api/docs
+
+Swagger 提供完整的交互式 API 文档，可以直接在浏览器中测试所有接口。
 
 ## 5. 创建第一个定投策略
 

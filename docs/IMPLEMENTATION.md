@@ -92,6 +92,12 @@
 - ✅ **BacktestController** - 回测API
   - POST /api/backtest - 运行回测
 
+- ✅ **Swagger API 文档**
+  - 交互式 API 文档界面
+  - 完整的请求/响应示例
+  - 在线测试所有接口
+  - 访问地址: http://localhost:3000/api/docs
+
 ### 8. 工具函数
 - ✅ **CryptoUtil** - 加密工具 (AES-256-GCM)
 - ✅ **TimeUtil** - 时间工具
@@ -104,6 +110,7 @@
 - ✅ **README.md** - 项目说明和使用指南
 - ✅ **QUICKSTART.md** - 快速开始指南
 - ✅ **.env.example** - 环境变量模板
+- ✅ **Swagger API 文档** - 交互式 API 文档
 
 ## 📊 项目统计
 

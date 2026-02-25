@@ -10,6 +10,7 @@
 - ✅ 多渠道通知（Telegram/飞书）
 - ✅ 基金净值自动同步
 - ✅ 会话自动保活
+- ✅ Swagger API 文档
 
 ## 技术栈
 
@@ -99,6 +100,15 @@ pnpm start:prod
 ```
 
 ## 使用指南
+
+### API 文档
+
+启动应用后，访问 Swagger API 文档：
+
+- **Swagger UI**: http://localhost:3000/api/docs
+- **Swagger JSON**: http://localhost:3000/api/docs-json
+
+Swagger 提供交互式 API 文档，可以直接在浏览器中测试所有 API 接口。
 
 ### 创建定投策略
 

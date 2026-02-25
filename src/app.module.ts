@@ -46,7 +46,13 @@ import {
       load: [
         () => {
           const configPath = path.join(__dirname, '../config/default.yml');
-          const fileContents = fs.readFileSync(configPath, 'utf8');
+          let fileContents = fs.readFileSync(configPath, 'utf8');
+
+          // Replace environment variables in YAML
+          fileContents = fileContents.replace(/\$\{(\w+)\}/g, (_, envVar) => {
+            return process.env[envVar] || '';
+          });
+
           return yaml.load(fileContents) as Record<string, unknown>;
         },
       ],
@@ -66,7 +72,7 @@ import {
       useFactory: (configService: ConfigService) => ({
         type: 'postgres',
         host: configService.get('database.host') || process.env.DB_HOST,
-        port: configService.get('database.port') || parseInt(process.env.DB_PORT || '5432'),
+        port: parseInt(configService.get('database.port') || process.env.DB_PORT || '5432'),
         username: configService.get('database.username') || process.env.DB_USERNAME,
         password: configService.get('database.password') || process.env.DB_PASSWORD,
         database: configService.get('database.database') || process.env.DB_DATABASE,
@@ -94,7 +100,7 @@ import {
       useFactory: (configService: ConfigService) => ({
         redis: {
           host: configService.get('redis.host') || process.env.REDIS_HOST || 'localhost',
-          port: configService.get('redis.port') || parseInt(process.env.REDIS_PORT || '6379'),
+          port: parseInt(configService.get('redis.port') || process.env.REDIS_PORT || '6379'),
         },
       }),
       inject: [ConfigService],

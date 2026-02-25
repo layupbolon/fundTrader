@@ -1,6 +1,7 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 
@@ -8,6 +9,20 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     logger: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['error', 'warn', 'log'],
   });
+
+  // Swagger configuration
+  const config = new DocumentBuilder()
+    .setTitle('A股基金自动交易平台 API')
+    .setDescription('场外基金自动交易系统 - 支持定投、止盈止损、策略回测')
+    .setVersion('1.0')
+    .addTag('strategies', '策略管理')
+    .addTag('positions', '持仓管理')
+    .addTag('transactions', '交易记录')
+    .addTag('funds', '基金信息')
+    .addTag('backtest', '策略回测')
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
 
   // Security headers
   app.use(
@@ -52,6 +67,7 @@ async function bootstrap() {
 ║   🚀 A股基金自动交易平台                                  ║
 ║                                                        ║
 ║   服务已启动: http://localhost:${port}                   ║
+║   API文档: http://localhost:${port}/api/docs            ║
 ║                                                        ║
 ║   定时任务:                                              ║
 ║   - 每天 09:00 同步基金净值                               ║

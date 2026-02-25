@@ -14,6 +14,7 @@
 - 多渠道通知（Telegram/飞书）
 - 基金净值自动同步
 - 会话自动保活
+- Swagger API 文档（交互式接口文档）
 
 ## 技术栈
 
@@ -290,6 +291,14 @@ pnpm start:dev
 - `src/core/strategy/auto-invest.strategy.ts` - 定投策略
 - `src/core/strategy/take-profit-stop-loss.strategy.ts` - 止盈止损策略
 - `src/core/backtest/backtest.engine.ts` - 回测引擎
+
+### API 文档
+
+- Swagger UI: `http://localhost:3000/api/docs`
+- Swagger JSON: `http://localhost:3000/api/docs-json`
+- API 配置: `src/main.ts` (DocumentBuilder)
+- DTO 装饰器: `src/api/dto.ts` (@ApiProperty)
+- Controller 装饰器: `src/api/controllers.ts` (@ApiTags, @ApiOperation)
 
 ### 外部集成
 
