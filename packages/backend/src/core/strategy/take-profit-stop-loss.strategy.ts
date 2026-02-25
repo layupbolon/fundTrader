@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Position, Strategy, Transaction, TransactionType, TransactionStatus } from '../../models';
+import { Position, Transaction, TransactionType, TransactionStatus } from '../../models';
 import { TiantianBrokerService } from '../../services/broker/tiantian.service';
 import { NotifyService } from '../../services/notify/notify.service';
 

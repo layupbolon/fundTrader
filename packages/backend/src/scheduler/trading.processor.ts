@@ -22,7 +22,7 @@ export class TradingProcessor {
   ) {}
 
   @Process('check-auto-invest')
-  async handleAutoInvest(job: Job) {
+  async handleAutoInvest(_job: Job) {
     console.log('Checking auto-invest strategies...');
 
     const strategies = await this.strategyRepository.find({
@@ -41,7 +41,7 @@ export class TradingProcessor {
   }
 
   @Process('check-take-profit-stop-loss')
-  async handleTakeProfitStopLoss(job: Job) {
+  async handleTakeProfitStopLoss(_job: Job) {
     console.log('Checking take-profit and stop-loss...');
 
     const positions = await this.positionRepository.find({
@@ -99,7 +99,7 @@ export class TradingProcessor {
   }
 
   @Process('keep-session-alive')
-  async handleKeepSessionAlive(job: Job) {
+  async handleKeepSessionAlive(_job: Job) {
     console.log('Keeping session alive...');
 
     try {

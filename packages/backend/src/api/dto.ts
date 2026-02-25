@@ -10,7 +10,7 @@ import {
   IsOptional,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { StrategyType, InvestFrequency } from '../models';
+import { StrategyType } from '../models';
 
 export class CreateStrategyDto {
   @ApiProperty({ description: '用户ID', example: 'user-uuid-123' })

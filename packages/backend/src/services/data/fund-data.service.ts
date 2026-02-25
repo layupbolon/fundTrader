@@ -103,7 +103,7 @@ export class FundDataService {
     try {
       // 从东方财富API获取基金信息
       const url = `https://fund.eastmoney.com/${fundCode}.html`;
-      const response = await axios.get(url, { timeout: 10000 });
+      await axios.get(url, { timeout: 10000 });
 
       // 简化实现：实际需要解析HTML
       return {

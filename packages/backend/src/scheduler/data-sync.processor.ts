@@ -9,7 +9,7 @@ export class DataSyncProcessor {
   constructor(private fundDataService: FundDataService) {}
 
   @Process('sync-nav')
-  async handleSyncNav(job: Job) {
+  async handleSyncNav(_job: Job) {
     console.log('Syncing fund NAV data...');
 
     try {

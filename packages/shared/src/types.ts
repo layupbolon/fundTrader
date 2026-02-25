@@ -2,7 +2,14 @@
  * 共享的接口类型
  */
 
-import { FundType, TransactionType, TransactionStatus, StrategyType, StrategyStatus, InvestFrequency } from './enums';
+import {
+  FundType,
+  TransactionType,
+  TransactionStatus,
+  StrategyType,
+  StrategyStatus,
+  InvestFrequency,
+} from './enums';
 
 // 基金基本信息
 export interface IFund {
