@@ -2,6 +2,8 @@
 
 基于 Node.js/TypeScript 的场外基金自动交易系统，支持定投、止盈止损、策略回测等功能。
 
+> 本项目采用 Monorepo 架构，使用 pnpm workspaces 管理多个包。
+
 ## 功能特性
 
 - ✅ 自动定投（日/周/月频率）
@@ -31,13 +33,14 @@
 ### 2. 安装依赖
 
 ```bash
+# 在根目录安装所有包的依赖
 pnpm install
 ```
 
 ### 3. 配置环境变量
 
 ```bash
-cp .env.example .env
+cp packages/backend/.env.example packages/backend/.env
 ```
 
 编辑 `.env` 文件，填写以下配置：
@@ -75,7 +78,7 @@ TIANTIAN_PASSWORD=your_password
 
 ```bash
 # 使用 Docker 快速启动 PostgreSQL 和 Redis
-docker-compose up -d
+pnpm dcup
 ```
 
 或手动启动：
@@ -91,11 +94,13 @@ redis-server
 ### 5. 运行应用
 
 ```bash
-# 开发模式
-pnpm start:dev
+# 开发模式（热重载）
+pnpm dev
+
+# 构建所有包
+pnpm build
 
 # 生产模式
-pnpm build
 pnpm start:prod
 ```
 
@@ -201,23 +206,35 @@ curl -X POST http://localhost:3000/api/backtest \
 ## 项目结构
 
 ```
-fundTrader/
-├── src/
-│   ├── models/              # 数据模型
-│   ├── services/            # 服务层
-│   │   ├── broker/         # 交易平台接入
-│   │   ├── data/           # 数据获取
-│   │   └── notify/         # 通知服务
-│   ├── core/               # 核心业务逻辑
-│   │   ├── strategy/       # 策略引擎
-│   │   └── backtest/       # 回测系统
-│   ├── scheduler/          # 定时任务
-│   ├── utils/              # 工具函数
-│   ├── app.module.ts       # 应用模块
-│   └── main.ts             # 应用入口
-├── config/                 # 配置文件
-├── PLAN.md                 # 技术方案文档
-└── package.json
+fundTrader/                    # Monorepo 根目录
+├── packages/
+│   ├── backend/              # 后端服务
+│   │   ├── src/
+│   │   │   ├── models/      # 数据模型
+│   │   │   ├── services/    # 服务层
+│   │   │   │   ├── broker/  # 交易平台接入
+│   │   │   │   ├── data/    # 数据获取
+│   │   │   │   └── notify/  # 通知服务
+│   │   │   ├── core/        # 核心业务逻辑
+│   │   │   │   ├── strategy/ # 策略引擎
+│   │   │   │   └── backtest/ # 回测系统
+│   │   │   ├── scheduler/   # 定时任务
+│   │   │   ├── api/         # REST API
+│   │   │   ├── utils/       # 工具函数
+│   │   │   ├── app.module.ts
+│   │   │   └── main.ts
+│   │   ├── config/          # 配置文件
+│   │   ├── docs/            # 文档
+│   │   └── package.json
+│   ├── shared/              # 前后端共享代码
+│   │   ├── src/
+│   │   │   ├── types.ts    # 共享类型定义
+│   │   │   ├── enums.ts    # 共享枚举
+│   │   │   └── index.ts
+│   │   └── package.json
+│   └── frontend/            # 前端应用（待开发）
+├── pnpm-workspace.yaml      # pnpm workspace 配置
+└── package.json             # 根 package.json
 ```
 
 ## 安全建议

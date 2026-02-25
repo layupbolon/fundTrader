@@ -27,55 +27,74 @@
 
 ## 项目架构
 
+> **重要**: 本项目采用 Monorepo 架构，使用 pnpm workspaces 管理多个包。
+
 ### 目录结构
 
 ```
-fundTrader/
-├── src/
-│   ├── models/              # 数据模型（7个实体）
-│   │   ├── user.entity.ts
-│   │   ├── fund.entity.ts
-│   │   ├── fund-nav.entity.ts
-│   │   ├── position.entity.ts
-│   │   ├── transaction.entity.ts
-│   │   ├── strategy.entity.ts
-│   │   └── backtest-result.entity.ts
-│   ├── services/            # 服务层
-│   │   ├── broker/         # 交易平台接入
-│   │   │   └── tiantian.service.ts
-│   │   ├── data/           # 数据获取
-│   │   │   └── fund-data.service.ts
-│   │   └── notify/         # 通知服务
-│   │       ├── notify.service.ts
-│   │       ├── telegram.service.ts
-│   │       └── feishu.service.ts
-│   ├── core/               # 核心业务逻辑
-│   │   ├── strategy/       # 策略引擎
-│   │   │   ├── auto-invest.strategy.ts
-│   │   │   └── take-profit-stop-loss.strategy.ts
-│   │   └── backtest/       # 回测系统
-│   │       └── backtest.engine.ts
-│   ├── scheduler/          # 定时任务
-│   │   ├── scheduler.service.ts
-│   │   ├── trading.processor.ts
-│   │   └── data-sync.processor.ts
-│   ├── api/                # REST API
-│   │   ├── controllers.ts
-│   │   └── dto.ts
-│   ├── utils/              # 工具函数
-│   │   ├── crypto.util.ts  # AES-256-GCM 加密
-│   │   └── time.util.ts    # 交易时间判断
-│   ├── app.module.ts       # 应用模块
-│   └── main.ts             # 应用入口
-├── config/                 # 配置文件
-│   └── default.yml
-├── docs/                   # 文档
-│   ├── PLAN.md            # 技术方案
-│   ├── IMPLEMENTATION.md  # 实施总结
-│   ├── QUICKSTART.md      # 快速开始
-│   └── SECURITY_FIXES.md  # 安全修复记录
-├── .env.example           # 环境变量模板
-└── docker-compose.yml     # 数据库服务
+fundTrader/                        # Monorepo 根目录
+├── packages/
+│   ├── backend/                  # 后端服务包
+│   │   ├── src/
+│   │   │   ├── models/          # 数据模型（7个实体）
+│   │   │   │   ├── user.entity.ts
+│   │   │   │   ├── fund.entity.ts
+│   │   │   │   ├── fund-nav.entity.ts
+│   │   │   │   ├── position.entity.ts
+│   │   │   │   ├── transaction.entity.ts
+│   │   │   │   ├── strategy.entity.ts
+│   │   │   │   └── backtest-result.entity.ts
+│   │   │   ├── services/        # 服务层
+│   │   │   │   ├── broker/     # 交易平台接入
+│   │   │   │   │   └── tiantian.service.ts
+│   │   │   │   ├── data/       # 数据获取
+│   │   │   │   │   └── fund-data.service.ts
+│   │   │   │   └── notify/     # 通知服务
+│   │   │   │       ├── notify.service.ts
+│   │   │   │       ├── telegram.service.ts
+│   │   │   │       └── feishu.service.ts
+│   │   │   ├── core/            # 核心业务逻辑
+│   │   │   │   ├── strategy/   # 策略引擎
+│   │   │   │   │   ├── auto-invest.strategy.ts
+│   │   │   │   │   └── take-profit-stop-loss.strategy.ts
+│   │   │   │   └── backtest/   # 回测系统
+│   │   │   │       └── backtest.engine.ts
+│   │   │   ├── scheduler/      # 定时任务
+│   │   │   │   ├── scheduler.service.ts
+│   │   │   │   ├── trading.processor.ts
+│   │   │   │   └── data-sync.processor.ts
+│   │   │   ├── api/            # REST API
+│   │   │   │   ├── controllers.ts
+│   │   │   │   └── dto.ts
+│   │   │   ├── utils/          # 工具函数
+│   │   │   │   ├── crypto.util.ts  # AES-256-GCM 加密
+│   │   │   │   └── time.util.ts    # 交易时间判断
+│   │   │   ├── app.module.ts   # 应用模块
+│   │   │   └── main.ts         # 应用入口
+│   │   ├── config/             # 配置文件
+│   │   │   └── default.yml
+│   │   ├── docs/               # 文档
+│   │   │   ├── PLAN.md        # 技术方案
+│   │   │   ├── IMPLEMENTATION.md  # 实施总结
+│   │   │   ├── QUICKSTART.md  # 快速开始
+│   │   │   └── SECURITY_FIXES.md  # 安全修复记录
+│   │   ├── .env.example       # 环境变量模板
+│   │   ├── docker-compose.yml # 数据库服务
+│   │   ├── tsconfig.json      # TypeScript 配置
+│   │   ├── jest.config.js     # Jest 配置
+│   │   └── package.json       # 后端包配置
+│   ├── shared/                # 前后端共享代码包
+│   │   ├── src/
+│   │   │   ├── types.ts      # 共享类型定义
+│   │   │   ├── enums.ts      # 共享枚举
+│   │   │   └── index.ts      # 导出入口
+│   │   ├── tsconfig.json     # TypeScript 配置
+│   │   └── package.json      # Shared 包配置
+│   └── frontend/             # 前端应用包（待开发）
+├── pnpm-workspace.yaml       # pnpm workspace 配置
+├── package.json              # 根 package.json（workspace 脚本）
+├── CLAUDE.md                 # AI Agent 上下文文档
+└── README.md                 # 项目说明
 ```
 
 ### 核心模块说明
@@ -301,20 +320,21 @@ src/
    - 相关模块的现有代码
 
 2. **遵循现有模式**
-   - 新增 Entity 需要在 models/ 目录
-   - 新增 Service 需要在 services/ 目录
-   - 新增策略需要在 core/strategy/ 目录
+   - 新增 Entity 需要在 packages/backend/src/models/ 目录
+   - 新增 Service 需要在 packages/backend/src/services/ 目录
+   - 新增策略需要在 packages/backend/src/core/strategy/ 目录
+   - 前后端共享的类型定义放在 packages/shared/src/ 目录
    - 使用 NestJS 依赖注入
 
 3. **更新配置**
-   - 新增环境变量需要更新 .env.example
-   - 新增配置项需要更新 config/default.yml
-   - 新增 API 需要更新 controllers.ts
+   - 新增环境变量需要更新 packages/backend/.env.example
+   - 新增配置项需要更新 packages/backend/config/default.yml
+   - 新增 API 需要更新 packages/backend/src/api/controllers.ts
 
 4. **文档同步**
    - 更新 README.md 的功能列表
-   - 更新 docs/IMPLEMENTATION.md 的完成状态
-   - 如有重大变更，更新 docs/PLAN.md
+   - 更新 packages/backend/docs/IMPLEMENTATION.md 的完成状态
+   - 如有重大变更，更新 packages/backend/docs/PLAN.md
 
 ### 禁止的操作
 
@@ -375,64 +395,72 @@ TIANTIAN_PASSWORD=your_password
 
 ```bash
 # 1. 启动数据库
-docker-compose up -d
+pnpm dcup
 
-# 2. 安装依赖
+# 2. 安装依赖（在根目录）
 pnpm install
 
 # 3. 配置环境变量
-cp .env.example .env
-# 编辑 .env 文件
+cp packages/backend/.env.example packages/backend/.env
+# 编辑 packages/backend/.env 文件
 
 # 4. 启动应用
-pnpm start:dev
+pnpm dev
 ```
 
 ## 关键文件路径
 
 ### 配置文件
 
-- `.env.example` - 环境变量模板
-- `config/default.yml` - 应用配置
-- `tsconfig.json` - TypeScript 配置
-- `docker-compose.yml` - 数据库服务配置
+- `packages/backend/.env.example` - 环境变量模板
+- `packages/backend/config/default.yml` - 应用配置
+- `packages/backend/tsconfig.json` - 后端 TypeScript 配置
+- `packages/backend/docker-compose.yml` - 数据库服务配置
+- `packages/shared/tsconfig.json` - Shared 包 TypeScript 配置
+- `pnpm-workspace.yaml` - pnpm workspace 配置
 
 ### 核心业务
 
-- `src/core/strategy/auto-invest.strategy.ts` - 定投策略
-- `src/core/strategy/take-profit-stop-loss.strategy.ts` - 止盈止损策略
-- `src/core/backtest/backtest.engine.ts` - 回测引擎
+- `packages/backend/src/core/strategy/auto-invest.strategy.ts` - 定投策略
+- `packages/backend/src/core/strategy/take-profit-stop-loss.strategy.ts` - 止盈止损策略
+- `packages/backend/src/core/backtest/backtest.engine.ts` - 回测引擎
+
+### 共享代码
+
+- `packages/shared/src/types.ts` - 前后端共享类型定义
+- `packages/shared/src/enums.ts` - 共享枚举类型
+- `packages/shared/src/index.ts` - Shared 包导出入口
 
 ### API 文档
 
 - Swagger UI: `http://localhost:3000/api/docs`
 - Swagger JSON: `http://localhost:3000/api/docs-json`
-- API 配置: `src/main.ts` (DocumentBuilder)
-- DTO 装饰器: `src/api/dto.ts` (@ApiProperty)
-- Controller 装饰器: `src/api/controllers.ts` (@ApiTags, @ApiOperation)
+- API 配置: `packages/backend/src/main.ts` (DocumentBuilder)
+- DTO 装饰器: `packages/backend/src/api/dto.ts` (@ApiProperty)
+- Controller 装饰器: `packages/backend/src/api/controllers.ts` (@ApiTags, @ApiOperation)
 
 ### 外部集成
 
-- `src/services/broker/tiantian.service.ts` - 天天基金接入
-- `src/services/data/fund-data.service.ts` - 基金数据获取
-- `src/services/notify/notify.service.ts` - 通知服务
+- `packages/backend/src/services/broker/tiantian.service.ts` - 天天基金接入
+- `packages/backend/src/services/data/fund-data.service.ts` - 基金数据获取
+- `packages/backend/src/services/notify/notify.service.ts` - 通知服务
 
 ### 定时任务
 
-- `src/scheduler/scheduler.service.ts` - 任务调度
-- `src/scheduler/trading.processor.ts` - 交易任务处理
-- `src/scheduler/data-sync.processor.ts` - 数据同步处理
+- `packages/backend/src/scheduler/scheduler.service.ts` - 任务调度
+- `packages/backend/src/scheduler/trading.processor.ts` - 交易任务处理
+- `packages/backend/src/scheduler/data-sync.processor.ts` - 数据同步处理
 
 ### 工具函数
 
-- `src/utils/crypto.util.ts` - 加密工具（AES-256-GCM）
-- `src/utils/time.util.ts` - 时间工具（交易时间判断）
+- `packages/backend/src/utils/crypto.util.ts` - 加密工具（AES-256-GCM）
+- `packages/backend/src/utils/time.util.ts` - 时间工具（交易时间判断）
 
 ### 测试文件
 
-- `jest.config.js` - Jest 配置文件
-- `src/**/__tests__/*.test.ts` - 单元测试文件
-- 测试覆盖率报告: `coverage/` 目录（运行 `pnpm test:cov` 后生成）
+- `packages/backend/jest.config.js` - Jest 配置文件
+- `packages/backend/src/**/__tests__/*.test.ts` - 单元测试文件
+- 测试覆盖率报告: `packages/backend/coverage/` 目录（运行 `pnpm test:cov` 后生成）
 
 ## 风险提示
 
