@@ -43,6 +43,7 @@ import {
     // 配置模块
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: path.join(__dirname, '../../../.env'), // 指向根目录的 .env 文件
       load: [
         () => {
           const configPath = path.join(__dirname, '../config/default.yml');
