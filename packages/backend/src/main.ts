@@ -11,6 +11,9 @@ async function bootstrap() {
   });
 
   // Swagger configuration
+  // Global prefix - must be set before Swagger document creation
+  app.setGlobalPrefix('api');
+
   const config = new DocumentBuilder()
     .setTitle('A股基金自动交易平台 API')
     .setDescription('场外基金自动交易系统 - 支持定投、止盈止损、策略回测')
@@ -53,9 +56,6 @@ async function bootstrap() {
       transform: true,
     }),
   );
-
-  // Global prefix
-  app.setGlobalPrefix('api');
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
