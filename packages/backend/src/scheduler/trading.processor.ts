@@ -3,10 +3,11 @@ import { Job } from 'bull';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Strategy, Position, StrategyType } from '../models';
+import { Strategy, Position, Transaction, StrategyType, TransactionStatus } from '../models';
 import { AutoInvestStrategy } from '../core/strategy/auto-invest.strategy';
 import { TakeProfitStopLossStrategy } from '../core/strategy/take-profit-stop-loss.strategy';
 import { TiantianBrokerService } from '../services/broker/tiantian.service';
+import { NotifyService } from '../services/notify/notify.service';
 
 @Processor('trading')
 @Injectable()
@@ -16,9 +17,12 @@ export class TradingProcessor {
     private strategyRepository: Repository<Strategy>,
     @InjectRepository(Position)
     private positionRepository: Repository<Position>,
+    @InjectRepository(Transaction)
+    private transactionRepository: Repository<Transaction>,
     private autoInvestStrategy: AutoInvestStrategy,
     private takeProfitStopLossStrategy: TakeProfitStopLossStrategy,
     private brokerService: TiantianBrokerService,
+    private notifyService: NotifyService,
   ) {}
 
   @Process('check-auto-invest')
@@ -94,6 +98,64 @@ export class TradingProcessor {
         }
       } catch (error) {
         console.error(`Failed to check take-profit/stop-loss for position ${position.id}:`, error);
+      }
+    }
+  }
+
+  @Process('confirm-pending-transactions')
+  async handleConfirmPendingTransactions(_job: Job) {
+    console.log('Checking pending transactions for confirmation...');
+
+    // Find transactions that are PENDING and were submitted more than 1 day ago
+    const oneDayAgo = new Date();
+    oneDayAgo.setDate(oneDayAgo.getDate() - 1);
+    oneDayAgo.setHours(0, 0, 0, 0);
+
+    const pendingTransactions = await this.transactionRepository
+      .createQueryBuilder('t')
+      .where('t.status = :status', { status: TransactionStatus.PENDING })
+      .andWhere('t.submitted_at < :cutoff', { cutoff: oneDayAgo })
+      .getMany();
+
+    for (const transaction of pendingTransactions) {
+      try {
+        if (!transaction.order_id) {
+          console.warn(`Transaction ${transaction.id} has no order_id, skipping`);
+          continue;
+        }
+
+        const orderStatus = await this.brokerService.getOrderStatus(transaction.order_id);
+
+        if (orderStatus.status === 'CONFIRMED') {
+          await this.transactionRepository.update(transaction.id, {
+            status: TransactionStatus.CONFIRMED,
+            confirmed_at: new Date(),
+            confirmed_shares: orderStatus.shares,
+            confirmed_price: orderStatus.price,
+            shares: orderStatus.shares,
+            price: orderStatus.price,
+          });
+
+          await this.notifyService.send({
+            title: '交易确认成功',
+            content: `基金 ${transaction.fund_code} 交易已确认\n份额: ${orderStatus.shares}\n净值: ${orderStatus.price}\n订单号: ${transaction.order_id}`,
+            level: 'info',
+          });
+        } else if (orderStatus.status === 'FAILED') {
+          await this.transactionRepository.update(transaction.id, {
+            status: TransactionStatus.FAILED,
+            confirmed_at: new Date(),
+          });
+
+          await this.notifyService.send({
+            title: '交易确认失败',
+            content: `基金 ${transaction.fund_code} 交易失败\n订单号: ${transaction.order_id}\n原因: ${orderStatus.reason || '未知'}`,
+            level: 'error',
+          });
+        }
+        // If status is still PENDING on the broker side, we just skip and check again next time
+      } catch (error) {
+        console.error(`Failed to confirm transaction ${transaction.id}:`, error);
       }
     }
   }

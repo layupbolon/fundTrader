@@ -14,12 +14,32 @@ export class SchedulerService implements OnModuleInit {
   }
 
   private setupScheduledJobs() {
-    // 每天早上9:00同步基金净值
+    // 工作日 20:00 主同步（基金净值通常在 18:00-20:00 间发布）
     this.dataSyncQueue.add(
       'sync-nav',
       {},
       {
-        repeat: { cron: '0 9 * * *' },
+        repeat: { cron: '0 20 * * 1-5' },
+        removeOnComplete: true,
+      },
+    );
+
+    // 工作日 22:00 补充重试（部分基金净值发布较晚）
+    this.dataSyncQueue.add(
+      'sync-nav',
+      {},
+      {
+        repeat: { cron: '0 22 * * 1-5' },
+        removeOnComplete: true,
+      },
+    );
+
+    // 工作日 09:00 兜底同步（确保最新数据可用）
+    this.dataSyncQueue.add(
+      'sync-nav',
+      {},
+      {
+        repeat: { cron: '0 9 * * 1-5' },
         removeOnComplete: true,
       },
     );
@@ -40,6 +60,16 @@ export class SchedulerService implements OnModuleInit {
       {},
       {
         repeat: { cron: '0 * * * *' },
+        removeOnComplete: true,
+      },
+    );
+
+    // 每天 21:00 确认待处理交易（T+1 确认）
+    this.tradingQueue.add(
+      'confirm-pending-transactions',
+      {},
+      {
+        repeat: { cron: '0 21 * * 1-5' },
         removeOnComplete: true,
       },
     );

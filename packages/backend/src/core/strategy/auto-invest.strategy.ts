@@ -10,7 +10,7 @@ import {
 } from '../../models';
 import { TiantianBrokerService } from '../../services/broker/tiantian.service';
 import { NotifyService } from '../../services/notify/notify.service';
-import { isTradeTime, isWorkday } from '../../utils';
+import { isTradeTime, isWorkday, configDayToJsDay } from '../../utils';
 
 /**
  * 定投策略配置接口
@@ -150,7 +150,8 @@ export class AutoInvestStrategy {
       case InvestFrequency.WEEKLY:
         // 周定投：每周固定某天执行
         // getDay() 返回 0-6（0=周日，1=周一，...，6=周六）
-        return now.getDay() === (config.day_of_week || 1);
+        // configDayToJsDay 转换配置格式 1-7 为 JS 格式 0-6
+        return now.getDay() === configDayToJsDay(config.day_of_week || 1);
 
       case InvestFrequency.MONTHLY:
         // 月定投：每月固定某天执行
@@ -199,6 +200,26 @@ export class AutoInvestStrategy {
         throw new Error('非交易时间');
       }
 
+      // 去重防护：检查今日是否已有该策略的 PENDING 或 CONFIRMED 交易
+      // 防止定时任务重复触发导致同一天多次定投
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const existingTransaction = await this.transactionRepository
+        .createQueryBuilder('t')
+        .where('t.strategy_id = :strategyId', { strategyId: strategy.id })
+        .andWhere('t.submitted_at >= :today', { today })
+        .andWhere('t.status IN (:...statuses)', {
+          statuses: [TransactionStatus.PENDING, TransactionStatus.CONFIRMED],
+        })
+        .getOne();
+
+      if (existingTransaction) {
+        console.warn(
+          `定投去重：策略 ${strategy.id} 今日已有交易记录 ${existingTransaction.id}，跳过执行`,
+        );
+        return existingTransaction;
+      }
+
       // 执行买入
       // 调用天天基金交易平台接口，提交买入订单
       const order = await this.brokerService.buyFund(fund_code, amount);
@@ -217,6 +238,11 @@ export class AutoInvestStrategy {
       });
 
       await this.transactionRepository.save(transaction);
+
+      // 更新策略最后执行时间
+      await this.strategyRepository.update(strategy.id, {
+        last_executed_at: new Date(),
+      });
 
       // 发送通知
       // 通过 Telegram/飞书通知用户定投执行成功

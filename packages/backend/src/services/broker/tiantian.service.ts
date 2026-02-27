@@ -51,6 +51,9 @@ interface OrderStatus {
 
   /** 成交价格（仅确认后有值） */
   price?: number;
+
+  /** 失败原因（仅失败时有值） */
+  reason?: string;
 }
 
 /**

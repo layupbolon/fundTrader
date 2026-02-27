@@ -148,6 +148,20 @@ export class Transaction {
   confirmed_at: Date;
 
   /**
+   * 确认份额
+   * T+1 确认后的实际份额
+   */
+  @Column({ type: 'decimal', precision: 15, scale: 4, nullable: true })
+  confirmed_shares: number;
+
+  /**
+   * 确认价格（净值）
+   * T+1 确认后的实际成交净值
+   */
+  @Column({ type: 'decimal', precision: 10, scale: 4, nullable: true })
+  confirmed_price: number;
+
+  /**
    * 关联策略ID
    *
    * 如果是策略自动执行的交易，记录策略ID

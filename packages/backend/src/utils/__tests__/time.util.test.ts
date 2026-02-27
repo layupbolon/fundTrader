@@ -1,4 +1,4 @@
-import { isTradeTime, isWorkday, formatDate, sleep } from '../time.util';
+import { isTradeTime, isWorkday, formatDate, sleep, configDayToJsDay } from '../time.util';
 
 describe('time.util', () => {
   describe('isTradeTime', () => {
@@ -123,6 +123,28 @@ describe('time.util', () => {
 
       await Promise.resolve();
       expect(resolved).toBe(false);
+    });
+  });
+
+  describe('configDayToJsDay', () => {
+    it('should convert Monday (1) to JS day 1', () => {
+      expect(configDayToJsDay(1)).toBe(1);
+    });
+
+    it('should convert Tuesday (2) to JS day 2', () => {
+      expect(configDayToJsDay(2)).toBe(2);
+    });
+
+    it('should convert Friday (5) to JS day 5', () => {
+      expect(configDayToJsDay(5)).toBe(5);
+    });
+
+    it('should convert Saturday (6) to JS day 6', () => {
+      expect(configDayToJsDay(6)).toBe(6);
+    });
+
+    it('should convert Sunday (7) to JS day 0', () => {
+      expect(configDayToJsDay(7)).toBe(0);
     });
   });
 });

@@ -15,6 +15,7 @@ import { NotifyService } from '../../../services/notify/notify.service';
 
 describe('AutoInvestStrategy', () => {
   let service: AutoInvestStrategy;
+  let strategyRepository: jest.Mocked<Repository<Strategy>>;
   let transactionRepository: jest.Mocked<Repository<Transaction>>;
   let brokerService: jest.Mocked<TiantianBrokerService>;
   let notifyService: jest.Mocked<NotifyService>;
@@ -25,6 +26,13 @@ describe('AutoInvestStrategy', () => {
       save: jest.fn(),
       find: jest.fn(),
       findOne: jest.fn(),
+      update: jest.fn(),
+    };
+
+    const mockQueryBuilder = {
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(null),
     };
 
     const mockTransactionRepository = {
@@ -32,6 +40,7 @@ describe('AutoInvestStrategy', () => {
       save: jest.fn(),
       find: jest.fn(),
       findOne: jest.fn(),
+      createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
     };
 
     const mockBrokerService = {
@@ -67,6 +76,7 @@ describe('AutoInvestStrategy', () => {
     }).compile();
 
     service = module.get<AutoInvestStrategy>(AutoInvestStrategy);
+    strategyRepository = module.get(getRepositoryToken(Strategy));
     transactionRepository = module.get(getRepositoryToken(Transaction));
     brokerService = module.get(TiantianBrokerService);
     notifyService = module.get(NotifyService);
@@ -90,6 +100,7 @@ describe('AutoInvestStrategy', () => {
         start_date: new Date('2026-01-01'),
       },
       created_at: new Date(),
+      last_executed_at: null,
       user: null,
       fund: null,
       ...overrides,
@@ -234,6 +245,7 @@ describe('AutoInvestStrategy', () => {
         start_date: new Date('2026-01-01'),
       },
       created_at: new Date(),
+      last_executed_at: null,
       user: null,
       fund: null,
     });
@@ -248,6 +260,101 @@ describe('AutoInvestStrategy', () => {
 
       const strategy = createStrategy();
       await expect(service.execute(strategy)).rejects.toThrow('非交易时间');
+    });
+
+    it('should skip execution if duplicate transaction exists today', async () => {
+      const strategy = createStrategy();
+      const existingTransaction = {
+        id: 'existing-tx',
+        user_id: 'user1',
+        fund_code: '000001',
+        type: TransactionType.BUY,
+        amount: 1000,
+        status: TransactionStatus.PENDING,
+        order_id: 'existing-order',
+        strategy_id: '1',
+        submitted_at: new Date('2026-02-25T10:00:00'),
+      } as Transaction;
+
+      const mockQueryBuilder = {
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(existingTransaction),
+      };
+      transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
+
+      const result = await service.execute(strategy);
+
+      expect(result).toEqual(existingTransaction);
+      expect(brokerService.buyFund).not.toHaveBeenCalled();
+      expect(transactionRepository.create).not.toHaveBeenCalled();
+      expect(transactionRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should update last_executed_at after successful execution', async () => {
+      const strategy = createStrategy();
+      const mockOrder = {
+        id: 'order123',
+        fundCode: '000001',
+        amount: 1000,
+        status: 'pending',
+      };
+      const mockTransaction = {
+        id: 'tx123',
+        user_id: 'user1',
+        fund_code: '000001',
+        type: TransactionType.BUY,
+        amount: 1000,
+        status: TransactionStatus.PENDING,
+        order_id: 'order123',
+        strategy_id: '1',
+      };
+
+      brokerService.buyFund.mockResolvedValue(mockOrder);
+      transactionRepository.create.mockReturnValue(mockTransaction as Transaction);
+      transactionRepository.save.mockResolvedValue(mockTransaction as Transaction);
+
+      await service.execute(strategy);
+
+      expect(strategyRepository.update).toHaveBeenCalledWith('1', {
+        last_executed_at: expect.any(Date),
+      });
+    });
+
+    it('should execute normally if no duplicate exists', async () => {
+      const strategy = createStrategy();
+      const mockOrder = {
+        id: 'order456',
+        fundCode: '000001',
+        amount: 1000,
+        status: 'pending',
+      };
+      const mockTransaction = {
+        id: 'tx456',
+        user_id: 'user1',
+        fund_code: '000001',
+        type: TransactionType.BUY,
+        amount: 1000,
+        status: TransactionStatus.PENDING,
+        order_id: 'order456',
+        strategy_id: '1',
+      };
+
+      // createQueryBuilder default mock already returns null for getOne
+      brokerService.buyFund.mockResolvedValue(mockOrder);
+      transactionRepository.create.mockReturnValue(mockTransaction as Transaction);
+      transactionRepository.save.mockResolvedValue(mockTransaction as Transaction);
+
+      const result = await service.execute(strategy);
+
+      expect(transactionRepository.createQueryBuilder).toHaveBeenCalledWith('t');
+      expect(brokerService.buyFund).toHaveBeenCalledWith('000001', 1000);
+      expect(transactionRepository.create).toHaveBeenCalled();
+      expect(transactionRepository.save).toHaveBeenCalled();
+      expect(strategyRepository.update).toHaveBeenCalledWith('1', {
+        last_executed_at: expect.any(Date),
+      });
+      expect(result).toEqual(mockTransaction);
     });
 
     it('should execute buy order successfully', async () => {

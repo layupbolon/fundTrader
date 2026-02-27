@@ -121,3 +121,25 @@ export function formatDate(date: Date): string {
 export function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+/**
+ * 将配置中的星期几转换为 JavaScript 的 getDay() 格式
+ *
+ * 配置格式：1-7（1=周一，2=周二，...，7=周日）
+ * JS getDay()：0-6（0=周日，1=周一，...，6=周六）
+ *
+ * 转换公式：configDay % 7
+ * - 1 → 1 (Monday)
+ * - 2 → 2 (Tuesday)
+ * - 3 → 3 (Wednesday)
+ * - 4 → 4 (Thursday)
+ * - 5 → 5 (Friday)
+ * - 6 → 6 (Saturday)
+ * - 7 → 0 (Sunday)
+ *
+ * @param configDay 配置中的星期几（1-7）
+ * @returns JavaScript getDay() 格式的星期几（0-6）
+ */
+export function configDayToJsDay(configDay: number): number {
+  return configDay % 7;
+}

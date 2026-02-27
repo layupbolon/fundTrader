@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { FundDataService } from '../../services/data/fund-data.service';
 import { FundNav, StrategyType, InvestFrequency } from '../../models';
+import { configDayToJsDay } from '../../utils';
 
 /**
  * 回测参数接口
@@ -322,7 +323,7 @@ export class BacktestEngine {
 
       case InvestFrequency.WEEKLY:
         // 周定投：每周固定某天执行
-        shouldInvest = date.getDay() === (day_of_week || 1);
+        shouldInvest = date.getDay() === configDayToJsDay(day_of_week || 1);
         break;
 
       case InvestFrequency.MONTHLY:

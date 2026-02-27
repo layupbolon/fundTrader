@@ -122,6 +122,14 @@ export class Strategy {
   enabled: boolean;
 
   /**
+   * 最后执行时间
+   * 记录策略最后一次成功执行的时间，用于去重防护
+   * 防止同一天内重复执行定投操作
+   */
+  @Column({ type: 'timestamp', nullable: true })
+  last_executed_at: Date;
+
+  /**
    * 创建时间
    * 自动记录策略创建时间
    */
