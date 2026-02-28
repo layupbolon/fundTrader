@@ -13,10 +13,6 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { StrategyType } from '../models';
 
 export class CreateStrategyDto {
-  @ApiProperty({ description: '用户ID', example: 'user-uuid-123' })
-  @IsString()
-  user_id: string;
-
   @ApiProperty({ description: '策略名称', example: '沪深300定投' })
   @IsString()
   name: string;
@@ -46,6 +42,26 @@ export class CreateStrategyDto {
   config: any;
 
   @ApiPropertyOptional({ description: '是否启用', default: true })
+  @IsBoolean()
+  @IsOptional()
+  enabled?: boolean;
+}
+
+export class UpdateStrategyDto {
+  @ApiPropertyOptional({ description: '策略名称', example: '沪深300定投-改' })
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @ApiPropertyOptional({
+    description: '策略配置参数',
+    example: { amount: 2000, frequency: 'MONTHLY', day_of_month: 15 },
+  })
+  @IsObject()
+  @IsOptional()
+  config?: any;
+
+  @ApiPropertyOptional({ description: '是否启用' })
   @IsBoolean()
   @IsOptional()
   enabled?: boolean;

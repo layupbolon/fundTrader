@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bull';
@@ -9,6 +10,9 @@ import * as path from 'path';
 
 // Models
 import { User, Fund, FundNav, Position, Transaction, Strategy, BacktestResult } from './models';
+
+// Auth
+import { AuthModule, JwtAuthGuard } from './auth';
 
 // Services
 import { TiantianBrokerService } from './services/broker/tiantian.service';
@@ -109,8 +113,17 @@ import {
     }),
 
     BullModule.registerQueue({ name: 'trading' }, { name: 'data-sync' }),
+
+    // Auth
+    AuthModule,
   ],
   providers: [
+    // Global JWT guard
+    {
+      provide: APP_GUARD,
+      useClass: JwtAuthGuard,
+    },
+
     // Services
     TiantianBrokerService,
     FundDataService,

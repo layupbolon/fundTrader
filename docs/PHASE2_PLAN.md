@@ -12,11 +12,11 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 |------|------|------|
 | 第 1 轮 | ✅ 已完成 | 2A-1, 2A-2, 2A-3, 2A-4 |
 | 第 2 轮 | ✅ 已完成 | 2A-5, 2A-6, 2C-1, 2B-6 |
-| 第 3 轮 | ⬜ 待开始 | 2B-1, 2B-3, 2B-4, 2B-5 |
+| 第 3 轮 | ✅ 已完成 | 2B-1, 2B-3, 2B-4, 2B-5 |
 | 第 4 轮 | ⬜ 待开始 | 2B-2, 2C-2, 2C-3, 2D-* |
 | 第 5 轮 | ⬜ 待开始 | 2E-1, 2E-2, 2E-3 |
 
-**当前测试状态**: 9 suites / 108 tests 全部通过
+**当前测试状态**: 14 suites / 149 tests 全部通过
 
 ---
 
@@ -97,32 +97,61 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 
 ## Sub-Phase 2B：安全与 API 完善
 
-### ⬜ 2B-1. JWT 认证 [L] — 待开始
+### ✅ 2B-1. JWT 认证 [L] — 已完成 (2026-02-28)
 - **问题**：所有 11 个 API 端点无任何认证
 - **方案**：
   - 新建 `auth/` 模块：`@nestjs/passport` + `passport-jwt` + `bcrypt`
-  - `POST /api/auth/login`、`POST /api/auth/register`
-  - 全局 `JwtAuthGuard`，排除 `/auth/*` 和 `/api/docs`
-  - Swagger 添加 `BearerAuth`
-- **文件**：`src/auth/`（新建目录，含 module/controller/service/strategy/guard/dto）、`user.entity.ts`、`main.ts`、`app.module.ts`
+  - `POST /api/auth/register`、`POST /api/auth/login`（@Public 豁免）
+  - 全局 `JwtAuthGuard`（APP_GUARD），@Public() 装饰器豁免认证端点
+  - `@CurrentUser()` 参数装饰器替代 `@Query('user_id')`
+  - Swagger 添加 `BearerAuth` 和 `auth` 标签
+- **文件**：`src/auth/`（新建目录，含 module/controller/service/jwt.strategy/jwt-auth.guard/public.decorator/user.decorator/dto）、`user.entity.ts`（新增 password_hash）、`main.ts`、`app.module.ts`、`controllers.ts`、`dto.ts`
+- **变更详情**：
+  - `auth.module.ts`：PassportModule + JwtModule（异步注册，从 env 读 JWT_SECRET，7 天过期）
+  - `auth.service.ts`：register（bcrypt.hash + save + sign JWT）、login（bcrypt.compare + sign JWT）、validateUser
+  - `auth.controller.ts`：@Public() + POST /auth/register + POST /auth/login
+  - `jwt.strategy.ts`：从 Bearer header 提取 token，validate 返回 { id, username }
+  - `jwt-auth.guard.ts`：继承 AuthGuard('jwt')，检查 @Public() 元数据
+  - `user.entity.ts`：新增 password_hash（nullable，兼容现有用户）
+  - `app.module.ts`：导入 AuthModule，注册 APP_GUARD → JwtAuthGuard
+  - `controllers.ts`：所有 Controller 添加 @ApiBearerAuth()，user_id 改从 @CurrentUser() 获取
+  - `dto.ts`：CreateStrategyDto 移除 user_id 字段
+  - `.env.example`：新增 JWT_SECRET
+  - 测试：auth.service.test.ts（7 用例）、jwt-auth.guard.test.ts（5 用例）
 
 ### ⬜ 2B-2. 用户管理 API [M] — 待开始
 - **依赖**：2B-1
 - **方案**：`GET/PUT /api/users/me`、`PUT /api/users/me/broker-credentials`
 - **文件**：`api/user.controller.ts`（新建）
 
-### ⬜ 2B-3. 完善 Strategy CRUD [S] — 待开始
-- **方案**：添加 `PUT /api/strategies/:id` 和 `DELETE /api/strategies/:id`
+### ✅ 2B-3. 完善 Strategy CRUD [S] — 已完成 (2026-02-28)
+- **方案**：添加 `PUT /api/strategies/:id` 和 `DELETE /api/strategies/:id`，含权限校验和 config 校验
 - **文件**：`controllers.ts`、`dto.ts`
+- **变更详情**：
+  - `dto.ts`：新增 UpdateStrategyDto（name/config/enabled 均可选，type/fund_code 不可更新）
+  - `controllers.ts`：PUT（查 → 校权限 → 校 config → 更新）、DELETE（查 → 校权限 → 硬删除）
+  - toggle 端点也增加权限校验，使用 NotFoundException/ForbiddenException 替代 Error
+  - 测试：strategy-controller.test.ts（13 用例：findAll/create/update/remove/toggle）
 
-### ⬜ 2B-4. 列表分页 [S] — 待开始
-- **方案**：通用 `PaginationDto`（page/limit）+ `PaginatedResponse<T>` 包装器，应用到所有列表端点
-- **文件**：`dto/pagination.dto.ts`（新建）、`controllers.ts`、`shared/src/types.ts`
+### ✅ 2B-4. 列表分页 [S] — 已完成 (2026-02-28)
+- **方案**：通用 `PaginationDto`（page/limit）+ `PaginatedResponse<T>` + `createPaginatedResponse()` 工厂，应用到 5 个列表端点
+- **文件**：`pagination.dto.ts`（新建）、`paginated-response.ts`（新建）、`controllers.ts`
+- **变更详情**：
+  - `PaginationDto`：page（默认 1，min 1）、limit（默认 20，min 1，max 100），@Type(() => Number) 处理 query string
+  - `createPaginatedResponse()`：计算 totalPages，返回 { data, total, page, limit, totalPages }
+  - 5 个列表端点改用 findAndCount + skip/take + createPaginatedResponse()
+  - 测试：pagination.test.ts（5 用例：空数据/单条/整除/非整除/分页参数）
 
-### ⬜ 2B-5. Strategy.config 运行时校验 [M] — 待开始
+### ✅ 2B-5. Strategy.config 运行时校验 [M] — 已完成 (2026-02-28)
 - **问题**：`config` 字段类型为 `any`，无运行时校验
-- **方案**：按策略类型定义 `AutoInvestConfigDto`、`TakeProfitConfigDto`、`StopLossConfigDto`，用 `class-validator` 校验
-- **文件**：`dto/strategy-config.dto.ts`（新建）、`dto.ts`、`controllers.ts`、`shared/src/types.ts`
+- **方案**：按策略类型定义 DTO 类，用 `class-validator` + `class-transformer` 校验
+- **文件**：`dto/strategy-config/`（新建目录）、`controllers.ts`
+- **变更详情**：
+  - `auto-invest-config.dto.ts`：amount（min 10）、frequency（InvestFrequency 枚举）、day_of_week（1-7，WEEKLY 时必填）、day_of_month（1-31，MONTHLY 时必填）、start_date/end_date（可选）
+  - `take-profit-config.dto.ts`：TakeProfitPartDto（target_rate, sell_ratio, trailing_stop 可选）、StopLossPartDto（max_drawdown ≤ 0, sell_ratio）、TakeProfitStopLossConfigDto（@IsDefined + @ValidateNested）
+  - `validate-strategy-config.ts`：根据 type 选择 DTO 类，plainToInstance + validate，错误时抛 BadRequestException
+  - 在 StrategyController.create() 和 update() 中调用校验
+  - 测试：validate-strategy-config.test.ts（11 用例：合法/非法 config、未知 type）
 
 ### ✅ 2B-6. 持久化回测结果 [S] — 已完成 (2026-02-28)
 - **问题**：`BacktestResult` 实体已定义但从未写入数据库
@@ -178,12 +207,12 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 | 通知服务 | S | ✅ 已完成 | `notify/__tests__/notify.service.test.ts` |
 | 回测引擎 | M | ✅ 已完成 | `backtest/__tests__/backtest.engine.test.ts` |
 | 交易处理器 | M | ✅ 已完成 | `scheduler/__tests__/trading.processor.test.ts` |
-| API 控制器 | M | ⬜ 待开始 | `api/__tests__/controllers.test.ts` |
+| API 控制器 | M | ✅ 部分完成 | `api/__tests__/strategy-controller.test.ts`、`api/__tests__/pagination.test.ts`、`api/dto/strategy-config/__tests__/` |
 | 调度器服务 | S | ⬜ 待开始 | `scheduler/__tests__/scheduler.service.test.ts` |
 | 数据同步处理器 | S | ⬜ 待开始 | `scheduler/__tests__/data-sync.processor.test.ts` |
 | 交易平台服务 | M | ⬜ 待开始 | `broker/__tests__/tiantian.service.test.ts` |
 | 通知渠道 | S | ⬜ 待开始 | `notify/__tests__/telegram.service.test.ts`、`feishu.service.test.ts` |
-| 认证模块 | M | ⬜ 待开始 | `auth/__tests__/` 3 个文件 |
+| 认证模块 | M | ✅ 已完成 | `auth/__tests__/` 2 个文件 |
 | PositionService | M | ✅ 已完成 | `position/__tests__/position.service.test.ts` |
 
 ---
@@ -223,11 +252,11 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   ✅ 2C-1 回测成本修复 (独立)    │
   ✅ 2B-6 持久化回测结果 (独立)  │
                                  ├─→ 第 3 轮
-第 3 轮 (安全 & API):             │  ⬜ 待开始
-  2B-1 JWT 认证                   │
-  2B-3 Strategy CRUD              │
-  2B-4 分页                       │
-  2B-5 Config 校验                │
+第 3 轮 (安全 & API):             │  ✅ 已完成
+  ✅ 2B-1 JWT 认证                 │
+  ✅ 2B-3 Strategy CRUD            │
+  ✅ 2B-4 分页                     │
+  ✅ 2B-5 Config 校验              │
                                  ├─→ 第 4 轮
 第 4 轮 (新功能):                 │  ⬜ 待开始
   2B-2 用户管理 ←── 2B-1         │

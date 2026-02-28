@@ -27,6 +27,13 @@ export class User {
   username: string;
 
   /**
+   * 用户密码哈希
+   * 使用 bcrypt 加密存储，nullable 兼容现有无密码用户
+   */
+  @Column({ nullable: true })
+  password_hash: string;
+
+  /**
    * 加密的交易平台凭证
    *
    * 存储格式（加密前）：

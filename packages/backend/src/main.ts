@@ -18,6 +18,8 @@ async function bootstrap() {
     .setTitle('A股基金自动交易平台 API')
     .setDescription('场外基金自动交易系统 - 支持定投、止盈止损、策略回测')
     .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('auth', '认证管理')
     .addTag('strategies', '策略管理')
     .addTag('positions', '持仓管理')
     .addTag('transactions', '交易记录')

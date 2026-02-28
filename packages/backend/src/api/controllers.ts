@@ -2,19 +2,28 @@ import {
   Controller,
   Get,
   Post,
+  Put,
+  Delete,
   Body,
   Param,
   Query,
   ValidationPipe,
   UsePipes,
+  NotFoundException,
+  ForbiddenException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Strategy, Position, Transaction, Fund, BacktestResult as BacktestResultEntity } from '../models';
 import { BacktestEngine, BacktestResult } from '../core/backtest/backtest.engine';
-import { CreateStrategyDto, BacktestDto } from './dto';
+import { CreateStrategyDto, UpdateStrategyDto, BacktestDto } from './dto';
+import { PaginationDto } from './pagination.dto';
+import { createPaginatedResponse } from './paginated-response';
+import { CurrentUser } from '../auth/user.decorator';
+import { validateStrategyConfig } from './dto/strategy-config';
 
+@ApiBearerAuth()
 @ApiTags('strategies')
 @Controller('strategies')
 export class StrategyController {
@@ -24,12 +33,21 @@ export class StrategyController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: '获取策略列表', description: '获取所有策略或指定用户的策略' })
-  @ApiQuery({ name: 'user_id', required: false, description: '用户ID（可选）' })
+  @ApiOperation({ summary: '获取策略列表', description: '获取当前用户的策略列表（分页）' })
   @ApiResponse({ status: 200, description: '成功返回策略列表' })
-  async findAll(@Query('user_id') userId?: string) {
-    const where = userId ? { user_id: userId } : {};
-    return this.strategyRepository.find({ where, relations: ['fund'] });
+  async findAll(
+    @Query() pagination: PaginationDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    const { page, limit } = pagination;
+    const [data, total] = await this.strategyRepository.findAndCount({
+      where: { user_id: user.id },
+      relations: ['fund'],
+      skip: (page - 1) * limit,
+      take: limit,
+      order: { created_at: 'DESC' },
+    });
+    return createPaginatedResponse(data, total, page, limit);
   }
 
   @Get(':id')
@@ -49,9 +67,63 @@ export class StrategyController {
   @ApiResponse({ status: 201, description: '策略创建成功' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-  async create(@Body() createDto: CreateStrategyDto) {
-    const strategy = this.strategyRepository.create(createDto);
+  async create(
+    @Body() createDto: CreateStrategyDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    await validateStrategyConfig(createDto.type, createDto.config);
+    const strategy = this.strategyRepository.create({
+      ...createDto,
+      user_id: user.id,
+    });
     return this.strategyRepository.save(strategy);
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: '更新策略', description: '更新策略名称、配置或启用状态' })
+  @ApiParam({ name: 'id', description: '策略ID' })
+  @ApiResponse({ status: 200, description: '策略更新成功' })
+  @ApiResponse({ status: 403, description: '无权操作该策略' })
+  @ApiResponse({ status: 404, description: '策略不存在' })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async update(
+    @Param('id') id: string,
+    @Body() updateDto: UpdateStrategyDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    const strategy = await this.strategyRepository.findOne({ where: { id } });
+    if (!strategy) {
+      throw new NotFoundException('Strategy not found');
+    }
+    if (strategy.user_id !== user.id) {
+      throw new ForbiddenException('You do not have permission to update this strategy');
+    }
+    if (updateDto.config) {
+      await validateStrategyConfig(strategy.type, updateDto.config);
+    }
+    const updated = { ...strategy, ...updateDto };
+    return this.strategyRepository.save(updated);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: '删除策略', description: '永久删除策略' })
+  @ApiParam({ name: 'id', description: '策略ID' })
+  @ApiResponse({ status: 200, description: '策略删除成功' })
+  @ApiResponse({ status: 403, description: '无权操作该策略' })
+  @ApiResponse({ status: 404, description: '策略不存在' })
+  async remove(
+    @Param('id') id: string,
+    @CurrentUser() user: { id: string },
+  ) {
+    const strategy = await this.strategyRepository.findOne({ where: { id } });
+    if (!strategy) {
+      throw new NotFoundException('Strategy not found');
+    }
+    if (strategy.user_id !== user.id) {
+      throw new ForbiddenException('You do not have permission to delete this strategy');
+    }
+    await this.strategyRepository.remove(strategy);
+    return { message: 'Strategy deleted successfully' };
   }
 
   @Post(':id/toggle')
@@ -59,16 +131,20 @@ export class StrategyController {
   @ApiParam({ name: 'id', description: '策略ID' })
   @ApiResponse({ status: 200, description: '策略状态切换成功' })
   @ApiResponse({ status: 404, description: '策略不存在' })
-  async toggle(@Param('id') id: string) {
+  async toggle(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     const strategy = await this.strategyRepository.findOne({ where: { id } });
     if (!strategy) {
-      throw new Error('Strategy not found');
+      throw new NotFoundException('Strategy not found');
     }
-    strategy.enabled = !strategy.enabled;
-    return this.strategyRepository.save(strategy);
+    if (strategy.user_id !== user.id) {
+      throw new ForbiddenException('You do not have permission to toggle this strategy');
+    }
+    const updated = { ...strategy, enabled: !strategy.enabled };
+    return this.strategyRepository.save(updated);
   }
 }
 
+@ApiBearerAuth()
 @ApiTags('positions')
 @Controller('positions')
 export class PositionController {
@@ -78,16 +154,21 @@ export class PositionController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: '获取持仓列表', description: '获取所有持仓或指定用户的持仓' })
-  @ApiQuery({ name: 'user_id', required: false, description: '用户ID（可选）' })
+  @ApiOperation({ summary: '获取持仓列表', description: '获取当前用户的持仓列表（分页）' })
   @ApiResponse({ status: 200, description: '成功返回持仓列表' })
-  async findAll(@Query('user_id') userId?: string) {
-    const where = userId ? { user_id: userId } : {};
-    return this.positionRepository.find({
-      where,
+  async findAll(
+    @Query() pagination: PaginationDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    const { page, limit } = pagination;
+    const [data, total] = await this.positionRepository.findAndCount({
+      where: { user_id: user.id },
       relations: ['fund', 'user'],
+      skip: (page - 1) * limit,
+      take: limit,
       order: { updated_at: 'DESC' },
     });
+    return createPaginatedResponse(data, total, page, limit);
   }
 
   @Get(':id')
@@ -103,6 +184,7 @@ export class PositionController {
   }
 }
 
+@ApiBearerAuth()
 @ApiTags('transactions')
 @Controller('transactions')
 export class TransactionController {
@@ -112,26 +194,26 @@ export class TransactionController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: '获取交易记录', description: '获取交易记录列表，支持按用户和基金筛选' })
-  @ApiQuery({ name: 'user_id', required: false, description: '用户ID（可选）' })
+  @ApiOperation({ summary: '获取交易记录', description: '获取交易记录列表，支持按基金筛选（分页）' })
   @ApiQuery({ name: 'fund_code', required: false, description: '基金代码（可选）' })
-  @ApiQuery({ name: 'limit', required: false, description: '返回记录数量限制', example: 50 })
   @ApiResponse({ status: 200, description: '成功返回交易记录列表' })
   async findAll(
-    @Query('user_id') userId?: string,
+    @Query() pagination: PaginationDto,
+    @CurrentUser() user: { id: string },
     @Query('fund_code') fundCode?: string,
-    @Query('limit') limit: number = 50,
   ) {
-    const where: any = {};
-    if (userId) where.user_id = userId;
+    const { page, limit } = pagination;
+    const where: any = { user_id: user.id };
     if (fundCode) where.fund_code = fundCode;
 
-    return this.transactionRepository.find({
+    const [data, total] = await this.transactionRepository.findAndCount({
       where,
       relations: ['fund', 'strategy'],
-      order: { submitted_at: 'DESC' },
+      skip: (page - 1) * limit,
       take: limit,
+      order: { submitted_at: 'DESC' },
     });
+    return createPaginatedResponse(data, total, page, limit);
   }
 
   @Get(':id')
@@ -147,6 +229,7 @@ export class TransactionController {
   }
 }
 
+@ApiBearerAuth()
 @ApiTags('funds')
 @Controller('funds')
 export class FundController {
@@ -156,12 +239,16 @@ export class FundController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: '获取基金列表', description: '获取所有基金信息' })
+  @ApiOperation({ summary: '获取基金列表', description: '获取所有基金信息（分页）' })
   @ApiResponse({ status: 200, description: '成功返回基金列表' })
-  async findAll() {
-    return this.fundRepository.find({
+  async findAll(@Query() pagination: PaginationDto) {
+    const { page, limit } = pagination;
+    const [data, total] = await this.fundRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
       order: { updated_at: 'DESC' },
     });
+    return createPaginatedResponse(data, total, page, limit);
   }
 
   @Get(':code')
@@ -174,6 +261,7 @@ export class FundController {
   }
 }
 
+@ApiBearerAuth()
 @ApiTags('backtest')
 @Controller('backtest')
 export class BacktestController {
@@ -184,12 +272,16 @@ export class BacktestController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: '获取回测结果列表', description: '查询所有回测结果，按创建时间倒序排列' })
+  @ApiOperation({ summary: '获取回测结果列表', description: '查询所有回测结果（分页）' })
   @ApiResponse({ status: 200, description: '成功返回回测结果列表' })
-  async findAll() {
-    return this.backtestResultRepository.find({
+  async findAll(@Query() pagination: PaginationDto) {
+    const { page, limit } = pagination;
+    const [data, total] = await this.backtestResultRepository.findAndCount({
+      skip: (page - 1) * limit,
+      take: limit,
       order: { created_at: 'DESC' },
     });
+    return createPaginatedResponse(data, total, page, limit);
   }
 
   @Get(':id')
