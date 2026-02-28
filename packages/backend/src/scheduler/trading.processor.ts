@@ -3,11 +3,12 @@ import { Job } from 'bull';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Strategy, Position, Transaction, StrategyType, TransactionStatus } from '../models';
+import { Strategy, Position, Transaction, StrategyType, TransactionType, TransactionStatus } from '../models';
 import { AutoInvestStrategy } from '../core/strategy/auto-invest.strategy';
 import { TakeProfitStopLossStrategy } from '../core/strategy/take-profit-stop-loss.strategy';
 import { TiantianBrokerService } from '../services/broker/tiantian.service';
 import { NotifyService } from '../services/notify/notify.service';
+import { PositionService } from '../services/position/position.service';
 
 @Processor('trading')
 @Injectable()
@@ -23,6 +24,7 @@ export class TradingProcessor {
     private takeProfitStopLossStrategy: TakeProfitStopLossStrategy,
     private brokerService: TiantianBrokerService,
     private notifyService: NotifyService,
+    private positionService: PositionService,
   ) {}
 
   @Process('check-auto-invest')
@@ -136,6 +138,23 @@ export class TradingProcessor {
             price: orderStatus.price,
           });
 
+          // 更新持仓
+          if (transaction.type === TransactionType.BUY) {
+            await this.positionService.updatePositionOnBuy(
+              transaction.user_id,
+              transaction.fund_code,
+              orderStatus.shares,
+              orderStatus.price,
+            );
+          } else if (transaction.type === TransactionType.SELL) {
+            await this.positionService.updatePositionOnSell(
+              transaction.user_id,
+              transaction.fund_code,
+              orderStatus.shares,
+              orderStatus.price,
+            );
+          }
+
           await this.notifyService.send({
             title: '交易确认成功',
             content: `基金 ${transaction.fund_code} 交易已确认\n份额: ${orderStatus.shares}\n净值: ${orderStatus.price}\n订单号: ${transaction.order_id}`,
@@ -157,6 +176,17 @@ export class TradingProcessor {
       } catch (error) {
         console.error(`Failed to confirm transaction ${transaction.id}:`, error);
       }
+    }
+  }
+
+  @Process('refresh-position-values')
+  async handleRefreshPositionValues(_job: Job) {
+    console.log('Refreshing position values...');
+
+    try {
+      await this.positionService.refreshAllPositionValues();
+    } catch (error) {
+      console.error('Failed to refresh position values:', error);
     }
   }
 

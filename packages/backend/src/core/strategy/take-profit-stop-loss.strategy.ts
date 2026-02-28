@@ -262,10 +262,7 @@ export class TakeProfitStopLossStrategy {
    * @private
    */
   private async getMaxProfitRate(positionId: string): Promise<number> {
-    // 从历史记录中获取最高收益率
-    // 简化实现：返回当前收益率
-    // TODO: 实现完整的历史最高收益率跟踪
     const position = await this.positionRepository.findOne({ where: { id: positionId } });
-    return position?.profit_rate || 0;
+    return Number(position?.max_profit_rate) || 0;
   }
 }

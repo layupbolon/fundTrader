@@ -74,6 +74,16 @@ export class SchedulerService implements OnModuleInit {
       },
     );
 
+    // 每天 21:30 刷新持仓市值（工作日，净值更新后）
+    this.tradingQueue.add(
+      'refresh-position-values',
+      {},
+      {
+        repeat: { cron: '30 21 * * 1-5' },
+        removeOnComplete: true,
+      },
+    );
+
     // 每30分钟保持会话活跃
     this.tradingQueue.add(
       'keep-session-alive',

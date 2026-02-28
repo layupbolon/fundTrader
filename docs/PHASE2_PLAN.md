@@ -11,12 +11,12 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 | 轮次 | 状态 | 任务 |
 |------|------|------|
 | 第 1 轮 | ✅ 已完成 | 2A-1, 2A-2, 2A-3, 2A-4 |
-| 第 2 轮 | ⬜ 待开始 | 2A-5, 2A-6, 2C-1, 2B-6 |
+| 第 2 轮 | ✅ 已完成 | 2A-5, 2A-6, 2C-1, 2B-6 |
 | 第 3 轮 | ⬜ 待开始 | 2B-1, 2B-3, 2B-4, 2B-5 |
 | 第 4 轮 | ⬜ 待开始 | 2B-2, 2C-2, 2C-3, 2D-* |
 | 第 5 轮 | ⬜ 待开始 | 2E-1, 2E-2, 2E-3 |
 
-**当前测试状态**: 8 suites / 91 tests 全部通过
+**当前测试状态**: 9 suites / 108 tests 全部通过
 
 ---
 
@@ -66,7 +66,7 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   - `scheduler.service.ts`：新增 `0 21 * * 1-5` cron job（工作日 21:00 确认交易）
   - 测试：新增 5 个测试用例（确认成功、标记失败、跳过无订单号、错误处理、跳过仍 PENDING）
 
-### ⬜ 2A-5. T+1 确认后更新持仓 [M] — 待开始
+### ✅ 2A-5. T+1 确认后更新持仓 [M] — 已完成 (2026-02-28)
 - **问题**：`Position` 的 `shares`、`avg_price`、`profit_rate` 在确认后从未更新
 - **方案**：
   - 新建 `PositionService` 封装持仓更新逻辑
@@ -74,13 +74,24 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   - 卖出确认：按比例减少 `total_cost`、减少 `shares`
   - 新增每日 21:30 定时任务，用最新净值重算所有持仓的 `market_value` 和 `profit_rate`
 - **依赖**：2A-4 ✅
-- **文件**：`services/position/position.service.ts`（新建）、`trading.processor.ts`、`position.entity.ts`、`app.module.ts`
+- **文件**：`services/position/position.service.ts`（新建）、`trading.processor.ts`、`scheduler.service.ts`、`app.module.ts`
+- **变更详情**：
+  - `position.service.ts`（新建）：`updatePositionOnBuy()`（加权平均更新，不存在则自动创建）、`updatePositionOnSell()`（按 avg_price 比例减少成本，全卖时归零）、`refreshAllPositionValues()`（用最新 NAV 重算 current_value/profit/profit_rate）
+  - `trading.processor.ts`：注入 `PositionService`，在 CONFIRMED 分支中根据 `transaction.type` 调用 `updatePositionOnBuy/Sell`；新增 `@Process('refresh-position-values')` 处理器
+  - `scheduler.service.ts`：新增 `30 21 * * 1-5` cron job（工作日 21:30 刷新持仓市值）
+  - `app.module.ts`：注册 `PositionService`
+  - 测试：新增 `position.service.test.ts`（11 个用例）、更新 `trading.processor.test.ts`（+3 个用例）
 
-### ⬜ 2A-6. 修复移动止盈（getMaxProfitRate 桩函数）[M] — 待开始
+### ✅ 2A-6. 修复移动止盈（getMaxProfitRate 桩函数）[M] — 已完成 (2026-02-28)
 - **问题**：`getMaxProfitRate()` 直接返回当前 `profit_rate`，移动止盈完全失效
 - **方案**：`Position` 添加 `max_profit_rate` 字段；持仓更新时同步更新历史最高收益率
-- **依赖**：2A-5
+- **依赖**：2A-5 ✅
 - **文件**：`position.entity.ts`、`take-profit-stop-loss.strategy.ts`、`position.service.ts`
+- **变更详情**：
+  - `position.entity.ts`：新增 `max_profit_rate` 列（`decimal(10,4)`, default 0）
+  - `take-profit-stop-loss.strategy.ts`：`getMaxProfitRate()` 改为返回 `position.max_profit_rate`
+  - `position.service.ts`：`refreshAllPositionValues()` 中计算完 `profit_rate` 后自动更新 `max_profit_rate`（只升不降）
+  - 测试：更新所有 Position mock 添加 `max_profit_rate` 字段，新增 max_profit_rate 更新/保持测试用例
 
 ---
 
@@ -113,19 +124,32 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 - **方案**：按策略类型定义 `AutoInvestConfigDto`、`TakeProfitConfigDto`、`StopLossConfigDto`，用 `class-validator` 校验
 - **文件**：`dto/strategy-config.dto.ts`（新建）、`dto.ts`、`controllers.ts`、`shared/src/types.ts`
 
-### ⬜ 2B-6. 持久化回测结果 [S] — 待开始
+### ✅ 2B-6. 持久化回测结果 [S] — 已完成 (2026-02-28)
 - **问题**：`BacktestResult` 实体已定义但从未写入数据库
 - **方案**：回测完成后保存到数据库，新增 `GET /api/backtest` 和 `GET /api/backtest/:id`
-- **文件**：`controllers.ts`、`backtest-result.entity.ts`
+- **文件**：`controllers.ts`
+- **变更详情**：
+  - `BacktestController` 注入 `BacktestResult` Repository
+  - `POST /api/backtest`：运行回测后自动保存结果到 `backtest_results` 表
+  - `GET /api/backtest`：查询回测结果列表（按 `created_at` DESC）
+  - `GET /api/backtest/:id`：查询单个回测结果详情
+  - 所有新端点均配置 `@ApiOperation`、`@ApiResponse`、`@ApiParam` Swagger 装饰器
 
 ---
 
 ## Sub-Phase 2C：回测引擎修复 & 新策略
 
-### ⬜ 2C-1. 修复回测成本计算 [M] — 待开始
+### ✅ 2C-1. 修复回测成本计算 [M] — 已完成 (2026-02-28)
 - **问题**：`calculateAvgCost()` 用历史净值平均值代替实际加权成本，导致回测结果不准确
 - **方案**：回测状态新增 `totalCost` 字段，买入时累加，卖出时按比例减少，`avgCost = totalCost / shares`
 - **文件**：`backtest.engine.ts`
+- **变更详情**：
+  - 回测状态从 `{ cash, shares }` 扩展为 `{ cash, shares, totalCost }`
+  - 买入执行后 `totalCost += signal.amount`
+  - 卖出执行后 `totalCost -= totalCost * sellRatio`（按卖出比例减少）
+  - `calculateAvgCost()` 改为 `totalCost / shares`，移除 `historicalNav` 参数
+  - `evaluateStrategy`、`evaluateTakeProfit`、`evaluateStopLoss` 签名统一移除 `historicalNav` 参数
+  - 测试：新增 3 个用例验证真实加权成本计算
 
 ### ⬜ 2C-2. 网格交易策略 [L] — 待开始
 - **依赖**：2B-5、2C-1
@@ -160,7 +184,7 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 | 交易平台服务 | M | ⬜ 待开始 | `broker/__tests__/tiantian.service.test.ts` |
 | 通知渠道 | S | ⬜ 待开始 | `notify/__tests__/telegram.service.test.ts`、`feishu.service.test.ts` |
 | 认证模块 | M | ⬜ 待开始 | `auth/__tests__/` 3 个文件 |
-| PositionService | M | ⬜ 待开始 | `position/__tests__/position.service.test.ts` |
+| PositionService | M | ✅ 已完成 | `position/__tests__/position.service.test.ts` |
 
 ---
 
@@ -193,11 +217,11 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   ✅ 2A-3 净值同步时间修复
   ✅ 2A-4 T+1 确认流程
                                  ├─→ 第 2 轮
-第 2 轮 (持仓 & 止盈):            │  ⬜ 待开始
-  2A-5 持仓更新 ←── 2A-4 ✅      │
-  2A-6 移动止盈修复 ←── 2A-5     │
-  2C-1 回测成本修复 (独立)        │
-  2B-6 持久化回测结果 (独立)      │
+第 2 轮 (持仓 & 止盈):            │  ✅ 已完成
+  ✅ 2A-5 持仓更新 ←── 2A-4 ✅  │
+  ✅ 2A-6 移动止盈修复 ←── 2A-5 ✅│
+  ✅ 2C-1 回测成本修复 (独立)    │
+  ✅ 2B-6 持久化回测结果 (独立)  │
                                  ├─→ 第 3 轮
 第 3 轮 (安全 & API):             │  ⬜ 待开始
   2B-1 JWT 认证                   │

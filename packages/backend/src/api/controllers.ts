@@ -11,7 +11,7 @@ import {
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam } from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Strategy, Position, Transaction, Fund } from '../models';
+import { Strategy, Position, Transaction, Fund, BacktestResult as BacktestResultEntity } from '../models';
 import { BacktestEngine, BacktestResult } from '../core/backtest/backtest.engine';
 import { CreateStrategyDto, BacktestDto } from './dto';
 
@@ -177,12 +177,34 @@ export class FundController {
 @ApiTags('backtest')
 @Controller('backtest')
 export class BacktestController {
-  constructor(private backtestEngine: BacktestEngine) {}
+  constructor(
+    private backtestEngine: BacktestEngine,
+    @InjectRepository(BacktestResultEntity)
+    private backtestResultRepository: Repository<BacktestResultEntity>,
+  ) {}
+
+  @Get()
+  @ApiOperation({ summary: '获取回测结果列表', description: '查询所有回测结果，按创建时间倒序排列' })
+  @ApiResponse({ status: 200, description: '成功返回回测结果列表' })
+  async findAll() {
+    return this.backtestResultRepository.find({
+      order: { created_at: 'DESC' },
+    });
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: '获取回测结果详情', description: '根据ID获取单个回测结果的详细信息' })
+  @ApiParam({ name: 'id', description: '回测结果ID' })
+  @ApiResponse({ status: 200, description: '成功返回回测结果详情' })
+  @ApiResponse({ status: 404, description: '回测结果不存在' })
+  async findOne(@Param('id') id: string) {
+    return this.backtestResultRepository.findOne({ where: { id } });
+  }
 
   @Post()
   @ApiOperation({
     summary: '运行策略回测',
-    description: '使用历史数据回测交易策略，计算收益率、夏普比率、最大回撤等指标',
+    description: '使用历史数据回测交易策略，计算收益率、夏普比率、最大回撤等指标，结果自动保存到数据库',
   })
   @ApiResponse({
     status: 200,
@@ -203,12 +225,30 @@ export class BacktestController {
   async runBacktest(@Body() params: BacktestDto): Promise<BacktestResult> {
     const { fund_code, start_date, end_date, initial_capital, strategy_config } = params;
 
-    return this.backtestEngine.runBacktest({
+    const result = await this.backtestEngine.runBacktest({
       fund_code,
       start_date: new Date(start_date),
       end_date: new Date(end_date),
       initial_capital,
       strategy_config,
     });
+
+    // 持久化回测结果
+    const entity = this.backtestResultRepository.create({
+      strategy_config,
+      fund_code,
+      start_date: new Date(start_date),
+      end_date: new Date(end_date),
+      initial_capital,
+      final_value: result.final_value,
+      total_return: result.total_return,
+      annual_return: result.annual_return,
+      max_drawdown: result.max_drawdown,
+      sharpe_ratio: result.sharpe_ratio,
+      trades_count: result.trades_count,
+    });
+    await this.backtestResultRepository.save(entity);
+
+    return result;
   }
 }

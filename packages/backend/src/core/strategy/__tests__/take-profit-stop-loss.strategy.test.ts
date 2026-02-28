@@ -62,7 +62,7 @@ describe('TakeProfitStopLossStrategy', () => {
   });
 
   describe('checkTakeProfit', () => {
-    const createPosition = (profitRate: number): Position => ({
+    const createPosition = (profitRate: number, maxProfitRate?: number): Position => ({
       id: 'pos1',
       user_id: 'user1',
       fund_code: '000001',
@@ -72,6 +72,7 @@ describe('TakeProfitStopLossStrategy', () => {
       current_value: 1500 * (1 + profitRate),
       profit: 1500 * profitRate,
       profit_rate: profitRate,
+      max_profit_rate: maxProfitRate ?? profitRate,
       updated_at: new Date(),
       user: null,
       fund: null,
@@ -136,6 +137,7 @@ describe('TakeProfitStopLossStrategy', () => {
       current_value: 1500 * (1 + profitRate),
       profit: 1500 * profitRate,
       profit_rate: profitRate,
+      max_profit_rate: Math.max(profitRate, 0),
       updated_at: new Date(),
       user: null,
       fund: null,
@@ -177,6 +179,7 @@ describe('TakeProfitStopLossStrategy', () => {
       current_value: 1650,
       profit: 150,
       profit_rate: 0.1,
+      max_profit_rate: 0.1,
       updated_at: new Date(),
       user: null,
       fund: null,

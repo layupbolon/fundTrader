@@ -145,6 +145,17 @@ export class Position {
   profit_rate: number;
 
   /**
+   * 历史最高收益率
+   *
+   * 用于移动止盈策略，记录持仓的历史最高收益率。
+   * 在每日持仓市值刷新时更新。
+   *
+   * 例如：0.2500 表示历史最高收益率 25%
+   */
+  @Column({ type: 'decimal', precision: 10, scale: 4, default: 0 })
+  max_profit_rate: number;
+
+  /**
    * 最后更新时间
    * 自动记录持仓信息的最后更新时间
    */

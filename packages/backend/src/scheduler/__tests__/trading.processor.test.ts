@@ -1,17 +1,19 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { TradingProcessor } from '../trading.processor';
-import { Strategy, Position, Transaction, TransactionStatus } from '../../models';
+import { Strategy, Position, Transaction, TransactionStatus, TransactionType } from '../../models';
 import { AutoInvestStrategy } from '../../core/strategy/auto-invest.strategy';
 import { TakeProfitStopLossStrategy } from '../../core/strategy/take-profit-stop-loss.strategy';
 import { TiantianBrokerService } from '../../services/broker/tiantian.service';
 import { NotifyService } from '../../services/notify/notify.service';
+import { PositionService } from '../../services/position/position.service';
 
 describe('TradingProcessor', () => {
   let processor: TradingProcessor;
   let transactionRepository: any;
   let brokerService: any;
   let notifyService: any;
+  let positionService: any;
 
   beforeEach(async () => {
     const mockStrategyRepository = {
@@ -38,6 +40,12 @@ describe('TradingProcessor', () => {
 
     notifyService = {
       send: jest.fn(),
+    };
+
+    positionService = {
+      updatePositionOnBuy: jest.fn(),
+      updatePositionOnSell: jest.fn(),
+      refreshAllPositionValues: jest.fn(),
     };
 
     const mockAutoInvestStrategy = {
@@ -81,6 +89,10 @@ describe('TradingProcessor', () => {
         {
           provide: NotifyService,
           useValue: notifyService,
+        },
+        {
+          provide: PositionService,
+          useValue: positionService,
         },
       ],
     }).compile();
@@ -213,6 +225,80 @@ describe('TradingProcessor', () => {
       await processor.handleConfirmPendingTransactions({} as any);
 
       expect(transactionRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('should call positionService.updatePositionOnBuy for BUY transactions', async () => {
+      const pendingTx = {
+        id: 'tx6',
+        order_id: 'order6',
+        fund_code: '000006',
+        user_id: 'user1',
+        type: TransactionType.BUY,
+        status: TransactionStatus.PENDING,
+        submitted_at: new Date('2026-02-24'),
+      };
+
+      mockQueryBuilder.getMany.mockResolvedValue([pendingTx]);
+      brokerService.getOrderStatus.mockResolvedValue({
+        status: 'CONFIRMED',
+        shares: 500,
+        price: 2.0,
+      });
+      transactionRepository.update.mockResolvedValue({});
+      notifyService.send.mockResolvedValue(undefined);
+      positionService.updatePositionOnBuy.mockResolvedValue({});
+
+      await processor.handleConfirmPendingTransactions({} as any);
+
+      expect(positionService.updatePositionOnBuy).toHaveBeenCalledWith(
+        'user1',
+        '000006',
+        500,
+        2.0,
+      );
+      expect(positionService.updatePositionOnSell).not.toHaveBeenCalled();
+    });
+
+    it('should call positionService.updatePositionOnSell for SELL transactions', async () => {
+      const pendingTx = {
+        id: 'tx7',
+        order_id: 'order7',
+        fund_code: '000007',
+        user_id: 'user1',
+        type: TransactionType.SELL,
+        status: TransactionStatus.PENDING,
+        submitted_at: new Date('2026-02-24'),
+      };
+
+      mockQueryBuilder.getMany.mockResolvedValue([pendingTx]);
+      brokerService.getOrderStatus.mockResolvedValue({
+        status: 'CONFIRMED',
+        shares: 300,
+        price: 1.8,
+      });
+      transactionRepository.update.mockResolvedValue({});
+      notifyService.send.mockResolvedValue(undefined);
+      positionService.updatePositionOnSell.mockResolvedValue({});
+
+      await processor.handleConfirmPendingTransactions({} as any);
+
+      expect(positionService.updatePositionOnSell).toHaveBeenCalledWith(
+        'user1',
+        '000007',
+        300,
+        1.8,
+      );
+      expect(positionService.updatePositionOnBuy).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('handleRefreshPositionValues', () => {
+    it('should call positionService.refreshAllPositionValues', async () => {
+      positionService.refreshAllPositionValues.mockResolvedValue(undefined);
+
+      await processor.handleRefreshPositionValues({} as any);
+
+      expect(positionService.refreshAllPositionValues).toHaveBeenCalled();
     });
   });
 });

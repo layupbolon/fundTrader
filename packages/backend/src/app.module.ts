@@ -16,6 +16,7 @@ import { FundDataService } from './services/data/fund-data.service';
 import { NotifyService } from './services/notify/notify.service';
 import { TelegramService } from './services/notify/telegram.service';
 import { FeishuService } from './services/notify/feishu.service';
+import { PositionService } from './services/position/position.service';
 
 // Strategies
 import { AutoInvestStrategy } from './core/strategy/auto-invest.strategy';
@@ -116,6 +117,7 @@ import {
     NotifyService,
     TelegramService,
     FeishuService,
+    PositionService,
 
     // Strategies
     AutoInvestStrategy,

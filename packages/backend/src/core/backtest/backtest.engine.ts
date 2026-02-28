@@ -188,6 +188,7 @@ export class BacktestEngine {
     // 初始化回测状态
     let cash = initial_capital; // 可用现金
     let shares = 0; // 持有份额
+    let totalCost = 0; // 累计成本
     const trades: Trade[] = []; // 交易记录
     const portfolioValues: number[] = []; // 每日持仓价值
 
@@ -203,7 +204,11 @@ export class BacktestEngine {
 
       // 评估策略信号
       // 根据策略类型和配置判断是否应该买入/卖出
-      const signal = this.evaluateStrategy(strategy_config, nav, { cash, shares }, historicalNav);
+      const signal = this.evaluateStrategy(
+        strategy_config,
+        nav,
+        { cash, shares, totalCost },
+      );
 
       // 执行买入
       // 检查信号类型、买入金额和现金是否充足
@@ -211,6 +216,7 @@ export class BacktestEngine {
         const buyShares = signal.amount / currentNav; // 计算买入份额
         shares += buyShares; // 增加持仓
         cash -= signal.amount; // 减少现金
+        totalCost += signal.amount; // 累加成本
         trades.push({
           date: new Date(nav.date),
           type: 'BUY',
@@ -224,8 +230,10 @@ export class BacktestEngine {
       if (signal.action === 'SELL' && signal.ratio && shares > 0) {
         const sellShares = shares * signal.ratio; // 计算卖出份额
         const sellAmount = sellShares * currentNav; // 计算卖出金额
+        const sellRatio = sellShares / shares; // 卖出比例
         shares -= sellShares; // 减少持仓
         cash += sellAmount; // 增加现金
+        totalCost -= totalCost * sellRatio; // 按比例减少成本
         trades.push({
           date: new Date(nav.date),
           type: 'SELL',
@@ -273,8 +281,7 @@ export class BacktestEngine {
   private evaluateStrategy(
     config: any,
     currentNav: FundNav,
-    state: { cash: number; shares: number },
-    historicalNav: FundNav[],
+    state: { cash: number; shares: number; totalCost: number },
   ): Signal {
     const strategyType = config.type as StrategyType;
 
@@ -283,10 +290,10 @@ export class BacktestEngine {
         return this.evaluateAutoInvest(config, currentNav, state);
 
       case StrategyType.TAKE_PROFIT:
-        return this.evaluateTakeProfit(config, currentNav, state, historicalNav);
+        return this.evaluateTakeProfit(config, currentNav, state);
 
       case StrategyType.STOP_LOSS:
-        return this.evaluateStopLoss(config, currentNav, state, historicalNav);
+        return this.evaluateStopLoss(config, currentNav, state);
 
       default:
         return { action: 'HOLD' };
@@ -355,8 +362,7 @@ export class BacktestEngine {
   private evaluateTakeProfit(
     config: any,
     currentNav: FundNav,
-    state: { cash: number; shares: number },
-    historicalNav: FundNav[],
+    state: { cash: number; shares: number; totalCost: number },
   ): Signal {
     // 没有持仓时不执行止盈
     if (state.shares === 0) {
@@ -364,7 +370,7 @@ export class BacktestEngine {
     }
 
     const { target_rate, sell_ratio } = config;
-    const avgCost = this.calculateAvgCost(state, historicalNav);
+    const avgCost = this.calculateAvgCost(state);
     const currentPrice = Number(currentNav.nav);
     const profitRate = (currentPrice - avgCost) / avgCost;
 
@@ -391,8 +397,7 @@ export class BacktestEngine {
   private evaluateStopLoss(
     config: any,
     currentNav: FundNav,
-    state: { cash: number; shares: number },
-    historicalNav: FundNav[],
+    state: { cash: number; shares: number; totalCost: number },
   ): Signal {
     // 没有持仓时不执行止损
     if (state.shares === 0) {
@@ -400,7 +405,7 @@ export class BacktestEngine {
     }
 
     const { max_drawdown, sell_ratio } = config;
-    const avgCost = this.calculateAvgCost(state, historicalNav);
+    const avgCost = this.calculateAvgCost(state);
     const currentPrice = Number(currentNav.nav);
     const profitRate = (currentPrice - avgCost) / avgCost;
 
@@ -415,23 +420,16 @@ export class BacktestEngine {
   /**
    * 计算平均成本
    *
-   * 简化实现：使用历史平均净值作为成本。
-   * 完整实现需要跟踪每笔买入的成本和份额。
+   * 使用实际加权成本计算：totalCost / shares
    *
-   * @param state 当前持仓状态
-   * @param historicalNav 历史净值数据
+   * @param state 当前持仓状态（包含累计成本）
    * @returns 平均成本
    * @private
    */
   private calculateAvgCost(
-    state: { cash: number; shares: number },
-    historicalNav: FundNav[],
+    state: { cash: number; shares: number; totalCost: number },
   ): number {
-    // 简化实现：使用历史平均净值作为成本
-    // TODO: 实现完整的成本跟踪逻辑
-    const avgNav =
-      historicalNav.reduce((sum, nav) => sum + Number(nav.nav), 0) / historicalNav.length;
-    return avgNav;
+    return state.shares > 0 ? state.totalCost / state.shares : 0;
   }
 
   /**
