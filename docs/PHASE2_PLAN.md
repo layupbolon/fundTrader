@@ -15,10 +15,12 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 | 第 2 轮 | ✅ 已完成 | 2A-5, 2A-6, 2C-1, 2B-6 |
 | 第 3 轮 | ✅ 已完成 | 2B-1, 2B-3, 2B-4, 2B-5 |
 | 第 4 轮 | ✅ 已完成 | 2B-2, 2C-2, 2C-3, 2D-* |
-| 第 5 轮 | ⬜ 待开始 | 2E-1, 2E-2, 2E-3       |
+| 第 5 轮 | ✅ 已完成 | 2E-1, 2E-2, 2E-3       |
 
 
-**当前测试状态**: 22 suites / 231 tests 全部通过
+**当前测试状态**: 22 suites / 231 tests 全部通过（后端）
+
+**Phase 2 全部完成** ✅
 
 ---
 
@@ -266,24 +268,52 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 
 ## Sub-Phase 2E：Web 前端基础
 
-### ⬜ 2E-1. 前端项目初始化 [M] — 待开始
+### ✅ 2E-1. 前端项目初始化 [M] — 已完成 (2026-02-28)
 
-- **依赖**：2B-1、2B-4
-- **技术栈**：Vite + React 19 + TypeScript + Tailwind CSS
-- **文件**：`packages/frontend/`（package.json、vite.config.ts、src/main.tsx、api/client.ts、pages/Login.tsx）
+- **依赖**：2B-1 ✅、2B-4 ✅
+- **技术栈**：Vite 6 + React 19 + TypeScript 5.9 + Tailwind CSS v4 + react-router-dom v7
+- **文件**：`packages/frontend/`（35 个文件）
+- **变更详情**：
+  - `package.json`：@fundtrader/frontend，依赖 @fundtrader/shared (workspace:*)，端口 3001
+  - `vite.config.ts`：proxy `/api` → localhost:3000，`@` alias → src，`@fundtrader/shared` alias → shared 源码（解决 CJS/ESM 互操作）
+  - `tsconfig.json`：strict 模式，baseUrl paths 支持 `@/*`
+  - `index.css`：Tailwind v4 CSS-first 配置，自定义 theme tokens（primary/success/danger/warning）
+  - `api/client.ts`：fetch wrapper，JWT from localStorage，401 自动重定向 /login
+  - `api/types.ts`：所有 API 响应类型（PaginatedResponse<T>、Position、Transaction、Strategy、BacktestResultData 等），枚举从 @fundtrader/shared 复用
+  - `api/auth.ts`、`strategies.ts`、`positions.ts`、`transactions.ts`、`funds.ts`、`backtest.ts`、`user.ts`：7 个 API 模块
+  - `auth/AuthContext.tsx`：React Context + Provider，token/user 持久化到 localStorage
+  - `auth/LoginPage.tsx`、`RegisterPage.tsx`：居中卡片 UI，中文界面，loading/error 状态
+  - `auth/ProtectedRoute.tsx`：检查 isAuthenticated → Navigate to /login
+  - `shared/Layout.tsx`、`Navbar.tsx`：顶部导航栏 + Outlet，响应式 mobile hamburger menu
+  - `shared/LoadingSpinner.tsx`、`EmptyState.tsx`、`ErrorMessage.tsx`、`StatusBadge.tsx`、`Pagination.tsx`：5 个通用 UI 组件
+  - `hooks/useApi.ts`：通用 data/loading/error/refetch hook
+  - `hooks/usePagination.ts`：分页状态管理
+  - `App.tsx`：BrowserRouter + Routes（public: /login, /register; protected: /, /strategies, /strategies/new, /strategies/:id/edit, /backtest）
+  - `main.tsx`：StrictMode + createRoot 入口
+  - 根 `package.json`：新增 `dev:frontend`、`build:frontend`、`dev:all` scripts
 
-### ⬜ 2E-2. 仪表盘页面 [L] — 待开始
+### ✅ 2E-2. 仪表盘页面 [L] — 已完成 (2026-02-28)
 
-- 投资组合概览（总市值、总盈亏、收益率）
-- 持仓列表 + 实时收益率
-- 最近交易记录
-- 活跃策略状态
+- **文件**：`dashboard/DashboardPage.tsx`、`PortfolioSummary.tsx`、`PositionList.tsx`、`RecentTransactions.tsx`、`ActiveStrategies.tsx`
+- **变更详情**：
+  - `DashboardPage`：useEffect 并行加载 positions + transactions + strategies（Promise.all）
+  - `PortfolioSummary`：从 positions 计算总市值/总成本/总盈亏/总收益率，4 个 stat cards，盈亏颜色编码
+  - `PositionList`：响应式表格（基金名称/代码/份额/成本价/市值/收益率），收益率红绿色
+  - `RecentTransactions`：最近 5 笔交易，买/卖圆形标签 + StatusBadge 状态徽章
+  - `ActiveStrategies`：过滤 enabled=true，显示策略名/类型/基金 + toggle 开关
 
-### ⬜ 2E-3. 策略管理页面 [M] — 待开始
+### ✅ 2E-3. 策略管理 & 回测页面 [M] — 已完成 (2026-02-28)
 
-- 策略列表（启用/禁用）
-- 新建/编辑/删除策略表单
-- 触发回测并展示结果
+- **策略管理文件**：`strategies/StrategiesPage.tsx`、`StrategyCard.tsx`、`StrategyForm.tsx`、`AutoInvestForm.tsx`、`TakeProfitStopLossForm.tsx`、`GridTradingForm.tsx`、`RebalanceForm.tsx`
+- **回测文件**：`backtest/BacktestPage.tsx`、`BacktestForm.tsx`、`BacktestResultCard.tsx`
+- **变更详情**：
+  - `StrategiesPage`：「新建策略」按钮 + 分页策略卡片网格（1/2/3列响应式）
+  - `StrategyCard`：类型彩色徽章、配置摘要、toggle 开关、编辑/删除（二次确认）
+  - `StrategyForm`：根据 URL params 判断 create/edit，策略类型选择后动态渲染配置子表单，基金代码 6 位数字校验
+  - 4 个配置子表单：定投（金额/频率/周几/月几）、止盈止损（止盈率/止损率/卖出比例/移动止盈）、网格交易（价格上下限/网格数/每格金额）、再平衡（动态添加基金+权重行/阈值/频率）
+  - `BacktestPage`：上方表单 + 下方分页历史结果
+  - `BacktestForm`：基金代码 + 日期范围 + 初始资金 + 策略类型 + 对应配置子表单（复用策略子表单组件）
+  - `BacktestResultCard`：6 指标卡片（总收益率/年化收益/最大回撤/夏普比率/交易次数/最终价值），颜色编码
 
 ---
 
@@ -314,10 +344,10 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   ✅ 2C-3 动态再平衡 ←── 2B-5, 2C-1 ✅ │
   ✅ 2D-* 测试 (全部完成)          │
                                  ├─→ 第 5 轮
-第 5 轮 (前端):                      ⬜ 待开始
-  2E-1 前端初始化 ←── 2B-1
-  2E-2 仪表盘 ←── 2E-1
-  2E-3 策略管理 ←── 2E-2
+第 5 轮 (前端):                      ✅ 已完成
+  ✅ 2E-1 前端初始化 ←── 2B-1
+  ✅ 2E-2 仪表盘 ←── 2E-1
+  ✅ 2E-3 策略管理 & 回测 ←── 2E-2
 ```
 
 ---

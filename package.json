@@ -5,9 +5,12 @@
   "description": "A-share fund automated trading platform - Monorepo",
   "scripts": {
     "dev": "pnpm --filter @fundtrader/backend start:dev",
+    "dev:frontend": "pnpm --filter @fundtrader/frontend dev",
+    "dev:all": "pnpm --filter @fundtrader/backend start:dev & pnpm --filter @fundtrader/frontend dev",
     "build": "pnpm -r build",
     "build:backend": "pnpm --filter @fundtrader/backend build",
     "build:shared": "pnpm --filter @fundtrader/shared build",
+    "build:frontend": "pnpm --filter @fundtrader/frontend build",
     "start": "pnpm --filter @fundtrader/backend start",
     "start:prod": "pnpm --filter @fundtrader/backend start:prod",
     "test": "pnpm -r test",
