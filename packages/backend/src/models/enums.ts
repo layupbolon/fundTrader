@@ -13,6 +13,8 @@ export enum StrategyType {
   AUTO_INVEST = 'AUTO_INVEST',
   TAKE_PROFIT = 'TAKE_PROFIT',
   STOP_LOSS = 'STOP_LOSS',
+  GRID_TRADING = 'GRID_TRADING',
+  REBALANCE = 'REBALANCE',
 }
 
 export enum InvestFrequency {

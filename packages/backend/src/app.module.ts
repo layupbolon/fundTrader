@@ -25,6 +25,8 @@ import { PositionService } from './services/position/position.service';
 // Strategies
 import { AutoInvestStrategy } from './core/strategy/auto-invest.strategy';
 import { TakeProfitStopLossStrategy } from './core/strategy/take-profit-stop-loss.strategy';
+import { GridTradingStrategy } from './core/strategy/grid-trading.strategy';
+import { RebalanceStrategy } from './core/strategy/rebalance.strategy';
 
 // Backtest
 import { BacktestEngine } from './core/backtest/backtest.engine';
@@ -42,6 +44,7 @@ import {
   FundController,
   BacktestController,
 } from './api/controllers';
+import { UserController } from './api/user.controller';
 
 @Module({
   imports: [
@@ -135,6 +138,8 @@ import {
     // Strategies
     AutoInvestStrategy,
     TakeProfitStopLossStrategy,
+    GridTradingStrategy,
+    RebalanceStrategy,
 
     // Backtest
     BacktestEngine,
@@ -150,6 +155,7 @@ import {
     TransactionController,
     FundController,
     BacktestController,
+    UserController,
   ],
 })
 export class AppModule {}

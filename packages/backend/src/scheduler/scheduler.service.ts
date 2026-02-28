@@ -94,6 +94,26 @@ export class SchedulerService implements OnModuleInit {
       },
     );
 
+    // 工作日每小时检查网格交易
+    this.tradingQueue.add(
+      'check-grid-trading',
+      {},
+      {
+        repeat: { cron: '0 * * * 1-5' },
+        removeOnComplete: true,
+      },
+    );
+
+    // 工作日 14:00 检查再平衡
+    this.tradingQueue.add(
+      'check-rebalance',
+      {},
+      {
+        repeat: { cron: '0 14 * * 1-5' },
+        removeOnComplete: true,
+      },
+    );
+
     console.log('Scheduled jobs initialized');
   }
 }

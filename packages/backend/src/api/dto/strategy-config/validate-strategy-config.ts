@@ -4,11 +4,15 @@ import { BadRequestException } from '@nestjs/common';
 import { StrategyType } from '../../../models';
 import { AutoInvestConfigDto } from './auto-invest-config.dto';
 import { TakeProfitStopLossConfigDto } from './take-profit-config.dto';
+import { GridTradingConfigDto } from './grid-trading-config.dto';
+import { RebalanceConfigDto } from './rebalance-config.dto';
 
 const CONFIG_DTO_MAP: Record<string, new () => any> = {
   [StrategyType.AUTO_INVEST]: AutoInvestConfigDto,
   [StrategyType.TAKE_PROFIT]: TakeProfitStopLossConfigDto,
   [StrategyType.STOP_LOSS]: TakeProfitStopLossConfigDto,
+  [StrategyType.GRID_TRADING]: GridTradingConfigDto,
+  [StrategyType.REBALANCE]: RebalanceConfigDto,
 };
 
 export async function validateStrategyConfig(

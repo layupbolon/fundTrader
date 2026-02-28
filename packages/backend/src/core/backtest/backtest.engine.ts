@@ -192,6 +192,9 @@ export class BacktestEngine {
     const trades: Trade[] = []; // 交易记录
     const portfolioValues: number[] = []; // 每日持仓价值
 
+    // Strategy context for stateful strategies (e.g., grid trading)
+    const strategyContext: Record<string, any> = {};
+
     // 遍历每个交易日
     // 按时间顺序模拟策略执行
     for (const nav of historicalNav) {
@@ -208,6 +211,7 @@ export class BacktestEngine {
         strategy_config,
         nav,
         { cash, shares, totalCost },
+        strategyContext,
       );
 
       // 执行买入
@@ -282,6 +286,7 @@ export class BacktestEngine {
     config: any,
     currentNav: FundNav,
     state: { cash: number; shares: number; totalCost: number },
+    context: Record<string, any> = {},
   ): Signal {
     const strategyType = config.type as StrategyType;
 
@@ -295,9 +300,56 @@ export class BacktestEngine {
       case StrategyType.STOP_LOSS:
         return this.evaluateStopLoss(config, currentNav, state);
 
+      case StrategyType.GRID_TRADING:
+        return this.evaluateGridTrading(config, currentNav, state, context);
+
+      case StrategyType.REBALANCE:
+        return { action: 'HOLD' };
+
       default:
         return { action: 'HOLD' };
     }
+  }
+
+  private evaluateGridTrading(
+    config: any,
+    currentNav: FundNav,
+    state: { cash: number; shares: number; totalCost: number },
+    context: Record<string, any>,
+  ): Signal {
+    const { price_low, price_high, grid_count, amount_per_grid } = config;
+    const nav = Number(currentNav.nav);
+
+    if (nav < price_low || nav > price_high) {
+      return { action: 'HOLD' };
+    }
+
+    const step = (price_high - price_low) / grid_count;
+    let currentLevel = 0;
+    for (let i = grid_count; i >= 0; i--) {
+      if (nav >= price_low + step * i) {
+        currentLevel = i;
+        break;
+      }
+    }
+
+    const lastLevel = context.lastGridLevel;
+    context.lastGridLevel = currentLevel;
+
+    if (lastLevel === undefined) {
+      return { action: 'HOLD' };
+    }
+
+    if (currentLevel < lastLevel && state.cash >= amount_per_grid) {
+      return { action: 'BUY', amount: amount_per_grid };
+    }
+
+    if (currentLevel > lastLevel && state.shares > 0) {
+      const sellRatio = Math.min(amount_per_grid / (state.shares * nav), 1);
+      return { action: 'SELL', ratio: sellRatio };
+    }
+
+    return { action: 'HOLD' };
   }
 
   /**

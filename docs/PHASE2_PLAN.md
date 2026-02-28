@@ -8,15 +8,17 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 
 ## 实施进度总览
 
-| 轮次 | 状态 | 任务 |
-|------|------|------|
+
+| 轮次    | 状态    | 任务                     |
+| ----- | ----- | ---------------------- |
 | 第 1 轮 | ✅ 已完成 | 2A-1, 2A-2, 2A-3, 2A-4 |
 | 第 2 轮 | ✅ 已完成 | 2A-5, 2A-6, 2C-1, 2B-6 |
 | 第 3 轮 | ✅ 已完成 | 2B-1, 2B-3, 2B-4, 2B-5 |
-| 第 4 轮 | ⬜ 待开始 | 2B-2, 2C-2, 2C-3, 2D-* |
-| 第 5 轮 | ⬜ 待开始 | 2E-1, 2E-2, 2E-3 |
+| 第 4 轮 | ✅ 已完成 | 2B-2, 2C-2, 2C-3, 2D-* |
+| 第 5 轮 | ⬜ 待开始 | 2E-1, 2E-2, 2E-3       |
 
-**当前测试状态**: 14 suites / 149 tests 全部通过
+
+**当前测试状态**: 22 suites / 231 tests 全部通过
 
 ---
 
@@ -25,6 +27,7 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 > **在使用真实资金之前，必须完成本阶段所有内容。**
 
 ### ✅ 2A-1. 定投去重防护 [S] — 已完成 (2026-02-27)
+
 - **问题**：调度器重启或重试时，同一天可能重复执行定投
 - **方案**：在 `execute()` 前查询当天是否已有同策略的 PENDING/CONFIRMED 交易；`Strategy` 添加 `last_executed_at` 字段
 - **修改文件**：`auto-invest.strategy.ts`、`strategy.entity.ts`、`auto-invest.strategy.test.ts`
@@ -34,7 +37,8 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   - 测试：新增 3 个测试用例（跳过重复、更新时间戳、正常执行）
 
 ### ✅ 2A-2. 修复周定投 day_of_week 语义 [S] — 已完成 (2026-02-27)
-- **问题**：配置用 1=周一~7=周日，但代码用 `getDay()` (0=周日~6=周六)，导致周日(7)永远无法匹配
+
+- **问题**：配置用 1=周一~~7=周日，但代码用 `getDay()` (0=周日~~6=周六)，导致周日(7)永远无法匹配
 - **方案**：`time.util.ts` 添加 `configDayToJsDay()` 转换函数（`configDay % 7`），修复 `auto-invest.strategy.ts` 和 `backtest.engine.ts`
 - **修改文件**：`time.util.ts`、`auto-invest.strategy.ts`、`backtest.engine.ts`、`time.util.test.ts`
 - **变更详情**：
@@ -44,16 +48,18 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   - 测试：新增 5 个测试用例覆盖 Mon(1→1) 到 Sun(7→0)
 
 ### ✅ 2A-3. 修复净值同步时间 [S] — 已完成 (2026-02-27)
+
 - **问题**：`sync-nav` 定时任务 09:00 执行，但基金净值通常 20:00 后才发布
 - **方案**：主同步改为工作日 20:00，22:00 补充重试，保留 09:00 作为兜底
 - **修改文件**：`scheduler.service.ts`
 - **变更详情**：
-  - 原 `0 9 * * *`（每天 09:00）拆分为 3 个 workday-only 任务：
+  - 原 `0 9 * * `*（每天 09:00）拆分为 3 个 workday-only 任务：
     - `0 20 * * 1-5`：主同步（NAV 通常 18:00-20:00 发布）
     - `0 22 * * 1-5`：补充重试（晚发布基金）
     - `0 9 * * 1-5`：次日兜底同步
 
 ### ✅ 2A-4. 实现 T+1 确认流程 [L] — 已完成 (2026-02-27)
+
 - **问题**：交易创建后状态永远停在 PENDING，从未确认份额和价格
 - **修改文件**：`transaction.entity.ts`、`trading.processor.ts`、`tiantian.service.ts`、`scheduler.service.ts`
 - **新增文件**：`scheduler/__tests__/trading.processor.test.ts`
@@ -67,6 +73,7 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   - 测试：新增 5 个测试用例（确认成功、标记失败、跳过无订单号、错误处理、跳过仍 PENDING）
 
 ### ✅ 2A-5. T+1 确认后更新持仓 [M] — 已完成 (2026-02-28)
+
 - **问题**：`Position` 的 `shares`、`avg_price`、`profit_rate` 在确认后从未更新
 - **方案**：
   - 新建 `PositionService` 封装持仓更新逻辑
@@ -83,6 +90,7 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   - 测试：新增 `position.service.test.ts`（11 个用例）、更新 `trading.processor.test.ts`（+3 个用例）
 
 ### ✅ 2A-6. 修复移动止盈（getMaxProfitRate 桩函数）[M] — 已完成 (2026-02-28)
+
 - **问题**：`getMaxProfitRate()` 直接返回当前 `profit_rate`，移动止盈完全失效
 - **方案**：`Position` 添加 `max_profit_rate` 字段；持仓更新时同步更新历史最高收益率
 - **依赖**：2A-5 ✅
@@ -98,6 +106,7 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 ## Sub-Phase 2B：安全与 API 完善
 
 ### ✅ 2B-1. JWT 认证 [L] — 已完成 (2026-02-28)
+
 - **问题**：所有 11 个 API 端点无任何认证
 - **方案**：
   - 新建 `auth/` 模块：`@nestjs/passport` + `passport-jwt` + `bcrypt`
@@ -119,12 +128,22 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   - `.env.example`：新增 JWT_SECRET
   - 测试：auth.service.test.ts（7 用例）、jwt-auth.guard.test.ts（5 用例）
 
-### ⬜ 2B-2. 用户管理 API [M] — 待开始
-- **依赖**：2B-1
+### ✅ 2B-2. 用户管理 API [M] — 已完成 (2026-02-28)
+
+- **依赖**：2B-1 ✅
 - **方案**：`GET/PUT /api/users/me`、`PUT /api/users/me/broker-credentials`
-- **文件**：`api/user.controller.ts`（新建）
+- **文件**：`api/user.controller.ts`（新建）、`api/user.dto.ts`（新建）、`app.module.ts`
+- **变更详情**：
+  - `user.dto.ts`（新建）：`UpdateUserDto`（username 可选，3-50 字符）、`UpdateBrokerCredentialsDto`（platform/username/password）、`UserProfileResponseDto`（id/username/created_at/has_broker_credentials）
+  - `user.controller.ts`（新建）：
+    - `GET /users/me`：返回用户信息，不暴露 password_hash 和 encrypted_credentials
+    - `PUT /users/me`：更新用户名，唯一性检查 → ConflictException
+    - `PUT /users/me/broker-credentials`：使用 CryptoUtil 加密凭证后存储到 encrypted_credentials JSONB，支持多平台覆盖
+  - `app.module.ts`：注册 `UserController`
+  - 测试：user-controller.test.ts（10 用例：profile 返回、has_broker_credentials 状态、更新用户名、重名冲突、凭证加密存储）
 
 ### ✅ 2B-3. 完善 Strategy CRUD [S] — 已完成 (2026-02-28)
+
 - **方案**：添加 `PUT /api/strategies/:id` 和 `DELETE /api/strategies/:id`，含权限校验和 config 校验
 - **文件**：`controllers.ts`、`dto.ts`
 - **变更详情**：
@@ -134,6 +153,7 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   - 测试：strategy-controller.test.ts（13 用例：findAll/create/update/remove/toggle）
 
 ### ✅ 2B-4. 列表分页 [S] — 已完成 (2026-02-28)
+
 - **方案**：通用 `PaginationDto`（page/limit）+ `PaginatedResponse<T>` + `createPaginatedResponse()` 工厂，应用到 5 个列表端点
 - **文件**：`pagination.dto.ts`（新建）、`paginated-response.ts`（新建）、`controllers.ts`
 - **变更详情**：
@@ -143,6 +163,7 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   - 测试：pagination.test.ts（5 用例：空数据/单条/整除/非整除/分页参数）
 
 ### ✅ 2B-5. Strategy.config 运行时校验 [M] — 已完成 (2026-02-28)
+
 - **问题**：`config` 字段类型为 `any`，无运行时校验
 - **方案**：按策略类型定义 DTO 类，用 `class-validator` + `class-transformer` 校验
 - **文件**：`dto/strategy-config/`（新建目录）、`controllers.ts`
@@ -154,6 +175,7 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   - 测试：validate-strategy-config.test.ts（11 用例：合法/非法 config、未知 type）
 
 ### ✅ 2B-6. 持久化回测结果 [S] — 已完成 (2026-02-28)
+
 - **问题**：`BacktestResult` 实体已定义但从未写入数据库
 - **方案**：回测完成后保存到数据库，新增 `GET /api/backtest` 和 `GET /api/backtest/:id`
 - **文件**：`controllers.ts`
@@ -169,6 +191,7 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 ## Sub-Phase 2C：回测引擎修复 & 新策略
 
 ### ✅ 2C-1. 修复回测成本计算 [M] — 已完成 (2026-02-28)
+
 - **问题**：`calculateAvgCost()` 用历史净值平均值代替实际加权成本，导致回测结果不准确
 - **方案**：回测状态新增 `totalCost` 字段，买入时累加，卖出时按比例减少，`avgCost = totalCost / shares`
 - **文件**：`backtest.engine.ts`
@@ -180,17 +203,37 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   - `evaluateStrategy`、`evaluateTakeProfit`、`evaluateStopLoss` 签名统一移除 `historicalNav` 参数
   - 测试：新增 3 个用例验证真实加权成本计算
 
-### ⬜ 2C-2. 网格交易策略 [L] — 待开始
-- **依赖**：2B-5、2C-1
-- **配置**：`price_high`/`price_low`（网格范围）、`grid_count`（网格数量）、`amount_per_grid`（每格金额）
-- **逻辑**：净值跌破未买入网格线→买入；净值涨破已买入网格线→卖出
-- **文件**：`core/strategy/grid-trading.strategy.ts`（新建）、`backtest.engine.ts`、`shared/src/enums.ts`、`trading.processor.ts`
+### ✅ 2C-2. 网格交易策略 [L] — 已完成 (2026-02-28)
 
-### ⬜ 2C-3. 动态再平衡策略 [L] — 待开始
-- **依赖**：2B-5、2C-1
-- **配置**：`target_allocations`（多基金目标比例）、`rebalance_threshold`（偏离阈值）、`frequency`
-- **逻辑**：计算当前配比，偏离超阈值则卖出超配、买入欠配
-- **文件**：`core/strategy/rebalancing.strategy.ts`（新建）、`backtest.engine.ts`、`trading.processor.ts`
+- **依赖**：2B-5 ✅、2C-1 ✅
+- **配置**：`price_high`/`price_low`（网格范围）、`grid_count`（网格数量，2-100）、`amount_per_grid`（每格金额，≥10）
+- **逻辑**：将价格区间均分为 grid_count 格，跟踪当前网格层级。NAV 下穿网格线→BUY amount_per_grid；NAV 上穿→SELL 等额份额
+- **文件**：`core/strategy/grid-trading.strategy.ts`（新建）、`api/dto/strategy-config/grid-trading-config.dto.ts`（新建）、`backtest.engine.ts`、`models/enums.ts`、`trading.processor.ts`、`scheduler.service.ts`、`app.module.ts`
+- **变更详情**：
+  - `models/enums.ts`：StrategyType 新增 `GRID_TRADING`、`REBALANCE`
+  - `grid-trading.strategy.ts`（新建）：`getGridLines()`（等距划分价格区间）、`getCurrentGridLevel()`（确定当前层级）、`shouldExecute()`（检查层级变化）、`execute()`（执行 BUY/SELL 并更新 config.last_grid_level）
+  - `grid-trading-config.dto.ts`（新建）：price_high > price_low 自定义验证器
+  - `backtest.engine.ts`：新增 `strategyContext` 跨迭代状态、`evaluateGridTrading()` 方法、`REBALANCE → HOLD`
+  - `trading.processor.ts`：注入 GridTradingStrategy，新增 `@Process('check-grid-trading')` 处理器
+  - `scheduler.service.ts`：新增 `0 * * * 1-5` cron（工作日每小时检查网格交易）
+  - `validate-strategy-config.ts` / `index.ts`：注册 GridTradingConfigDto
+  - 测试：grid-trading.strategy.test.ts（12 用例：网格线计算、层级判断、shouldExecute 各分支、BUY/SELL 执行、错误通知）
+
+### ✅ 2C-3. 动态再平衡策略 [L] — 已完成 (2026-02-28)
+
+- **依赖**：2B-5 ✅、2C-1 ✅
+- **配置**：`target_allocations`（多基金目标比例，≥2 只，权重和 = 1.0 ± 0.001）、`rebalance_threshold`（偏离阈值 0.01-0.5）、`frequency`（InvestFrequency 枚举）
+- **逻辑**：查询多基金持仓市值，计算实际 vs 目标权重偏差，超过阈值时生成 BUY/SELL 订单组合
+- **设计决策**：Strategy 实体 fund_code 列使用 target_allocations 中首只基金代码，无需 schema 迁移
+- **回测**：REBALANCE 类型返回 `{ action: 'HOLD' }`，多基金回测需引擎重构，延后至 Phase 3
+- **文件**：`core/strategy/rebalance.strategy.ts`（新建）、`api/dto/strategy-config/rebalance-config.dto.ts`（新建）、`trading.processor.ts`、`scheduler.service.ts`、`app.module.ts`
+- **变更详情**：
+  - `rebalance.strategy.ts`（新建）：`getCurrentAllocations()`（查持仓+NAV 计算权重）、`computeRebalanceOrders()`（生成再平衡订单）、`shouldExecute()`（频率+偏差检查）、`execute()`（批量下单+合并通知）
+  - `rebalance-config.dto.ts`（新建）：`TargetAllocationDto`（fund_code 6 位 + target_weight 0-1）、`WeightsSumToOne` 自定义验证器
+  - `trading.processor.ts`：注入 RebalanceStrategy，新增 `@Process('check-rebalance')` 处理器
+  - `scheduler.service.ts`：新增 `0 14 * * 1-5` cron（工作日 14:00 检查再平衡）
+  - `validate-strategy-config.ts` / `index.ts`：注册 RebalanceConfigDto
+  - 测试：rebalance.strategy.test.ts（12 用例：权重计算、订单生成、阈值过滤、频率匹配、执行+通知）
 
 ---
 
@@ -198,39 +241,46 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 
 > 穿插在各阶段同步进行，每完成一个功能模块即补充测试。
 
-| 测试目标 | 复杂度 | 状态 | 文件 |
-|---------|--------|------|------|
-| 工具函数 (time/crypto) | S | ✅ 已完成 | `utils/__tests__/` 2 个 |
-| 定投策略 | M | ✅ 已完成 | `strategy/__tests__/auto-invest.strategy.test.ts` |
-| 止盈止损策略 | M | ✅ 已完成 | `strategy/__tests__/take-profit-stop-loss.strategy.test.ts` |
-| 基金数据服务 | M | ✅ 已完成 | `data/__tests__/fund-data.service.test.ts` |
-| 通知服务 | S | ✅ 已完成 | `notify/__tests__/notify.service.test.ts` |
-| 回测引擎 | M | ✅ 已完成 | `backtest/__tests__/backtest.engine.test.ts` |
-| 交易处理器 | M | ✅ 已完成 | `scheduler/__tests__/trading.processor.test.ts` |
-| API 控制器 | M | ✅ 部分完成 | `api/__tests__/strategy-controller.test.ts`、`api/__tests__/pagination.test.ts`、`api/dto/strategy-config/__tests__/` |
-| 调度器服务 | S | ⬜ 待开始 | `scheduler/__tests__/scheduler.service.test.ts` |
-| 数据同步处理器 | S | ⬜ 待开始 | `scheduler/__tests__/data-sync.processor.test.ts` |
-| 交易平台服务 | M | ⬜ 待开始 | `broker/__tests__/tiantian.service.test.ts` |
-| 通知渠道 | S | ⬜ 待开始 | `notify/__tests__/telegram.service.test.ts`、`feishu.service.test.ts` |
-| 认证模块 | M | ✅ 已完成 | `auth/__tests__/` 2 个文件 |
-| PositionService | M | ✅ 已完成 | `position/__tests__/position.service.test.ts` |
+
+| 测试目标               | 复杂度 | 状态     | 文件                                                                                                                  |
+| ------------------ | --- | ------ | ------------------------------------------------------------------------------------------------------------------- |
+| 工具函数 (time/crypto) | S   | ✅ 已完成  | `utils/__tests__/` 2 个                                                                                              |
+| 定投策略               | M   | ✅ 已完成  | `strategy/__tests__/auto-invest.strategy.test.ts`                                                                   |
+| 止盈止损策略             | M   | ✅ 已完成  | `strategy/__tests__/take-profit-stop-loss.strategy.test.ts`                                                         |
+| 基金数据服务             | M   | ✅ 已完成  | `data/__tests__/fund-data.service.test.ts`                                                                          |
+| 通知服务               | S   | ✅ 已完成  | `notify/__tests__/notify.service.test.ts`                                                                           |
+| 回测引擎               | M   | ✅ 已完成  | `backtest/__tests__/backtest.engine.test.ts`                                                                        |
+| 交易处理器              | M   | ✅ 已完成  | `scheduler/__tests__/trading.processor.test.ts`                                                                     |
+| API 控制器            | M   | ✅ 已完成  | `api/__tests__/strategy-controller.test.ts`、`api/__tests__/pagination.test.ts`、`api/dto/strategy-config/__tests__/`、`api/__tests__/user-controller.test.ts` |
+| 调度器服务              | S   | ✅ 已完成  | `scheduler/__tests__/scheduler.service.test.ts`（8 用例）                                                              |
+| 数据同步处理器            | S   | ✅ 已完成  | `scheduler/__tests__/data-sync.processor.test.ts`（4 用例）                                                            |
+| 交易平台服务             | M   | ✅ 已完成  | `broker/__tests__/tiantian.service.test.ts`（18 用例）                                                                 |
+| 通知渠道               | S   | ✅ 已完成  | `notify/__tests__/telegram.service.test.ts`（7 用例）、`feishu.service.test.ts`（6 用例）                                    |
+| 认证模块               | M   | ✅ 已完成  | `auth/__tests__/` 2 个文件                                                                                             |
+| PositionService    | M   | ✅ 已完成  | `position/__tests__/position.service.test.ts`                                                                       |
+| 网格交易策略             | M   | ✅ 已完成  | `strategy/__tests__/grid-trading.strategy.test.ts`（12 用例）                                                          |
+| 动态再平衡策略            | M   | ✅ 已完成  | `strategy/__tests__/rebalance.strategy.test.ts`（12 用例）                                                              |
+
 
 ---
 
 ## Sub-Phase 2E：Web 前端基础
 
 ### ⬜ 2E-1. 前端项目初始化 [M] — 待开始
+
 - **依赖**：2B-1、2B-4
 - **技术栈**：Vite + React 19 + TypeScript + Tailwind CSS
 - **文件**：`packages/frontend/`（package.json、vite.config.ts、src/main.tsx、api/client.ts、pages/Login.tsx）
 
 ### ⬜ 2E-2. 仪表盘页面 [L] — 待开始
+
 - 投资组合概览（总市值、总盈亏、收益率）
 - 持仓列表 + 实时收益率
 - 最近交易记录
 - 活跃策略状态
 
 ### ⬜ 2E-3. 策略管理页面 [M] — 待开始
+
 - 策略列表（启用/禁用）
 - 新建/编辑/删除策略表单
 - 触发回测并展示结果
@@ -258,11 +308,11 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
   ✅ 2B-4 分页                     │
   ✅ 2B-5 Config 校验              │
                                  ├─→ 第 4 轮
-第 4 轮 (新功能):                 │  ⬜ 待开始
-  2B-2 用户管理 ←── 2B-1         │
-  2C-2 网格交易 ←── 2B-5, 2C-1   │
-  2C-3 动态再平衡 ←── 2B-5, 2C-1 │
-  2D-* 测试 (穿插进行)            │
+第 4 轮 (新功能):                 │  ✅ 已完成
+  ✅ 2B-2 用户管理 ←── 2B-1 ✅    │
+  ✅ 2C-2 网格交易 ←── 2B-5, 2C-1 ✅ │
+  ✅ 2C-3 动态再平衡 ←── 2B-5, 2C-1 ✅ │
+  ✅ 2D-* 测试 (全部完成)          │
                                  ├─→ 第 5 轮
 第 5 轮 (前端):                      ⬜ 待开始
   2E-1 前端初始化 ←── 2B-1
@@ -279,3 +329,4 @@ Phase 1 MVP 已完成，包含 7 个实体、11 个 API 端点、2 个策略、�
 3. **回测准确性**：手动计算已知 NAV 序列的预期收益，对比回测结果
 4. **测试覆盖率**：`pnpm test:cov` 达到 80%+
 5. **前端**：登录→仪表盘→策略创建→回测完整流程可用
+

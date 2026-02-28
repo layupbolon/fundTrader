@@ -4,6 +4,8 @@ import { TradingProcessor } from '../trading.processor';
 import { Strategy, Position, Transaction, TransactionStatus, TransactionType } from '../../models';
 import { AutoInvestStrategy } from '../../core/strategy/auto-invest.strategy';
 import { TakeProfitStopLossStrategy } from '../../core/strategy/take-profit-stop-loss.strategy';
+import { GridTradingStrategy } from '../../core/strategy/grid-trading.strategy';
+import { RebalanceStrategy } from '../../core/strategy/rebalance.strategy';
 import { TiantianBrokerService } from '../../services/broker/tiantian.service';
 import { NotifyService } from '../../services/notify/notify.service';
 import { PositionService } from '../../services/position/position.service';
@@ -59,6 +61,16 @@ describe('TradingProcessor', () => {
       executeSell: jest.fn(),
     };
 
+    const mockGridTradingStrategy = {
+      shouldExecute: jest.fn(),
+      execute: jest.fn(),
+    };
+
+    const mockRebalanceStrategy = {
+      shouldExecute: jest.fn(),
+      execute: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TradingProcessor,
@@ -81,6 +93,14 @@ describe('TradingProcessor', () => {
         {
           provide: TakeProfitStopLossStrategy,
           useValue: mockTakeProfitStopLossStrategy,
+        },
+        {
+          provide: GridTradingStrategy,
+          useValue: mockGridTradingStrategy,
+        },
+        {
+          provide: RebalanceStrategy,
+          useValue: mockRebalanceStrategy,
         },
         {
           provide: TiantianBrokerService,

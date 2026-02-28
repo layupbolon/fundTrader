@@ -6,6 +6,8 @@ import { Repository } from 'typeorm';
 import { Strategy, Position, Transaction, StrategyType, TransactionType, TransactionStatus } from '../models';
 import { AutoInvestStrategy } from '../core/strategy/auto-invest.strategy';
 import { TakeProfitStopLossStrategy } from '../core/strategy/take-profit-stop-loss.strategy';
+import { GridTradingStrategy } from '../core/strategy/grid-trading.strategy';
+import { RebalanceStrategy } from '../core/strategy/rebalance.strategy';
 import { TiantianBrokerService } from '../services/broker/tiantian.service';
 import { NotifyService } from '../services/notify/notify.service';
 import { PositionService } from '../services/position/position.service';
@@ -22,6 +24,8 @@ export class TradingProcessor {
     private transactionRepository: Repository<Transaction>,
     private autoInvestStrategy: AutoInvestStrategy,
     private takeProfitStopLossStrategy: TakeProfitStopLossStrategy,
+    private gridTradingStrategy: GridTradingStrategy,
+    private rebalanceStrategy: RebalanceStrategy,
     private brokerService: TiantianBrokerService,
     private notifyService: NotifyService,
     private positionService: PositionService,
@@ -100,6 +104,44 @@ export class TradingProcessor {
         }
       } catch (error) {
         console.error(`Failed to check take-profit/stop-loss for position ${position.id}:`, error);
+      }
+    }
+  }
+
+  @Process('check-grid-trading')
+  async handleGridTrading(_job: Job) {
+    console.log('Checking grid trading strategies...');
+
+    const strategies = await this.strategyRepository.find({
+      where: { type: StrategyType.GRID_TRADING, enabled: true },
+    });
+
+    for (const strategy of strategies) {
+      try {
+        if (await this.gridTradingStrategy.shouldExecute(strategy)) {
+          await this.gridTradingStrategy.execute(strategy);
+        }
+      } catch (error) {
+        console.error(`Failed to execute grid trading for strategy ${strategy.id}:`, error);
+      }
+    }
+  }
+
+  @Process('check-rebalance')
+  async handleRebalance(_job: Job) {
+    console.log('Checking rebalance strategies...');
+
+    const strategies = await this.strategyRepository.find({
+      where: { type: StrategyType.REBALANCE, enabled: true },
+    });
+
+    for (const strategy of strategies) {
+      try {
+        if (await this.rebalanceStrategy.shouldExecute(strategy)) {
+          await this.rebalanceStrategy.execute(strategy);
+        }
+      } catch (error) {
+        console.error(`Failed to execute rebalance for strategy ${strategy.id}:`, error);
       }
     }
   }
