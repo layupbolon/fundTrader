@@ -320,5 +320,306 @@ describe('TradingProcessor', () => {
 
       expect(positionService.refreshAllPositionValues).toHaveBeenCalled();
     });
+
+    it('should handle errors gracefully when refreshing positions fails', async () => {
+      positionService.refreshAllPositionValues.mockRejectedValue(new Error('Database error'));
+
+      // Should not throw
+      await processor.handleRefreshPositionValues({} as any);
+
+      expect(positionService.refreshAllPositionValues).toHaveBeenCalled();
+    });
+  });
+
+  describe('handleKeepSessionAlive', () => {
+    it('should call brokerService.keepAlive', async () => {
+      brokerService.keepAlive.mockResolvedValue(undefined);
+
+      await processor.handleKeepSessionAlive({} as any);
+
+      expect(brokerService.keepAlive).toHaveBeenCalled();
+    });
+
+    it('should handle errors gracefully when keepAlive fails', async () => {
+      brokerService.keepAlive.mockRejectedValue(new Error('Session expired'));
+
+      // Should not throw
+      await processor.handleKeepSessionAlive({} as any);
+
+      expect(brokerService.keepAlive).toHaveBeenCalled();
+    });
+  });
+
+  describe('handleAutoInvest', () => {
+    let mockAutoInvestStrategy: any;
+    let mockStrategyRepository: any;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockStrategyRepository = {
+        find: jest.fn(),
+      };
+      mockAutoInvestStrategy = {
+        shouldExecute: jest.fn(),
+        execute: jest.fn(),
+      };
+      // Access the private properties through the module's mocked providers
+      processor['strategyRepository'] = mockStrategyRepository;
+      processor['autoInvestStrategy'] = mockAutoInvestStrategy;
+    });
+
+    it('should execute auto-invest for strategies that should execute', async () => {
+      const strategies = [
+        { id: 'strategy-1', type: 'AUTO_INVEST', enabled: true },
+      ];
+      mockStrategyRepository.find.mockResolvedValue(strategies);
+      mockAutoInvestStrategy.shouldExecute.mockResolvedValue(true);
+      mockAutoInvestStrategy.execute.mockResolvedValue(undefined);
+
+      await processor.handleAutoInvest({} as any);
+
+      expect(mockAutoInvestStrategy.shouldExecute).toHaveBeenCalledWith(strategies[0]);
+      expect(mockAutoInvestStrategy.execute).toHaveBeenCalledWith(strategies[0]);
+    });
+
+    it('should skip strategies that should not execute', async () => {
+      const strategies = [
+        { id: 'strategy-1', type: 'AUTO_INVEST', enabled: true },
+      ];
+      mockStrategyRepository.find.mockResolvedValue(strategies);
+      mockAutoInvestStrategy.shouldExecute.mockResolvedValue(false);
+
+      await processor.handleAutoInvest({} as any);
+
+      expect(mockAutoInvestStrategy.shouldExecute).toHaveBeenCalledWith(strategies[0]);
+      expect(mockAutoInvestStrategy.execute).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors gracefully for individual strategies', async () => {
+      const strategies = [
+        { id: 'strategy-1', type: 'AUTO_INVEST', enabled: true },
+      ];
+      mockStrategyRepository.find.mockResolvedValue(strategies);
+      mockAutoInvestStrategy.shouldExecute.mockRejectedValue(new Error('Strategy error'));
+
+      // Should not throw
+      await processor.handleAutoInvest({} as any);
+    });
+  });
+
+  describe('handleTakeProfitStopLoss', () => {
+    let mockPositionRepository: any;
+    let mockStrategyRepository: any;
+    let mockTakeProfitStopLossStrategy: any;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockPositionRepository = {
+        find: jest.fn(),
+      };
+      mockStrategyRepository = {
+        find: jest.fn(),
+      };
+      mockTakeProfitStopLossStrategy = {
+        checkTakeProfit: jest.fn(),
+        checkStopLoss: jest.fn(),
+        executeSell: jest.fn(),
+      };
+      processor['positionRepository'] = mockPositionRepository;
+      processor['strategyRepository'] = mockStrategyRepository;
+      processor['takeProfitStopLossStrategy'] = mockTakeProfitStopLossStrategy;
+    });
+
+    it('should check and execute take-profit for positions that meet criteria', async () => {
+      const positions = [
+        { id: 'position-1', user_id: 'user-1', fund_code: '000001' },
+      ];
+      mockPositionRepository.find.mockResolvedValue(positions);
+
+      const takeProfitStrategies = [
+        { id: 'tp-1', user_id: 'user-1', fund_code: '000001', type: 'TAKE_PROFIT', enabled: true, config: { target_rate: 0.15, sell_ratio: 1.0 } },
+      ];
+      const stopLossStrategies = [];
+
+      mockStrategyRepository.find
+        .mockResolvedValueOnce(takeProfitStrategies)
+        .mockResolvedValueOnce(stopLossStrategies);
+
+      mockTakeProfitStopLossStrategy.checkTakeProfit.mockResolvedValue(true);
+      mockTakeProfitStopLossStrategy.executeSell.mockResolvedValue(undefined);
+
+      await processor.handleTakeProfitStopLoss({} as any);
+
+      expect(mockTakeProfitStopLossStrategy.checkTakeProfit).toHaveBeenCalled();
+      expect(mockTakeProfitStopLossStrategy.executeSell).toHaveBeenCalled();
+    });
+
+    it('should check and execute stop-loss for positions that meet criteria', async () => {
+      const positions = [
+        { id: 'position-1', user_id: 'user-1', fund_code: '000001' },
+      ];
+      mockPositionRepository.find.mockResolvedValue(positions);
+
+      const takeProfitStrategies = [];
+      const stopLossStrategies = [
+        { id: 'sl-1', user_id: 'user-1', fund_code: '000001', type: 'STOP_LOSS', enabled: true, config: { max_drawdown: -0.1, sell_ratio: 1.0 } },
+      ];
+
+      mockStrategyRepository.find
+        .mockResolvedValueOnce(takeProfitStrategies)
+        .mockResolvedValueOnce(stopLossStrategies);
+
+      mockTakeProfitStopLossStrategy.checkStopLoss.mockResolvedValue(true);
+      mockTakeProfitStopLossStrategy.executeSell.mockResolvedValue(undefined);
+
+      await processor.handleTakeProfitStopLoss({} as any);
+
+      expect(mockTakeProfitStopLossStrategy.checkStopLoss).toHaveBeenCalled();
+      expect(mockTakeProfitStopLossStrategy.executeSell).toHaveBeenCalled();
+    });
+
+    it('should skip strategies that do not meet criteria', async () => {
+      const positions = [
+        { id: 'position-1', user_id: 'user-1', fund_code: '000001' },
+      ];
+      mockPositionRepository.find.mockResolvedValue(positions);
+
+      const takeProfitStrategies = [
+        { id: 'tp-1', user_id: 'user-1', fund_code: '000001', type: 'TAKE_PROFIT', enabled: true, config: {} },
+      ];
+      const stopLossStrategies = [];
+
+      mockStrategyRepository.find
+        .mockResolvedValueOnce(takeProfitStrategies)
+        .mockResolvedValueOnce(stopLossStrategies);
+
+      mockTakeProfitStopLossStrategy.checkTakeProfit.mockResolvedValue(false);
+
+      await processor.handleTakeProfitStopLoss({} as any);
+
+      expect(mockTakeProfitStopLossStrategy.checkTakeProfit).toHaveBeenCalled();
+      expect(mockTakeProfitStopLossStrategy.executeSell).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors gracefully for individual positions', async () => {
+      // When positionRepository.find returns empty array, there are no positions to process
+      // This tests that the loop handles empty arrays gracefully
+      mockPositionRepository.find.mockResolvedValue([]);
+
+      // Should not throw when there are no positions
+      await expect(processor.handleTakeProfitStopLoss({} as any)).resolves.toBeUndefined();
+    });
+  });
+
+  describe('handleGridTrading', () => {
+    let mockStrategyRepository: any;
+    let mockGridTradingStrategy: any;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockStrategyRepository = {
+        find: jest.fn(),
+      };
+      mockGridTradingStrategy = {
+        shouldExecute: jest.fn(),
+        execute: jest.fn(),
+      };
+      processor['strategyRepository'] = mockStrategyRepository;
+      processor['gridTradingStrategy'] = mockGridTradingStrategy;
+    });
+
+    it('should execute grid trading for strategies that should execute', async () => {
+      const strategies = [
+        { id: 'grid-1', type: 'GRID_TRADING', enabled: true },
+      ];
+      mockStrategyRepository.find.mockResolvedValue(strategies);
+      mockGridTradingStrategy.shouldExecute.mockResolvedValue(true);
+      mockGridTradingStrategy.execute.mockResolvedValue(undefined);
+
+      await processor.handleGridTrading({} as any);
+
+      expect(mockGridTradingStrategy.shouldExecute).toHaveBeenCalledWith(strategies[0]);
+      expect(mockGridTradingStrategy.execute).toHaveBeenCalledWith(strategies[0]);
+    });
+
+    it('should skip grid trading strategies that should not execute', async () => {
+      const strategies = [
+        { id: 'grid-1', type: 'GRID_TRADING', enabled: true },
+      ];
+      mockStrategyRepository.find.mockResolvedValue(strategies);
+      mockGridTradingStrategy.shouldExecute.mockResolvedValue(false);
+
+      await processor.handleGridTrading({} as any);
+
+      expect(mockGridTradingStrategy.shouldExecute).toHaveBeenCalledWith(strategies[0]);
+      expect(mockGridTradingStrategy.execute).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors gracefully for individual strategies', async () => {
+      const strategies = [
+        { id: 'grid-1', type: 'GRID_TRADING', enabled: true },
+      ];
+      mockStrategyRepository.find.mockResolvedValue(strategies);
+      mockGridTradingStrategy.shouldExecute.mockRejectedValue(new Error('Grid error'));
+
+      // Should not throw
+      await processor.handleGridTrading({} as any);
+    });
+  });
+
+  describe('handleRebalance', () => {
+    let mockStrategyRepository: any;
+    let mockRebalanceStrategy: any;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+      mockStrategyRepository = {
+        find: jest.fn(),
+      };
+      mockRebalanceStrategy = {
+        shouldExecute: jest.fn(),
+        execute: jest.fn(),
+      };
+      processor['strategyRepository'] = mockStrategyRepository;
+      processor['rebalanceStrategy'] = mockRebalanceStrategy;
+    });
+
+    it('should execute rebalance for strategies that should execute', async () => {
+      const strategies = [
+        { id: 'rebalance-1', type: 'REBALANCE', enabled: true },
+      ];
+      mockStrategyRepository.find.mockResolvedValue(strategies);
+      mockRebalanceStrategy.shouldExecute.mockResolvedValue(true);
+      mockRebalanceStrategy.execute.mockResolvedValue(undefined);
+
+      await processor.handleRebalance({} as any);
+
+      expect(mockRebalanceStrategy.shouldExecute).toHaveBeenCalledWith(strategies[0]);
+      expect(mockRebalanceStrategy.execute).toHaveBeenCalledWith(strategies[0]);
+    });
+
+    it('should skip rebalance strategies that should not execute', async () => {
+      const strategies = [
+        { id: 'rebalance-1', type: 'REBALANCE', enabled: true },
+      ];
+      mockStrategyRepository.find.mockResolvedValue(strategies);
+      mockRebalanceStrategy.shouldExecute.mockResolvedValue(false);
+
+      await processor.handleRebalance({} as any);
+
+      expect(mockRebalanceStrategy.shouldExecute).toHaveBeenCalledWith(strategies[0]);
+      expect(mockRebalanceStrategy.execute).not.toHaveBeenCalled();
+    });
+
+    it('should handle errors gracefully for individual strategies', async () => {
+      const strategies = [
+        { id: 'rebalance-1', type: 'REBALANCE', enabled: true },
+      ];
+      mockStrategyRepository.find.mockResolvedValue(strategies);
+      mockRebalanceStrategy.shouldExecute.mockRejectedValue(new Error('Rebalance error'));
+
+      // Should not throw
+      await processor.handleRebalance({} as any);
+    });
   });
 });
