@@ -10,6 +10,7 @@ import {
 } from '../../models';
 import { TiantianBrokerService } from '../../services/broker/tiantian.service';
 import { NotifyService } from '../../services/notify/notify.service';
+import { RiskControlService } from '../risk/risk-control.service';
 import { isTradeTime, isWorkday, configDayToJsDay } from '../../utils';
 
 /**
@@ -93,6 +94,7 @@ export class AutoInvestStrategy {
     private transactionRepository: Repository<Transaction>,
     private brokerService: TiantianBrokerService,
     private notifyService: NotifyService,
+    private riskControlService: RiskControlService,
   ) {}
 
   /**
@@ -199,6 +201,34 @@ export class AutoInvestStrategy {
       if (!isTradeTime()) {
         throw new Error('非交易时间');
       }
+
+      // ==================== 风控检查 ====================
+      // 1. 检查基金是否在黑名单中
+      const blacklistCheck = await this.riskControlService.checkFundBlacklist(fund_code);
+      if (!blacklistCheck.passed) {
+        throw new Error(`风控检查失败：${blacklistCheck.message}`);
+      }
+
+      // 2. 检查交易限额
+      const tradeLimitCheck = await this.riskControlService.checkTradeLimit(
+        strategy.user_id,
+        amount,
+        TransactionType.BUY,
+      );
+      if (!tradeLimitCheck.passed) {
+        throw new Error(`风控检查失败：${tradeLimitCheck.message}`);
+      }
+
+      // 3. 检查持仓比例限制
+      const positionLimitCheck = await this.riskControlService.checkPositionLimit(
+        strategy.user_id,
+        fund_code,
+        amount,
+      );
+      if (!positionLimitCheck.passed) {
+        throw new Error(`风控检查失败：${positionLimitCheck.message}`);
+      }
+      // ==================== 风控检查结束 ====================
 
       // 去重防护：检查今日是否已有该策略的 PENDING 或 CONFIRMED 交易
       // 防止定时任务重复触发导致同一天多次定投

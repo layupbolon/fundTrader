@@ -152,9 +152,27 @@ describe('BacktestEngine', () => {
 
     it('should use actual weighted cost instead of historical average', async () => {
       const navData: FundNav[] = [
-        { fund_code: '000001', date: new Date('2026-01-01'), nav: 1.0, acc_nav: 1.0, growth_rate: 0 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-02-01'), nav: 2.0, acc_nav: 2.0, growth_rate: 1.0 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-03-01'), nav: 3.0, acc_nav: 3.0, growth_rate: 0.5 } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-01'),
+          nav: 1.0,
+          acc_nav: 1.0,
+          growth_rate: 0,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-02-01'),
+          nav: 2.0,
+          acc_nav: 2.0,
+          growth_rate: 1.0,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-03-01'),
+          nav: 3.0,
+          acc_nav: 3.0,
+          growth_rate: 0.5,
+        } as FundNav,
       ];
 
       fundDataService.getHistoricalNav.mockResolvedValue(navData);
@@ -179,11 +197,41 @@ describe('BacktestEngine', () => {
 
     it('should handle grid trading strategy', async () => {
       const navData: FundNav[] = [
-        { fund_code: '000001', date: new Date('2026-01-01'), nav: 1.0, acc_nav: 1.0, growth_rate: 0 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-02'), nav: 1.1, acc_nav: 1.1, growth_rate: 0.1 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-03'), nav: 0.9, acc_nav: 0.9, growth_rate: -0.18 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-04'), nav: 1.0, acc_nav: 1.0, growth_rate: 0.11 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-05'), nav: 1.2, acc_nav: 1.2, growth_rate: 0.2 } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-01'),
+          nav: 1.0,
+          acc_nav: 1.0,
+          growth_rate: 0,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-02'),
+          nav: 1.1,
+          acc_nav: 1.1,
+          growth_rate: 0.1,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-03'),
+          nav: 0.9,
+          acc_nav: 0.9,
+          growth_rate: -0.18,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-04'),
+          nav: 1.0,
+          acc_nav: 1.0,
+          growth_rate: 0.11,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-05'),
+          nav: 1.2,
+          acc_nav: 1.2,
+          growth_rate: 0.2,
+        } as FundNav,
       ];
 
       fundDataService.getHistoricalNav.mockResolvedValue(navData);
@@ -211,8 +259,20 @@ describe('BacktestEngine', () => {
 
     it('should return HOLD for rebalance strategy (known limitation)', async () => {
       const navData: FundNav[] = [
-        { fund_code: '000001', date: new Date('2026-01-01'), nav: 1.0, acc_nav: 1.0, growth_rate: 0 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-02'), nav: 1.1, acc_nav: 1.1, growth_rate: 0.1 } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-01'),
+          nav: 1.0,
+          acc_nav: 1.0,
+          growth_rate: 0,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-02'),
+          nav: 1.1,
+          acc_nav: 1.1,
+          growth_rate: 0.1,
+        } as FundNav,
       ];
 
       fundDataService.getHistoricalNav.mockResolvedValue(navData);
@@ -255,7 +315,13 @@ describe('BacktestEngine', () => {
 
     it('should handle single data point', async () => {
       const navData: FundNav[] = [
-        { fund_code: '000001', date: new Date('2026-01-01'), nav: 1.0, acc_nav: 1.0, growth_rate: 0 } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-01'),
+          nav: 1.0,
+          acc_nav: 1.0,
+          growth_rate: 0,
+        } as FundNav,
       ];
 
       fundDataService.getHistoricalNav.mockResolvedValue(navData);
@@ -280,11 +346,41 @@ describe('BacktestEngine', () => {
 
     it('should calculate Sharpe ratio correctly', async () => {
       const navData: FundNav[] = [
-        { fund_code: '000001', date: new Date('2026-01-01'), nav: 1.0, acc_nav: 1.0, growth_rate: 0 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-02'), nav: 1.02, acc_nav: 1.02, growth_rate: 0.02 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-03'), nav: 1.04, acc_nav: 1.04, growth_rate: 0.02 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-04'), nav: 1.06, acc_nav: 1.06, growth_rate: 0.019 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-05'), nav: 1.08, acc_nav: 1.08, growth_rate: 0.019 } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-01'),
+          nav: 1.0,
+          acc_nav: 1.0,
+          growth_rate: 0,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-02'),
+          nav: 1.02,
+          acc_nav: 1.02,
+          growth_rate: 0.02,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-03'),
+          nav: 1.04,
+          acc_nav: 1.04,
+          growth_rate: 0.02,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-04'),
+          nav: 1.06,
+          acc_nav: 1.06,
+          growth_rate: 0.019,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-05'),
+          nav: 1.08,
+          acc_nav: 1.08,
+          growth_rate: 0.019,
+        } as FundNav,
       ];
 
       fundDataService.getHistoricalNav.mockResolvedValue(navData);
@@ -309,7 +405,13 @@ describe('BacktestEngine', () => {
 
     it('should return 0 for Sharpe ratio with single data point', async () => {
       const navData: FundNav[] = [
-        { fund_code: '000001', date: new Date('2026-01-01'), nav: 1.0, acc_nav: 1.0, growth_rate: 0 } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-01'),
+          nav: 1.0,
+          acc_nav: 1.0,
+          growth_rate: 0,
+        } as FundNav,
       ];
 
       fundDataService.getHistoricalNav.mockResolvedValue(navData);
@@ -334,11 +436,41 @@ describe('BacktestEngine', () => {
 
     it('should calculate max drawdown correctly', async () => {
       const navData: FundNav[] = [
-        { fund_code: '000001', date: new Date('2026-01-01'), nav: 1.0, acc_nav: 1.0, growth_rate: 0 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-02'), nav: 1.2, acc_nav: 1.2, growth_rate: 0.2 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-03'), nav: 1.5, acc_nav: 1.5, growth_rate: 0.25 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-04'), nav: 1.3, acc_nav: 1.3, growth_rate: -0.133 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-05'), nav: 1.0, acc_nav: 1.0, growth_rate: -0.23 } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-01'),
+          nav: 1.0,
+          acc_nav: 1.0,
+          growth_rate: 0,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-02'),
+          nav: 1.2,
+          acc_nav: 1.2,
+          growth_rate: 0.2,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-03'),
+          nav: 1.5,
+          acc_nav: 1.5,
+          growth_rate: 0.25,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-04'),
+          nav: 1.3,
+          acc_nav: 1.3,
+          growth_rate: -0.133,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-05'),
+          nav: 1.0,
+          acc_nav: 1.0,
+          growth_rate: -0.23,
+        } as FundNav,
       ];
 
       fundDataService.getHistoricalNav.mockResolvedValue(navData);
@@ -364,8 +496,20 @@ describe('BacktestEngine', () => {
 
     it('should calculate annual return correctly', async () => {
       const navData: FundNav[] = [
-        { fund_code: '000001', date: new Date('2026-01-01'), nav: 1.0, acc_nav: 1.0, growth_rate: 0 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-07-01'), nav: 1.2, acc_nav: 1.2, growth_rate: 0.2 } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-01'),
+          nav: 1.0,
+          acc_nav: 1.0,
+          growth_rate: 0,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-07-01'),
+          nav: 1.2,
+          acc_nav: 1.2,
+          growth_rate: 0.2,
+        } as FundNav,
       ];
 
       fundDataService.getHistoricalNav.mockResolvedValue(navData);
@@ -390,8 +534,20 @@ describe('BacktestEngine', () => {
 
     it('should handle grid trading outside price range', async () => {
       const navData: FundNav[] = [
-        { fund_code: '000001', date: new Date('2026-01-01'), nav: 0.5, acc_nav: 0.5, growth_rate: 0 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-02'), nav: 0.6, acc_nav: 0.6, growth_rate: 0.2 } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-01'),
+          nav: 0.5,
+          acc_nav: 0.5,
+          growth_rate: 0,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-02'),
+          nav: 0.6,
+          acc_nav: 0.6,
+          growth_rate: 0.2,
+        } as FundNav,
       ];
 
       fundDataService.getHistoricalNav.mockResolvedValue(navData);
@@ -419,8 +575,20 @@ describe('BacktestEngine', () => {
 
     it('should handle weekly auto invest on correct day', async () => {
       const navData: FundNav[] = [
-        { fund_code: '000001', date: new Date('2026-01-05'), nav: 1.0, acc_nav: 1.0, growth_rate: 0 } as FundNav,
-        { fund_code: '000001', date: new Date('2026-01-06'), nav: 1.1, acc_nav: 1.1, growth_rate: 0.1 } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-05'),
+          nav: 1.0,
+          acc_nav: 1.0,
+          growth_rate: 0,
+        } as FundNav,
+        {
+          fund_code: '000001',
+          date: new Date('2026-01-06'),
+          nav: 1.1,
+          acc_nav: 1.1,
+          growth_rate: 0.1,
+        } as FundNav,
       ];
 
       fundDataService.getHistoricalNav.mockResolvedValue(navData);

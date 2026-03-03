@@ -1,7 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { GridTradingStrategy } from '../grid-trading.strategy';
-import { Strategy, Transaction, StrategyType, TransactionType, TransactionStatus } from '../../../models';
+import {
+  Strategy,
+  Transaction,
+  StrategyType,
+  TransactionType,
+  TransactionStatus,
+} from '../../../models';
 import { TiantianBrokerService } from '../../../services/broker/tiantian.service';
 import { FundDataService } from '../../../services/data/fund-data.service';
 import { NotifyService } from '../../../services/notify/notify.service';
@@ -75,7 +81,10 @@ describe('GridTradingStrategy', () => {
   describe('getGridLines', () => {
     it('should compute evenly spaced grid lines', () => {
       const lines = strategy.getGridLines({
-        price_low: 1.0, price_high: 2.0, grid_count: 5, amount_per_grid: 500,
+        price_low: 1.0,
+        price_high: 2.0,
+        grid_count: 5,
+        amount_per_grid: 500,
       });
 
       expect(lines).toHaveLength(6); // grid_count + 1
@@ -104,7 +113,8 @@ describe('GridTradingStrategy', () => {
   describe('shouldExecute', () => {
     it('should return false when strategy is disabled', async () => {
       const result = await strategy.shouldExecute({
-        ...mockStrategy, enabled: false,
+        ...mockStrategy,
+        enabled: false,
       } as Strategy);
       expect(result).toBe(false);
     });
@@ -152,7 +162,12 @@ describe('GridTradingStrategy', () => {
   describe('execute', () => {
     it('should BUY when NAV crosses grid downward', async () => {
       fundDataService.getFundNav.mockResolvedValue({ nav: 1.1 } as any);
-      brokerService.buyFund.mockResolvedValue({ id: 'order-1', fundCode: '110011', amount: 500, status: 'PENDING' });
+      brokerService.buyFund.mockResolvedValue({
+        id: 'order-1',
+        fundCode: '110011',
+        amount: 500,
+        status: 'PENDING',
+      });
 
       const s = {
         ...mockStrategy,
@@ -170,7 +185,12 @@ describe('GridTradingStrategy', () => {
 
     it('should SELL when NAV crosses grid upward', async () => {
       fundDataService.getFundNav.mockResolvedValue({ nav: 1.9 } as any);
-      brokerService.sellFund.mockResolvedValue({ id: 'order-2', fundCode: '110011', amount: 500, status: 'PENDING' });
+      brokerService.sellFund.mockResolvedValue({
+        id: 'order-2',
+        fundCode: '110011',
+        amount: 500,
+        status: 'PENDING',
+      });
 
       const s = {
         ...mockStrategy,
@@ -196,9 +216,7 @@ describe('GridTradingStrategy', () => {
       } as Strategy;
 
       await expect(strategy.execute(s)).rejects.toThrow('交易失败');
-      expect(notifyService.send).toHaveBeenCalledWith(
-        expect.objectContaining({ level: 'error' }),
-      );
+      expect(notifyService.send).toHaveBeenCalledWith(expect.objectContaining({ level: 'error' }));
     });
   });
 });

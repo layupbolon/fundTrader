@@ -28,9 +28,7 @@ describe('UserController', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
-      providers: [
-        { provide: getRepositoryToken(User), useValue: userRepository },
-      ],
+      providers: [{ provide: getRepositoryToken(User), useValue: userRepository }],
     }).compile();
 
     controller = module.get<UserController>(UserController);
@@ -77,8 +75,7 @@ describe('UserController', () => {
     it('should throw NotFoundException when user not found', async () => {
       userRepository.findOne.mockResolvedValue(null);
 
-      await expect(controller.getProfile({ id: 'nonexistent' }))
-        .rejects.toThrow(NotFoundException);
+      await expect(controller.getProfile({ id: 'nonexistent' })).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -92,10 +89,7 @@ describe('UserController', () => {
         username: 'newname',
       });
 
-      const result = await controller.updateProfile(
-        { username: 'newname' },
-        { id: 'user-1' },
-      );
+      const result = await controller.updateProfile({ username: 'newname' }, { id: 'user-1' });
 
       expect(result.username).toBe('newname');
     });
@@ -116,10 +110,7 @@ describe('UserController', () => {
         .mockResolvedValueOnce(mockUser); // same user found (same id)
       userRepository.save.mockResolvedValue(mockUser);
 
-      const result = await controller.updateProfile(
-        { username: 'testuser' },
-        { id: 'user-1' },
-      );
+      const result = await controller.updateProfile({ username: 'testuser' }, { id: 'user-1' });
 
       expect(result.username).toBe('testuser');
     });

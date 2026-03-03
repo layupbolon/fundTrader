@@ -1,4 +1,12 @@
-import { IsNumber, Min, Max, Validate, ValidatorConstraint, ValidatorConstraintInterface, ValidationArguments } from 'class-validator';
+import {
+  IsNumber,
+  Min,
+  Max,
+  Validate,
+  ValidatorConstraint,
+  ValidatorConstraintInterface,
+  ValidationArguments,
+} from 'class-validator';
 
 @ValidatorConstraint({ name: 'priceHighGreaterThanLow', async: false })
 class PriceHighGreaterThanLow implements ValidatorConstraintInterface {

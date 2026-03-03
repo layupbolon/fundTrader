@@ -1,12 +1,4 @@
-import {
-  IsNumber,
-  IsEnum,
-  IsOptional,
-  IsDateString,
-  Min,
-  Max,
-  ValidateIf,
-} from 'class-validator';
+import { IsNumber, IsEnum, IsOptional, IsDateString, Min, Max, ValidateIf } from 'class-validator';
 import { InvestFrequency } from '../../../models';
 
 export class AutoInvestConfigDto {

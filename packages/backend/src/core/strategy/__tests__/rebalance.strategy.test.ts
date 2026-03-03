@@ -158,7 +158,8 @@ describe('RebalanceStrategy', () => {
   describe('shouldExecute', () => {
     it('should return false when strategy is disabled', async () => {
       const result = await strategy.shouldExecute({
-        ...mockStrategy, enabled: false,
+        ...mockStrategy,
+        enabled: false,
       } as Strategy);
       expect(result).toBe(false);
     });
@@ -201,8 +202,18 @@ describe('RebalanceStrategy', () => {
         .mockResolvedValueOnce({ shares: 100 }) // 110011
         .mockResolvedValueOnce({ shares: 100 }); // 000001
       fundDataService.getFundNav.mockResolvedValue({ nav: 1.0 } as any);
-      brokerService.buyFund.mockResolvedValue({ id: 'order-buy', fundCode: '110011', amount: 100, status: 'PENDING' });
-      brokerService.sellFund.mockResolvedValue({ id: 'order-sell', fundCode: '000001', amount: 100, status: 'PENDING' });
+      brokerService.buyFund.mockResolvedValue({
+        id: 'order-buy',
+        fundCode: '110011',
+        amount: 100,
+        status: 'PENDING',
+      });
+      brokerService.sellFund.mockResolvedValue({
+        id: 'order-sell',
+        fundCode: '000001',
+        amount: 100,
+        status: 'PENDING',
+      });
 
       const result = await strategy.execute(mockStrategy as Strategy);
 
@@ -215,8 +226,7 @@ describe('RebalanceStrategy', () => {
     it('should throw and notify on error', async () => {
       (isTradeTime as jest.Mock).mockReturnValueOnce(false);
 
-      await expect(strategy.execute(mockStrategy as Strategy))
-        .rejects.toThrow('非交易时间');
+      await expect(strategy.execute(mockStrategy as Strategy)).rejects.toThrow('非交易时间');
     });
   });
 });

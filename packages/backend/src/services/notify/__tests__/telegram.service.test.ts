@@ -109,9 +109,7 @@ describe('TelegramService', () => {
       const service = new TelegramService();
       await service.sendMessage({ title: 'Test', content: 'Test' });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Telegram not configured, skipping notification',
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('Telegram not configured, skipping notification');
       consoleSpy.mockRestore();
     });
 

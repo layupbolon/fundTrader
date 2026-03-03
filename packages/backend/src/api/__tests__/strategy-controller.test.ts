@@ -3,6 +3,7 @@ import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Strategy, StrategyType } from '../../models';
 import { StrategyController } from '../controllers';
+import { RiskControlService } from '../../core/risk/risk-control.service';
 
 describe('StrategyController', () => {
   let controller: StrategyController;
@@ -36,6 +37,12 @@ describe('StrategyController', () => {
         {
           provide: getRepositoryToken(Strategy),
           useValue: strategyRepository,
+        },
+        {
+          provide: RiskControlService,
+          useValue: {
+            checkFundBlacklist: jest.fn().mockResolvedValue({ passed: true }),
+          },
         },
       ],
     }).compile();
@@ -93,11 +100,7 @@ describe('StrategyController', () => {
       strategyRepository.findOne.mockResolvedValue({ ...mockStrategy });
       strategyRepository.save.mockResolvedValue({ ...mockStrategy, name: '新名称' });
 
-      const result = await controller.update(
-        'strategy-uuid-1',
-        { name: '新名称' },
-        mockUser,
-      );
+      const result = await controller.update('strategy-uuid-1', { name: '新名称' }, mockUser);
 
       expect(result.name).toBe('新名称');
     });
@@ -105,9 +108,9 @@ describe('StrategyController', () => {
     it('should throw NotFoundException when strategy not found', async () => {
       strategyRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        controller.update('nonexistent', { name: '新名称' }, mockUser),
-      ).rejects.toThrow(NotFoundException);
+      await expect(controller.update('nonexistent', { name: '新名称' }, mockUser)).rejects.toThrow(
+        NotFoundException,
+      );
     });
 
     it('should throw ForbiddenException when user does not own strategy', async () => {
@@ -149,9 +152,7 @@ describe('StrategyController', () => {
     it('should throw NotFoundException when strategy not found', async () => {
       strategyRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        controller.remove('nonexistent', mockUser),
-      ).rejects.toThrow(NotFoundException);
+      await expect(controller.remove('nonexistent', mockUser)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when user does not own strategy', async () => {
@@ -160,9 +161,9 @@ describe('StrategyController', () => {
         user_id: 'other-user-id',
       });
 
-      await expect(
-        controller.remove('strategy-uuid-1', mockUser),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(controller.remove('strategy-uuid-1', mockUser)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 
@@ -181,9 +182,7 @@ describe('StrategyController', () => {
     it('should throw NotFoundException when strategy not found', async () => {
       strategyRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        controller.toggle('nonexistent', mockUser),
-      ).rejects.toThrow(NotFoundException);
+      await expect(controller.toggle('nonexistent', mockUser)).rejects.toThrow(NotFoundException);
     });
 
     it('should throw ForbiddenException when user does not own strategy', async () => {
@@ -192,9 +191,9 @@ describe('StrategyController', () => {
         user_id: 'other-user-id',
       });
 
-      await expect(
-        controller.toggle('strategy-uuid-1', mockUser),
-      ).rejects.toThrow(ForbiddenException);
+      await expect(controller.toggle('strategy-uuid-1', mockUser)).rejects.toThrow(
+        ForbiddenException,
+      );
     });
   });
 });

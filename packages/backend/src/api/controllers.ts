@@ -11,17 +11,33 @@ import {
   UsePipes,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiQuery, ApiParam } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiQuery,
+  ApiParam,
+} from '@nestjs/swagger';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Strategy, Position, Transaction, Fund, BacktestResult as BacktestResultEntity } from '../models';
+import {
+  Strategy,
+  Position,
+  Transaction,
+  Fund,
+  BacktestResult as BacktestResultEntity,
+} from '../models';
 import { BacktestEngine, BacktestResult } from '../core/backtest/backtest.engine';
 import { CreateStrategyDto, UpdateStrategyDto, BacktestDto } from './dto';
 import { PaginationDto } from './pagination.dto';
 import { createPaginatedResponse } from './paginated-response';
 import { CurrentUser } from '../auth/user.decorator';
 import { validateStrategyConfig } from './dto/strategy-config';
+import { RiskController } from './risk.controller';
+import { RiskControlService } from '../core/risk/risk-control.service';
 
 @ApiBearerAuth()
 @ApiTags('strategies')
@@ -30,15 +46,13 @@ export class StrategyController {
   constructor(
     @InjectRepository(Strategy)
     private strategyRepository: Repository<Strategy>,
+    private riskControlService: RiskControlService,
   ) {}
 
   @Get()
   @ApiOperation({ summary: '获取策略列表', description: '获取当前用户的策略列表（分页）' })
   @ApiResponse({ status: 200, description: '成功返回策略列表' })
-  async findAll(
-    @Query() pagination: PaginationDto,
-    @CurrentUser() user: { id: string },
-  ) {
+  async findAll(@Query() pagination: PaginationDto, @CurrentUser() user: { id: string }) {
     const { page, limit } = pagination;
     const [data, total] = await this.strategyRepository.findAndCount({
       where: { user_id: user.id },
@@ -67,11 +81,15 @@ export class StrategyController {
   @ApiResponse({ status: 201, description: '策略创建成功' })
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-  async create(
-    @Body() createDto: CreateStrategyDto,
-    @CurrentUser() user: { id: string },
-  ) {
+  async create(@Body() createDto: CreateStrategyDto, @CurrentUser() user: { id: string }) {
     await validateStrategyConfig(createDto.type, createDto.config);
+
+    // 风控检查：检查基金是否在黑名单中
+    const blacklistCheck = await this.riskControlService.checkFundBlacklist(createDto.fund_code);
+    if (!blacklistCheck.passed) {
+      throw new BadRequestException(blacklistCheck.message);
+    }
+
     const strategy = this.strategyRepository.create({
       ...createDto,
       user_id: user.id,
@@ -111,10 +129,7 @@ export class StrategyController {
   @ApiResponse({ status: 200, description: '策略删除成功' })
   @ApiResponse({ status: 403, description: '无权操作该策略' })
   @ApiResponse({ status: 404, description: '策略不存在' })
-  async remove(
-    @Param('id') id: string,
-    @CurrentUser() user: { id: string },
-  ) {
+  async remove(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     const strategy = await this.strategyRepository.findOne({ where: { id } });
     if (!strategy) {
       throw new NotFoundException('Strategy not found');
@@ -156,10 +171,7 @@ export class PositionController {
   @Get()
   @ApiOperation({ summary: '获取持仓列表', description: '获取当前用户的持仓列表（分页）' })
   @ApiResponse({ status: 200, description: '成功返回持仓列表' })
-  async findAll(
-    @Query() pagination: PaginationDto,
-    @CurrentUser() user: { id: string },
-  ) {
+  async findAll(@Query() pagination: PaginationDto, @CurrentUser() user: { id: string }) {
     const { page, limit } = pagination;
     const [data, total] = await this.positionRepository.findAndCount({
       where: { user_id: user.id },
@@ -194,7 +206,10 @@ export class TransactionController {
   ) {}
 
   @Get()
-  @ApiOperation({ summary: '获取交易记录', description: '获取交易记录列表，支持按基金筛选（分页）' })
+  @ApiOperation({
+    summary: '获取交易记录',
+    description: '获取交易记录列表，支持按基金筛选（分页）',
+  })
   @ApiQuery({ name: 'fund_code', required: false, description: '基金代码（可选）' })
   @ApiResponse({ status: 200, description: '成功返回交易记录列表' })
   async findAll(
@@ -296,7 +311,8 @@ export class BacktestController {
   @Post()
   @ApiOperation({
     summary: '运行策略回测',
-    description: '使用历史数据回测交易策略，计算收益率、夏普比率、最大回撤等指标，结果自动保存到数据库',
+    description:
+      '使用历史数据回测交易策略，计算收益率、夏普比率、最大回撤等指标，结果自动保存到数据库',
   })
   @ApiResponse({
     status: 200,
@@ -344,3 +360,5 @@ export class BacktestController {
     return result;
   }
 }
+
+export { RiskController };

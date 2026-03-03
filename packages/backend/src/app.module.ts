@@ -9,7 +9,17 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 // Models
-import { User, Fund, FundNav, Position, Transaction, Strategy, BacktestResult } from './models';
+import {
+  User,
+  Fund,
+  FundNav,
+  Position,
+  Transaction,
+  Strategy,
+  BacktestResult,
+  RiskLimit,
+  Blacklist,
+} from './models';
 
 // Auth
 import { AuthModule, JwtAuthGuard } from './auth';
@@ -28,6 +38,9 @@ import { TakeProfitStopLossStrategy } from './core/strategy/take-profit-stop-los
 import { GridTradingStrategy } from './core/strategy/grid-trading.strategy';
 import { RebalanceStrategy } from './core/strategy/rebalance.strategy';
 
+// Risk Control
+import { RiskControlModule } from './core/risk/risk-control.module';
+
 // Backtest
 import { BacktestEngine } from './core/backtest/backtest.engine';
 
@@ -43,6 +56,7 @@ import {
   TransactionController,
   FundController,
   BacktestController,
+  RiskController,
 } from './api/controllers';
 import { UserController } from './api/user.controller';
 
@@ -85,7 +99,17 @@ import { UserController } from './api/user.controller';
         username: configService.get('database.username') || process.env.DB_USERNAME,
         password: configService.get('database.password') || process.env.DB_PASSWORD,
         database: configService.get('database.database') || process.env.DB_DATABASE,
-        entities: [User, Fund, FundNav, Position, Transaction, Strategy, BacktestResult],
+        entities: [
+          User,
+          Fund,
+          FundNav,
+          Position,
+          Transaction,
+          Strategy,
+          BacktestResult,
+          RiskLimit,
+          Blacklist,
+        ],
         synchronize: process.env.NODE_ENV !== 'production',
         logging: process.env.NODE_ENV === 'development',
       }),
@@ -101,6 +125,8 @@ import { UserController } from './api/user.controller';
       Transaction,
       Strategy,
       BacktestResult,
+      RiskLimit,
+      Blacklist,
     ]),
 
     // Bull队列模块
@@ -119,6 +145,9 @@ import { UserController } from './api/user.controller';
 
     // Auth
     AuthModule,
+
+    // Risk Control
+    RiskControlModule,
   ],
   providers: [
     // Global JWT guard
@@ -156,6 +185,7 @@ import { UserController } from './api/user.controller';
     FundController,
     BacktestController,
     UserController,
+    RiskController,
   ],
 })
 export class AppModule {}

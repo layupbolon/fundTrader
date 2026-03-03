@@ -270,12 +270,7 @@ describe('TradingProcessor', () => {
 
       await processor.handleConfirmPendingTransactions({} as any);
 
-      expect(positionService.updatePositionOnBuy).toHaveBeenCalledWith(
-        'user1',
-        '000006',
-        500,
-        2.0,
-      );
+      expect(positionService.updatePositionOnBuy).toHaveBeenCalledWith('user1', '000006', 500, 2.0);
       expect(positionService.updatePositionOnSell).not.toHaveBeenCalled();
     });
 
@@ -369,9 +364,7 @@ describe('TradingProcessor', () => {
     });
 
     it('should execute auto-invest for strategies that should execute', async () => {
-      const strategies = [
-        { id: 'strategy-1', type: 'AUTO_INVEST', enabled: true },
-      ];
+      const strategies = [{ id: 'strategy-1', type: 'AUTO_INVEST', enabled: true }];
       mockStrategyRepository.find.mockResolvedValue(strategies);
       mockAutoInvestStrategy.shouldExecute.mockResolvedValue(true);
       mockAutoInvestStrategy.execute.mockResolvedValue(undefined);
@@ -383,9 +376,7 @@ describe('TradingProcessor', () => {
     });
 
     it('should skip strategies that should not execute', async () => {
-      const strategies = [
-        { id: 'strategy-1', type: 'AUTO_INVEST', enabled: true },
-      ];
+      const strategies = [{ id: 'strategy-1', type: 'AUTO_INVEST', enabled: true }];
       mockStrategyRepository.find.mockResolvedValue(strategies);
       mockAutoInvestStrategy.shouldExecute.mockResolvedValue(false);
 
@@ -396,9 +387,7 @@ describe('TradingProcessor', () => {
     });
 
     it('should handle errors gracefully for individual strategies', async () => {
-      const strategies = [
-        { id: 'strategy-1', type: 'AUTO_INVEST', enabled: true },
-      ];
+      const strategies = [{ id: 'strategy-1', type: 'AUTO_INVEST', enabled: true }];
       mockStrategyRepository.find.mockResolvedValue(strategies);
       mockAutoInvestStrategy.shouldExecute.mockRejectedValue(new Error('Strategy error'));
 
@@ -431,13 +420,18 @@ describe('TradingProcessor', () => {
     });
 
     it('should check and execute take-profit for positions that meet criteria', async () => {
-      const positions = [
-        { id: 'position-1', user_id: 'user-1', fund_code: '000001' },
-      ];
+      const positions = [{ id: 'position-1', user_id: 'user-1', fund_code: '000001' }];
       mockPositionRepository.find.mockResolvedValue(positions);
 
       const takeProfitStrategies = [
-        { id: 'tp-1', user_id: 'user-1', fund_code: '000001', type: 'TAKE_PROFIT', enabled: true, config: { target_rate: 0.15, sell_ratio: 1.0 } },
+        {
+          id: 'tp-1',
+          user_id: 'user-1',
+          fund_code: '000001',
+          type: 'TAKE_PROFIT',
+          enabled: true,
+          config: { target_rate: 0.15, sell_ratio: 1.0 },
+        },
       ];
       const stopLossStrategies = [];
 
@@ -455,14 +449,19 @@ describe('TradingProcessor', () => {
     });
 
     it('should check and execute stop-loss for positions that meet criteria', async () => {
-      const positions = [
-        { id: 'position-1', user_id: 'user-1', fund_code: '000001' },
-      ];
+      const positions = [{ id: 'position-1', user_id: 'user-1', fund_code: '000001' }];
       mockPositionRepository.find.mockResolvedValue(positions);
 
       const takeProfitStrategies = [];
       const stopLossStrategies = [
-        { id: 'sl-1', user_id: 'user-1', fund_code: '000001', type: 'STOP_LOSS', enabled: true, config: { max_drawdown: -0.1, sell_ratio: 1.0 } },
+        {
+          id: 'sl-1',
+          user_id: 'user-1',
+          fund_code: '000001',
+          type: 'STOP_LOSS',
+          enabled: true,
+          config: { max_drawdown: -0.1, sell_ratio: 1.0 },
+        },
       ];
 
       mockStrategyRepository.find
@@ -479,13 +478,18 @@ describe('TradingProcessor', () => {
     });
 
     it('should skip strategies that do not meet criteria', async () => {
-      const positions = [
-        { id: 'position-1', user_id: 'user-1', fund_code: '000001' },
-      ];
+      const positions = [{ id: 'position-1', user_id: 'user-1', fund_code: '000001' }];
       mockPositionRepository.find.mockResolvedValue(positions);
 
       const takeProfitStrategies = [
-        { id: 'tp-1', user_id: 'user-1', fund_code: '000001', type: 'TAKE_PROFIT', enabled: true, config: {} },
+        {
+          id: 'tp-1',
+          user_id: 'user-1',
+          fund_code: '000001',
+          type: 'TAKE_PROFIT',
+          enabled: true,
+          config: {},
+        },
       ];
       const stopLossStrategies = [];
 
@@ -529,9 +533,7 @@ describe('TradingProcessor', () => {
     });
 
     it('should execute grid trading for strategies that should execute', async () => {
-      const strategies = [
-        { id: 'grid-1', type: 'GRID_TRADING', enabled: true },
-      ];
+      const strategies = [{ id: 'grid-1', type: 'GRID_TRADING', enabled: true }];
       mockStrategyRepository.find.mockResolvedValue(strategies);
       mockGridTradingStrategy.shouldExecute.mockResolvedValue(true);
       mockGridTradingStrategy.execute.mockResolvedValue(undefined);
@@ -543,9 +545,7 @@ describe('TradingProcessor', () => {
     });
 
     it('should skip grid trading strategies that should not execute', async () => {
-      const strategies = [
-        { id: 'grid-1', type: 'GRID_TRADING', enabled: true },
-      ];
+      const strategies = [{ id: 'grid-1', type: 'GRID_TRADING', enabled: true }];
       mockStrategyRepository.find.mockResolvedValue(strategies);
       mockGridTradingStrategy.shouldExecute.mockResolvedValue(false);
 
@@ -556,9 +556,7 @@ describe('TradingProcessor', () => {
     });
 
     it('should handle errors gracefully for individual strategies', async () => {
-      const strategies = [
-        { id: 'grid-1', type: 'GRID_TRADING', enabled: true },
-      ];
+      const strategies = [{ id: 'grid-1', type: 'GRID_TRADING', enabled: true }];
       mockStrategyRepository.find.mockResolvedValue(strategies);
       mockGridTradingStrategy.shouldExecute.mockRejectedValue(new Error('Grid error'));
 
@@ -585,9 +583,7 @@ describe('TradingProcessor', () => {
     });
 
     it('should execute rebalance for strategies that should execute', async () => {
-      const strategies = [
-        { id: 'rebalance-1', type: 'REBALANCE', enabled: true },
-      ];
+      const strategies = [{ id: 'rebalance-1', type: 'REBALANCE', enabled: true }];
       mockStrategyRepository.find.mockResolvedValue(strategies);
       mockRebalanceStrategy.shouldExecute.mockResolvedValue(true);
       mockRebalanceStrategy.execute.mockResolvedValue(undefined);
@@ -599,9 +595,7 @@ describe('TradingProcessor', () => {
     });
 
     it('should skip rebalance strategies that should not execute', async () => {
-      const strategies = [
-        { id: 'rebalance-1', type: 'REBALANCE', enabled: true },
-      ];
+      const strategies = [{ id: 'rebalance-1', type: 'REBALANCE', enabled: true }];
       mockStrategyRepository.find.mockResolvedValue(strategies);
       mockRebalanceStrategy.shouldExecute.mockResolvedValue(false);
 
@@ -612,9 +606,7 @@ describe('TradingProcessor', () => {
     });
 
     it('should handle errors gracefully for individual strategies', async () => {
-      const strategies = [
-        { id: 'rebalance-1', type: 'REBALANCE', enabled: true },
-      ];
+      const strategies = [{ id: 'rebalance-1', type: 'REBALANCE', enabled: true }];
       mockStrategyRepository.find.mockResolvedValue(strategies);
       mockRebalanceStrategy.shouldExecute.mockRejectedValue(new Error('Rebalance error'));
 

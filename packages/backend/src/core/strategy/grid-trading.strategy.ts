@@ -1,12 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  Strategy,
-  Transaction,
-  TransactionType,
-  TransactionStatus,
-} from '../../models';
+import { Strategy, Transaction, TransactionType, TransactionStatus } from '../../models';
 import { TiantianBrokerService } from '../../services/broker/tiantian.service';
 import { FundDataService } from '../../services/data/fund-data.service';
 import { NotifyService } from '../../services/notify/notify.service';
@@ -144,7 +139,8 @@ export class GridTradingStrategy {
         last_executed_at: new Date(),
       });
 
-      const action = (lastLevel === undefined || lastLevel === null || currentLevel < lastLevel) ? '买入' : '卖出';
+      const action =
+        lastLevel === undefined || lastLevel === null || currentLevel < lastLevel ? '买入' : '卖出';
       await this.notifyService.send({
         title: '网格交易执行',
         content: `基金 ${strategy.fund_code} ${action} ${config.amount_per_grid} 元\n当前净值: ${currentNav}\n网格层级: ${lastLevel ?? 'N/A'} → ${currentLevel}`,

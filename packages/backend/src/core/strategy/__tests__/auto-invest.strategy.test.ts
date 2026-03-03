@@ -12,6 +12,7 @@ import {
 } from '../../../models';
 import { TiantianBrokerService } from '../../../services/broker/tiantian.service';
 import { NotifyService } from '../../../services/notify/notify.service';
+import { RiskControlService } from '../../risk/risk-control.service';
 
 describe('AutoInvestStrategy', () => {
   let service: AutoInvestStrategy;
@@ -19,6 +20,7 @@ describe('AutoInvestStrategy', () => {
   let transactionRepository: jest.Mocked<Repository<Transaction>>;
   let brokerService: jest.Mocked<TiantianBrokerService>;
   let notifyService: jest.Mocked<NotifyService>;
+  let riskControlService: jest.Mocked<RiskControlService>;
 
   beforeEach(async () => {
     const mockStrategyRepository = {
@@ -53,6 +55,12 @@ describe('AutoInvestStrategy', () => {
       send: jest.fn(),
     };
 
+    const mockRiskControlService = {
+      checkFundBlacklist: jest.fn().mockResolvedValue({ passed: true }),
+      checkTradeLimit: jest.fn().mockResolvedValue({ passed: true }),
+      checkPositionLimit: jest.fn().mockResolvedValue({ passed: true }),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AutoInvestStrategy,
@@ -72,12 +80,19 @@ describe('AutoInvestStrategy', () => {
           provide: NotifyService,
           useValue: mockNotifyService,
         },
+        {
+          provide: RiskControlService,
+          useValue: mockRiskControlService,
+        },
       ],
     }).compile();
 
     service = module.get<AutoInvestStrategy>(AutoInvestStrategy);
     strategyRepository = module.get(getRepositoryToken(Strategy));
     transactionRepository = module.get(getRepositoryToken(Transaction));
+    brokerService = module.get(TiantianBrokerService);
+    notifyService = module.get(NotifyService);
+    riskControlService = module.get(RiskControlService);
     brokerService = module.get(TiantianBrokerService);
     notifyService = module.get(NotifyService);
   });

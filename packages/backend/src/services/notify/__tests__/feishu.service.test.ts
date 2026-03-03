@@ -76,9 +76,7 @@ describe('FeishuService', () => {
       const service = new FeishuService();
       await service.sendMessage({ title: 'Test', content: 'Test' });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Feishu not configured, skipping notification',
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('Feishu not configured, skipping notification');
       consoleSpy.mockRestore();
     });
 
@@ -93,10 +91,7 @@ describe('FeishuService', () => {
       const service = new FeishuService();
       await service.sendMessage({ title: 'Test', content: 'Test' });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to send Feishu message:',
-        expect.any(Error),
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to send Feishu message:', expect.any(Error));
       consoleSpy.mockRestore();
     });
 
@@ -123,9 +118,7 @@ describe('FeishuService', () => {
       const service = new FeishuService();
       await service.sendMessage({ title: 'Test', content: 'Test' });
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Feishu not configured, skipping notification',
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('Feishu not configured, skipping notification');
       consoleSpy.mockRestore();
     });
   });

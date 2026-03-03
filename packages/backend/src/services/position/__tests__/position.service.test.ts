@@ -188,9 +188,9 @@ describe('PositionService', () => {
     it('should throw error if position not found', async () => {
       positionRepository.findOne.mockResolvedValue(null);
 
-      await expect(
-        service.updatePositionOnSell('user1', '000001', 500, 1.8),
-      ).rejects.toThrow('Position not found');
+      await expect(service.updatePositionOnSell('user1', '000001', 500, 1.8)).rejects.toThrow(
+        'Position not found',
+      );
     });
   });
 
@@ -326,7 +326,7 @@ describe('PositionService', () => {
 
       positionRepository.find.mockResolvedValue(positions);
       fundNavRepository.findOne
-        .mockResolvedValueOnce({ nav: 1.1 })  // fund 000001
+        .mockResolvedValueOnce({ nav: 1.1 }) // fund 000001
         .mockResolvedValueOnce({ nav: 1.6 }); // fund 000002
       positionRepository.save.mockImplementation((pos: any) => Promise.resolve(pos));
 

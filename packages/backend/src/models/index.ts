@@ -6,3 +6,5 @@ export * from './position.entity';
 export * from './transaction.entity';
 export * from './strategy.entity';
 export * from './backtest-result.entity';
+export * from './risk-limit.entity';
+export * from './blacklist.entity';

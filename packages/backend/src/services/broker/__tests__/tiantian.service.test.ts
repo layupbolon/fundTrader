@@ -67,9 +67,7 @@ describe('TiantianBrokerService', () => {
       const session = await service.login('user', 'pass');
 
       const puppeteer = require('puppeteer').default;
-      expect(puppeteer.launch).toHaveBeenCalledWith(
-        expect.objectContaining({ headless: true }),
-      );
+      expect(puppeteer.launch).toHaveBeenCalledWith(expect.objectContaining({ headless: true }));
       expect(session).toHaveProperty('cookies');
       expect(session).toHaveProperty('expiresAt');
     });

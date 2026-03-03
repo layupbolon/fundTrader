@@ -31,9 +31,7 @@ export async function validateStrategyConfig(
   });
 
   if (errors.length > 0) {
-    const messages = errors.flatMap((e) =>
-      Object.values(e.constraints || {})
-    );
+    const messages = errors.flatMap((e) => Object.values(e.constraints || {}));
     throw new BadRequestException({
       message: 'Invalid strategy config',
       errors: messages,

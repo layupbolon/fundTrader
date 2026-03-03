@@ -73,9 +73,7 @@ describe('AuthService', () => {
     it('should throw ConflictException if username already exists', async () => {
       userRepository.findOne.mockResolvedValue(mockUser);
 
-      await expect(service.register('testuser', 'password123')).rejects.toThrow(
-        ConflictException,
-      );
+      await expect(service.register('testuser', 'password123')).rejects.toThrow(ConflictException);
     });
   });
 
@@ -94,26 +92,20 @@ describe('AuthService', () => {
     it('should throw UnauthorizedException if user not found', async () => {
       userRepository.findOne.mockResolvedValue(null);
 
-      await expect(service.login('unknown', 'password123')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.login('unknown', 'password123')).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException if password is wrong', async () => {
       userRepository.findOne.mockResolvedValue(mockUser);
       (bcrypt.compare as jest.Mock).mockResolvedValue(false);
 
-      await expect(service.login('testuser', 'wrongpass')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.login('testuser', 'wrongpass')).rejects.toThrow(UnauthorizedException);
     });
 
     it('should throw UnauthorizedException if user has no password_hash', async () => {
       userRepository.findOne.mockResolvedValue({ ...mockUser, password_hash: null });
 
-      await expect(service.login('testuser', 'password123')).rejects.toThrow(
-        UnauthorizedException,
-      );
+      await expect(service.login('testuser', 'password123')).rejects.toThrow(UnauthorizedException);
     });
   });
 

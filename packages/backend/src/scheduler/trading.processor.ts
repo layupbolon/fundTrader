@@ -3,7 +3,14 @@ import { Job } from 'bull';
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Strategy, Position, Transaction, StrategyType, TransactionType, TransactionStatus } from '../models';
+import {
+  Strategy,
+  Position,
+  Transaction,
+  StrategyType,
+  TransactionType,
+  TransactionStatus,
+} from '../models';
 import { AutoInvestStrategy } from '../core/strategy/auto-invest.strategy';
 import { TakeProfitStopLossStrategy } from '../core/strategy/take-profit-stop-loss.strategy';
 import { GridTradingStrategy } from '../core/strategy/grid-trading.strategy';

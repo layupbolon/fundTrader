@@ -478,9 +478,7 @@ export class BacktestEngine {
    * @returns 平均成本
    * @private
    */
-  private calculateAvgCost(
-    state: { cash: number; shares: number; totalCost: number },
-  ): number {
+  private calculateAvgCost(state: { cash: number; shares: number; totalCost: number }): number {
     return state.shares > 0 ? state.totalCost / state.shares : 0;
   }
 

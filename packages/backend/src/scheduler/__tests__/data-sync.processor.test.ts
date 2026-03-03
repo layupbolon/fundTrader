@@ -38,10 +38,7 @@ describe('DataSyncProcessor', () => {
 
       await processor.handleSyncNav({} as any);
 
-      expect(consoleSpy).toHaveBeenCalledWith(
-        'Failed to sync fund NAV:',
-        expect.any(Error),
-      );
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to sync fund NAV:', expect.any(Error));
       consoleSpy.mockRestore();
     });
 

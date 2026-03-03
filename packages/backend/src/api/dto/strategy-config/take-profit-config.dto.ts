@@ -1,11 +1,4 @@
-import {
-  IsNumber,
-  IsOptional,
-  IsDefined,
-  Min,
-  Max,
-  ValidateNested,
-} from 'class-validator';
+import { IsNumber, IsOptional, IsDefined, Min, Max, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class TakeProfitPartDto {
