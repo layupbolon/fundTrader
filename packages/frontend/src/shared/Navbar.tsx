@@ -6,6 +6,7 @@ const NAV_ITEMS = [
   { path: '/', label: '仪表盘' },
   { path: '/strategies', label: '策略管理' },
   { path: '/backtest', label: '策略回测' },
+  { path: '/analytics', label: '收益分析' },
 ];
 
 export default function Navbar() {

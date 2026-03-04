@@ -19,6 +19,7 @@ import {
   BacktestResult,
   RiskLimit,
   Blacklist,
+  PortfolioSnapshot,
 } from './models';
 
 // Auth
@@ -41,6 +42,9 @@ import { RebalanceStrategy } from './core/strategy/rebalance.strategy';
 // Risk Control
 import { RiskControlModule } from './core/risk/risk-control.module';
 
+// Analytics
+import { AnalyticsModule } from './core/analytics/analytics.module';
+
 // Backtest
 import { BacktestEngine } from './core/backtest/backtest.engine';
 
@@ -49,6 +53,7 @@ import { SchedulerService } from './scheduler/scheduler.service';
 import { TradingProcessor } from './scheduler/trading.processor';
 import { DataSyncProcessor } from './scheduler/data-sync.processor';
 import { ConfirmationProcessor } from './scheduler/confirmation.processor';
+import { SnapshotProcessor } from './scheduler/snapshot.processor';
 
 // Trading Confirmation
 import { TradingConfirmationModule } from './core/trading/trading-confirmation.module';
@@ -61,6 +66,7 @@ import {
   FundController,
   BacktestController,
   RiskController,
+  AnalyticsController,
 } from './api/controllers';
 import { UserController } from './api/user.controller';
 
@@ -113,6 +119,7 @@ import { UserController } from './api/user.controller';
           BacktestResult,
           RiskLimit,
           Blacklist,
+          PortfolioSnapshot,
         ],
         synchronize: process.env.NODE_ENV !== 'production',
         logging: process.env.NODE_ENV === 'development',
@@ -131,6 +138,7 @@ import { UserController } from './api/user.controller';
       BacktestResult,
       RiskLimit,
       Blacklist,
+      PortfolioSnapshot,
     ]),
 
     // Bull队列模块
@@ -155,6 +163,9 @@ import { UserController } from './api/user.controller';
 
     // Trading Confirmation
     TradingConfirmationModule,
+
+    // Analytics
+    AnalyticsModule,
   ],
   providers: [
     // Global JWT guard
@@ -185,6 +196,7 @@ import { UserController } from './api/user.controller';
     TradingProcessor,
     DataSyncProcessor,
     ConfirmationProcessor,
+    SnapshotProcessor,
   ],
   controllers: [
     StrategyController,
@@ -194,6 +206,7 @@ import { UserController } from './api/user.controller';
     BacktestController,
     UserController,
     RiskController,
+    AnalyticsController,
   ],
 })
 export class AppModule {}

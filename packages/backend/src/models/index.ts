@@ -8,3 +8,4 @@ export * from './strategy.entity';
 export * from './backtest-result.entity';
 export * from './risk-limit.entity';
 export * from './blacklist.entity';
+export * from './portfolio-snapshot.entity';

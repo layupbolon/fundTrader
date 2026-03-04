@@ -362,3 +362,4 @@ export class BacktestController {
 }
 
 export { RiskController };
+export { AnalyticsController } from './analytics.controller';
