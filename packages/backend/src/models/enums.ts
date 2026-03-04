@@ -31,6 +31,28 @@ export enum RiskLimitType {
   POSITION_RATIO_LIMIT = 'POSITION_RATIO_LIMIT',
   MAX_DRAWDOWN_LIMIT = 'MAX_DRAWDOWN_LIMIT',
   TOTAL_ASSET_STOP_LOSS = 'TOTAL_ASSET_STOP_LOSS',
+  SINGLE_TRADE_CONFIRM_THRESHOLD = 'SINGLE_TRADE_CONFIRM_THRESHOLD',
+}
+
+/**
+ * 交易确认状态枚举
+ *
+ * 用于大额交易确认流程，防止误操作导致的重大损失。
+ *
+ * 状态流转：
+ * PENDING_CONFIRMATION -> CONFIRMED（用户确认）
+ * PENDING_CONFIRMATION -> CANCELLED（用户手动取消）
+ * PENDING_CONFIRMATION -> TIMEOUT_CANCELLED（超时自动取消）
+ */
+export enum TransactionConfirmationStatus {
+  /** 等待确认 */
+  PENDING_CONFIRMATION = 'PENDING_CONFIRMATION',
+  /** 已确认 */
+  CONFIRMED = 'CONFIRMED',
+  /** 已取消（用户手动） */
+  CANCELLED = 'CANCELLED',
+  /** 超时取消 */
+  TIMEOUT_CANCELLED = 'TIMEOUT_CANCELLED',
 }
 
 export enum BlacklistType {

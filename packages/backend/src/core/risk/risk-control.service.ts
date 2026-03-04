@@ -1,6 +1,6 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan } from 'typeorm';
+import { Repository, LessThan, In } from 'typeorm';
 import { RiskLimit, RiskLimitType, Blacklist, BlacklistType } from '../../models';
 import { Position, Transaction, TransactionType, TransactionStatus } from '../../models';
 
@@ -70,6 +70,39 @@ export class RiskControlService {
     @InjectRepository(Transaction)
     private readonly transactionRepository: Repository<Transaction>,
   ) {}
+
+  /**
+   * 获取风控配置
+   *
+   * 根据指定的类型获取用户的风控配置。
+   *
+   * @param userId 用户 ID
+   * @param types 要获取的风控类型列表
+   * @returns 风控配置列表
+   */
+  async getRiskLimits(userId: string, types: RiskLimitType[]): Promise<RiskLimit[]> {
+    return this.riskLimitRepository.find({
+      where: {
+        user_id: userId,
+        type: In(types),
+      },
+    });
+  }
+
+  /**
+   * 获取用户的所有启用风控配置
+   *
+   * @param userId 用户 ID
+   * @returns 风控配置列表
+   */
+  async getAllEnabledRiskLimits(userId: string): Promise<RiskLimit[]> {
+    return this.riskLimitRepository.find({
+      where: {
+        user_id: userId,
+        enabled: true,
+      },
+    });
+  }
 
   /**
    * 检查交易限额

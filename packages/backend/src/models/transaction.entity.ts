@@ -9,7 +9,7 @@ import {
 import { User } from './user.entity';
 import { Fund } from './fund.entity';
 import { Strategy } from './strategy.entity';
-import { TransactionType, TransactionStatus } from './enums';
+import { TransactionType, TransactionStatus, TransactionConfirmationStatus } from './enums';
 
 /**
  * 交易记录实体
@@ -182,4 +182,70 @@ export class Transaction {
   @ManyToOne(() => Strategy, { nullable: true })
   @JoinColumn({ name: 'strategy_id' })
   strategy: Strategy;
+
+  /**
+   * 是否需要确认
+   *
+   * 由风控限额决定，当交易金额超过 SINGLE_TRADE_CONFIRM_THRESHOLD 阈值时为 true。
+   * 需要确认的交易会先进入 PENDING_CONFIRMATION 状态，等待用户确认后才执行。
+   */
+  @Column({ default: false })
+  requires_confirmation: boolean;
+
+  /**
+   * 确认状态
+   *
+   * 记录交易确认流程的状态。
+   * 只有 requires_confirmation = true 时才会使用此字段。
+   *
+   * 状态流转：
+   * - PENDING_CONFIRMATION: 等待用户确认
+   * - CONFIRMED: 用户已确认，交易已执行
+   * - CANCELLED: 用户手动取消
+   * - TIMEOUT_CANCELLED: 超时自动取消
+   */
+  @Column({ type: 'enum', enum: TransactionConfirmationStatus, default: TransactionConfirmationStatus.PENDING_CONFIRMATION })
+  confirmation_status: TransactionConfirmationStatus;
+
+  /**
+   * 确认超时时间
+   *
+   * 用户必须在此时间前确认交易，否则交易自动取消。
+   * 默认超时时间为 30 分钟（由 CONFIRMATION_TIMEOUT_MINUTES 环境变量配置）。
+   */
+  @Column({ type: 'timestamp', nullable: true })
+  confirmation_deadline: Date;
+
+  /**
+   * 确认时间（用户确认）
+   *
+   * 用户确认交易的时间（大额交易确认流程）。
+   * 当 confirmation_status 变为 CONFIRMED 时记录此时间。
+   *
+   * 注意：这与 confirmed_at 不同，confirmed_at 是 T+1 交易日确认时间，
+   * 而 user_confirmed_at 是大额交易确认流程中用户点击确认的时间。
+   */
+  @Column({ type: 'timestamp', nullable: true })
+  user_confirmed_at: Date;
+
+  /**
+   * 取消时间
+   *
+   * 交易被取消的时间（用户手动取消或超时取消）。
+   * 当 confirmation_status 变为 CANCELLED 或 TIMEOUT_CANCELLED 时记录此时间。
+   */
+  @Column({ type: 'timestamp', nullable: true })
+  cancelled_at: Date;
+
+  /**
+   * 确认回调数据
+   *
+   * 存储用户确认/取消时的原始回调数据。
+   * 用于审计和追踪用户操作。
+   *
+   * Telegram: 存储 callback_query 数据
+   * 飞书：存储交互响应数据
+   */
+  @Column({ type: 'jsonb', nullable: true })
+  confirmation_callback_data: any;
 }

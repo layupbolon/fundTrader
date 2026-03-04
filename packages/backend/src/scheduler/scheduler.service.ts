@@ -114,6 +114,16 @@ export class SchedulerService implements OnModuleInit {
       },
     );
 
+    // 每 5 分钟检查确认超时
+    this.tradingQueue.add(
+      'check-confirmation-timeout',
+      {},
+      {
+        repeat: { cron: '*/5 * * * *' },
+        removeOnComplete: true,
+      },
+    );
+
     console.log('Scheduled jobs initialized');
   }
 }

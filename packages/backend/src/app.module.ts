@@ -48,6 +48,10 @@ import { BacktestEngine } from './core/backtest/backtest.engine';
 import { SchedulerService } from './scheduler/scheduler.service';
 import { TradingProcessor } from './scheduler/trading.processor';
 import { DataSyncProcessor } from './scheduler/data-sync.processor';
+import { ConfirmationProcessor } from './scheduler/confirmation.processor';
+
+// Trading Confirmation
+import { TradingConfirmationModule } from './core/trading/trading-confirmation.module';
 
 // API Controllers
 import {
@@ -148,6 +152,9 @@ import { UserController } from './api/user.controller';
 
     // Risk Control
     RiskControlModule,
+
+    // Trading Confirmation
+    TradingConfirmationModule,
   ],
   providers: [
     // Global JWT guard
@@ -177,6 +184,7 @@ import { UserController } from './api/user.controller';
     SchedulerService,
     TradingProcessor,
     DataSyncProcessor,
+    ConfirmationProcessor,
   ],
   controllers: [
     StrategyController,

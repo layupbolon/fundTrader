@@ -13,6 +13,7 @@ import {
 import { TiantianBrokerService } from '../../../services/broker/tiantian.service';
 import { NotifyService } from '../../../services/notify/notify.service';
 import { RiskControlService } from '../../risk/risk-control.service';
+import { TradingConfirmationService } from '../../trading/trading-confirmation.service';
 
 describe('AutoInvestStrategy', () => {
   let service: AutoInvestStrategy;
@@ -21,6 +22,7 @@ describe('AutoInvestStrategy', () => {
   let brokerService: jest.Mocked<TiantianBrokerService>;
   let notifyService: jest.Mocked<NotifyService>;
   let riskControlService: jest.Mocked<RiskControlService>;
+  let tradingConfirmationService: jest.Mocked<TradingConfirmationService>;
 
   beforeEach(async () => {
     const mockStrategyRepository = {
@@ -61,6 +63,12 @@ describe('AutoInvestStrategy', () => {
       checkPositionLimit: jest.fn().mockResolvedValue({ passed: true }),
     };
 
+    const mockTradingConfirmationService = {
+      needsConfirmation: jest.fn().mockResolvedValue(false),
+      createPendingTransaction: jest.fn(),
+      sendConfirmationRequest: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AutoInvestStrategy,
@@ -84,6 +92,10 @@ describe('AutoInvestStrategy', () => {
           provide: RiskControlService,
           useValue: mockRiskControlService,
         },
+        {
+          provide: TradingConfirmationService,
+          useValue: mockTradingConfirmationService,
+        },
       ],
     }).compile();
 
@@ -93,8 +105,7 @@ describe('AutoInvestStrategy', () => {
     brokerService = module.get(TiantianBrokerService);
     notifyService = module.get(NotifyService);
     riskControlService = module.get(RiskControlService);
-    brokerService = module.get(TiantianBrokerService);
-    notifyService = module.get(NotifyService);
+    tradingConfirmationService = module.get(TradingConfirmationService);
   });
 
   afterEach(() => {

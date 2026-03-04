@@ -11,6 +11,7 @@ jest.mock('@larksuiteoapi/node-sdk', () => ({
 }));
 
 import { FeishuService } from '../feishu.service';
+import { TransactionType } from '../../../models';
 
 describe('FeishuService', () => {
   const originalEnv = process.env;
@@ -119,6 +120,84 @@ describe('FeishuService', () => {
       await service.sendMessage({ title: 'Test', content: 'Test' });
 
       expect(consoleSpy).toHaveBeenCalledWith('Feishu not configured, skipping notification');
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('sendConfirmationMessage', () => {
+    const mockConfirmationParams = {
+      transactionId: 'txn-123',
+      fundCode: '000001',
+      amount: 15000,
+      type: TransactionType.BUY,
+      deadline: new Date('2026-03-04T15:30:00'),
+    };
+
+    beforeEach(() => {
+      process.env.FEISHU_APP_ID = 'app-id';
+      process.env.FEISHU_APP_SECRET = 'app-secret';
+      process.env.FEISHU_USER_ID = 'user-id';
+    });
+
+    it('should send confirmation message with interactive card', async () => {
+      const service = new FeishuService();
+      await service.sendConfirmationMessage(mockConfirmationParams);
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            msg_type: 'interactive',
+            content: expect.stringContaining('大额交易确认'),
+          }),
+        }),
+      );
+    });
+
+    it('should include transaction details in card', async () => {
+      const service = new FeishuService();
+      await service.sendConfirmationMessage(mockConfirmationParams);
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      const content = JSON.parse(callArgs.data.content);
+
+      expect(content.elements).toBeDefined();
+      const elements = content.elements;
+
+      // Check for fund code
+      const fieldsElement = elements.find((e: any) => e.fields);
+      expect(fieldsElement).toBeDefined();
+
+      const fieldsText = JSON.stringify(fieldsElement.fields);
+      expect(fieldsText).toContain('000001');
+      expect(fieldsText).toContain('15,000');
+    });
+
+    it('should format SELL transaction correctly', async () => {
+      const service = new FeishuService();
+      await service.sendConfirmationMessage({
+        ...mockConfirmationParams,
+        type: TransactionType.SELL,
+      });
+
+      const callArgs = mockCreate.mock.calls[0][0];
+      const content = JSON.parse(callArgs.data.content);
+
+      const fieldsText = JSON.stringify(content.elements);
+      expect(fieldsText).toContain('卖出');
+    });
+
+    it('should skip sending when not configured', async () => {
+      delete process.env.FEISHU_APP_ID;
+      delete process.env.FEISHU_APP_SECRET;
+      delete process.env.FEISHU_USER_ID;
+
+      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const service = new FeishuService();
+      await service.sendConfirmationMessage(mockConfirmationParams);
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Feishu not configured, skipping confirmation message',
+      );
       consoleSpy.mockRestore();
     });
   });

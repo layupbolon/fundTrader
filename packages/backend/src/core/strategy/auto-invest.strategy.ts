@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -7,10 +7,12 @@ import {
   TransactionType,
   TransactionStatus,
   InvestFrequency,
+  TransactionConfirmationStatus,
 } from '../../models';
 import { TiantianBrokerService } from '../../services/broker/tiantian.service';
 import { NotifyService } from '../../services/notify/notify.service';
 import { RiskControlService } from '../risk/risk-control.service';
+import { TradingConfirmationService } from '../trading/trading-confirmation.service';
 import { isTradeTime, isWorkday, configDayToJsDay } from '../../utils';
 
 /**
@@ -87,6 +89,8 @@ interface AutoInvestConfig {
  */
 @Injectable()
 export class AutoInvestStrategy {
+  private readonly logger = new Logger(AutoInvestStrategy.name);
+
   constructor(
     @InjectRepository(Strategy)
     private strategyRepository: Repository<Strategy>,
@@ -95,7 +99,17 @@ export class AutoInvestStrategy {
     private brokerService: TiantianBrokerService,
     private notifyService: NotifyService,
     private riskControlService: RiskControlService,
+    private tradingConfirmationService: TradingConfirmationService,
   ) {}
+
+  /**
+   * 获取确认超时时间（分钟）
+   * 从环境变量读取，默认 30 分钟
+   */
+  private getConfirmationTimeoutMinutes(): number {
+    const timeout = process.env.CONFIRMATION_TIMEOUT_MINUTES;
+    return timeout ? parseInt(timeout, 10) : 30;
+  }
 
   /**
    * 判断是否应该执行定投
@@ -228,6 +242,12 @@ export class AutoInvestStrategy {
       if (!positionLimitCheck.passed) {
         throw new Error(`风控检查失败：${positionLimitCheck.message}`);
       }
+
+      // 4. 检查是否需要交易确认
+      const needsConfirmation = await this.tradingConfirmationService.needsConfirmation(
+        strategy.user_id,
+        amount,
+      );
       // ==================== 风控检查结束 ====================
 
       // 去重防护：检查今日是否已有该策略的 PENDING 或 CONFIRMED 交易
@@ -250,7 +270,40 @@ export class AutoInvestStrategy {
         return existingTransaction;
       }
 
-      // 执行买入
+      // ==================== 交易确认逻辑 ====================
+      if (needsConfirmation) {
+        this.logger.log(`大额交易需要确认：基金 ${fund_code}, 金额 ${amount} 元`);
+
+        // 创建待确认交易（不立即执行）
+        const transaction = await this.tradingConfirmationService.createPendingTransaction({
+          userId: strategy.user_id,
+          fundCode: fund_code,
+          amount,
+          type: TransactionType.BUY,
+          strategyId: strategy.id,
+          confirmationTimeoutMinutes: this.getConfirmationTimeoutMinutes(),
+        });
+
+        // 发送确认请求到 Telegram/飞书
+        await this.tradingConfirmationService.sendConfirmationRequest(transaction);
+
+        // 更新策略最后执行时间
+        await this.strategyRepository.update(strategy.id, {
+          last_executed_at: new Date(),
+        });
+
+        // 发送等待确认通知
+        await this.notifyService.send({
+          title: '等待交易确认',
+          content: `基金 ${fund_code} 买入 ${amount} 元\n请查看 Telegram/飞书确认消息`,
+          level: 'warning',
+        });
+
+        return transaction;
+      }
+      // ==================== 交易确认逻辑结束 ====================
+
+      // 执行买入（不需要确认的直接执行）
       // 调用天天基金交易平台接口，提交买入订单
       const order = await this.brokerService.buyFund(fund_code, amount);
 
