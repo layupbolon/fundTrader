@@ -40,9 +40,7 @@ export class SnapshotProcessor {
           this.logger.debug(`Created snapshot for user ${user.id}`);
         } catch (error) {
           failCount++;
-          this.logger.error(
-            `Failed to create snapshot for user ${user.id}: ${error.message}`,
-          );
+          this.logger.error(`Failed to create snapshot for user ${user.id}: ${error.message}`);
         }
       }
 

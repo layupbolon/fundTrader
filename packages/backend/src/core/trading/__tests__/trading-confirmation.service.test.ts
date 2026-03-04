@@ -156,14 +156,16 @@ describe('TradingConfirmationService', () => {
       });
 
       expect(transactionRepository.save).toHaveBeenCalledTimes(1);
-      expect(result).toEqual(expect.objectContaining({
-        user_id: 'user-123',
-        fund_code: '000001',
-        type: TransactionType.BUY,
-        amount: 15000,
-        requires_confirmation: true,
-        confirmation_status: TransactionConfirmationStatus.PENDING_CONFIRMATION,
-      }));
+      expect(result).toEqual(
+        expect.objectContaining({
+          user_id: 'user-123',
+          fund_code: '000001',
+          type: TransactionType.BUY,
+          amount: 15000,
+          requires_confirmation: true,
+          confirmation_status: TransactionConfirmationStatus.PENDING_CONFIRMATION,
+        }),
+      );
     });
   });
 
@@ -247,7 +249,9 @@ describe('TradingConfirmationService', () => {
       };
       transactionRepository.findOne = jest.fn().mockResolvedValue(expiredTransaction);
 
-      await expect(service.handleConfirmation('test-txn-id')).rejects.toThrow('交易 test-txn-id 已超时');
+      await expect(service.handleConfirmation('test-txn-id')).rejects.toThrow(
+        '交易 test-txn-id 已超时',
+      );
     });
 
     afterEach(() => {

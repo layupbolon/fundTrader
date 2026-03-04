@@ -54,9 +54,13 @@ import { TradingProcessor } from './scheduler/trading.processor';
 import { DataSyncProcessor } from './scheduler/data-sync.processor';
 import { ConfirmationProcessor } from './scheduler/confirmation.processor';
 import { SnapshotProcessor } from './scheduler/snapshot.processor';
+import { HealthCheckProcessor } from './scheduler/health-check.processor';
 
 // Trading Confirmation
 import { TradingConfirmationModule } from './core/trading/trading-confirmation.module';
+
+// Monitoring
+import { MonitoringModule } from './core/monitoring/monitoring.module';
 
 // API Controllers
 import {
@@ -153,7 +157,7 @@ import { UserController } from './api/user.controller';
       inject: [ConfigService],
     }),
 
-    BullModule.registerQueue({ name: 'trading' }, { name: 'data-sync' }),
+    BullModule.registerQueue({ name: 'trading' }, { name: 'data-sync' }, { name: 'health-check' }),
 
     // Auth
     AuthModule,
@@ -166,6 +170,9 @@ import { UserController } from './api/user.controller';
 
     // Analytics
     AnalyticsModule,
+
+    // Monitoring
+    MonitoringModule,
   ],
   providers: [
     // Global JWT guard
@@ -197,6 +204,7 @@ import { UserController } from './api/user.controller';
     DataSyncProcessor,
     ConfirmationProcessor,
     SnapshotProcessor,
+    HealthCheckProcessor,
   ],
   controllers: [
     StrategyController,

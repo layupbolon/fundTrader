@@ -7,6 +7,7 @@ export class SchedulerService implements OnModuleInit {
   constructor(
     @InjectQueue('trading') private tradingQueue: Queue,
     @InjectQueue('data-sync') private dataSyncQueue: Queue,
+    @InjectQueue('health-check') private healthCheckQueue: Queue,
   ) {}
 
   onModuleInit() {
@@ -117,6 +118,16 @@ export class SchedulerService implements OnModuleInit {
     // 每 5 分钟检查确认超时
     this.tradingQueue.add(
       'check-confirmation-timeout',
+      {},
+      {
+        repeat: { cron: '*/5 * * * *' },
+        removeOnComplete: true,
+      },
+    );
+
+    // 每 5 分钟检查健康状态
+    this.healthCheckQueue.add(
+      'check-health',
       {},
       {
         repeat: { cron: '*/5 * * * *' },

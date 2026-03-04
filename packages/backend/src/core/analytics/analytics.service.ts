@@ -92,14 +92,8 @@ export class AnalyticsService {
    *   '2026-03-04'
    * );
    */
-  async getReturnsData(
-    userId: string,
-    startDate: string,
-    endDate: string,
-  ): Promise<ReturnsData[]> {
-    this.logger.debug(
-      `Getting returns data for user ${userId} from ${startDate} to ${endDate}`,
-    );
+  async getReturnsData(userId: string, startDate: string, endDate: string): Promise<ReturnsData[]> {
+    this.logger.debug(`Getting returns data for user ${userId} from ${startDate} to ${endDate}`);
 
     const snapshots = await this.portfolioSnapshotRepository.find({
       where: {
@@ -143,10 +137,7 @@ export class AnalyticsService {
       .getMany();
 
     // 计算总资产用于计算占比
-    const totalAssets = positions.reduce(
-      (sum, pos) => sum + Number(pos.current_value || 0),
-      0,
-    );
+    const totalAssets = positions.reduce((sum, pos) => sum + Number(pos.current_value || 0), 0);
 
     return positions.map((position) => ({
       fund_code: position.fund_code,
@@ -256,10 +247,7 @@ export class AnalyticsService {
     });
 
     // 计算总资产、总成本、总盈亏
-    const totalAssets = positions.reduce(
-      (sum, pos) => sum + Number(pos.current_value || 0),
-      0,
-    );
+    const totalAssets = positions.reduce((sum, pos) => sum + Number(pos.current_value || 0), 0);
 
     const totalCost = positions.reduce((sum, pos) => sum + Number(pos.cost || 0), 0);
 

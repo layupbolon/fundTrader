@@ -45,9 +45,7 @@ describe('AnalyticsService', () => {
     }).compile();
 
     service = module.get<AnalyticsService>(AnalyticsService);
-    portfolioSnapshotRepository = module.get(
-      getRepositoryToken(PortfolioSnapshot),
-    );
+    portfolioSnapshotRepository = module.get(getRepositoryToken(PortfolioSnapshot));
     positionRepository = module.get(getRepositoryToken(Position));
     transactionRepository = module.get(getRepositoryToken(Transaction));
   });
@@ -87,11 +85,7 @@ describe('AnalyticsService', () => {
 
       portfolioSnapshotRepository.find.mockResolvedValue(mockSnapshots);
 
-      const result = await service.getReturnsData(
-        mockUserId,
-        mockStartDate,
-        mockEndDate,
-      );
+      const result = await service.getReturnsData(mockUserId, mockStartDate, mockEndDate);
 
       expect(portfolioSnapshotRepository.find).toHaveBeenCalledWith({
         where: {
@@ -123,11 +117,7 @@ describe('AnalyticsService', () => {
     it('should return empty array when no snapshots exist', async () => {
       portfolioSnapshotRepository.find.mockResolvedValue([]);
 
-      const result = await service.getReturnsData(
-        mockUserId,
-        mockStartDate,
-        mockEndDate,
-      );
+      const result = await service.getReturnsData(mockUserId, mockStartDate, mockEndDate);
 
       expect(result).toHaveLength(0);
     });
@@ -168,9 +158,7 @@ describe('AnalyticsService', () => {
         getMany: jest.fn().mockResolvedValue(mockPositions),
       };
 
-      positionRepository.createQueryBuilder.mockReturnValue(
-        queryBuilderMock as any,
-      );
+      positionRepository.createQueryBuilder.mockReturnValue(queryBuilderMock as any);
 
       const result = await service.getPositionAnalysis(mockUserId);
 
@@ -202,9 +190,7 @@ describe('AnalyticsService', () => {
         getMany: jest.fn().mockResolvedValue([]),
       };
 
-      positionRepository.createQueryBuilder.mockReturnValue(
-        queryBuilderMock as any,
-      );
+      positionRepository.createQueryBuilder.mockReturnValue(queryBuilderMock as any);
 
       const result = await service.getPositionAnalysis(mockUserId);
 
@@ -241,15 +227,9 @@ describe('AnalyticsService', () => {
           .mockResolvedValueOnce(mockSellStats),
       };
 
-      transactionRepository.createQueryBuilder.mockReturnValue(
-        queryBuilderMock as any,
-      );
+      transactionRepository.createQueryBuilder.mockReturnValue(queryBuilderMock as any);
 
-      const result = await service.getTransactionStats(
-        mockUserId,
-        mockStartDate,
-        mockEndDate,
-      );
+      const result = await service.getTransactionStats(mockUserId, mockStartDate, mockEndDate);
 
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual({
@@ -286,15 +266,9 @@ describe('AnalyticsService', () => {
         getRawOne: jest.fn().mockResolvedValue(mockEmptyStats),
       };
 
-      transactionRepository.createQueryBuilder.mockReturnValue(
-        queryBuilderMock as any,
-      );
+      transactionRepository.createQueryBuilder.mockReturnValue(queryBuilderMock as any);
 
-      const result = await service.getTransactionStats(
-        mockUserId,
-        mockStartDate,
-        mockEndDate,
-      );
+      const result = await service.getTransactionStats(mockUserId, mockStartDate, mockEndDate);
 
       expect(result[0].count).toBe(0);
       expect(result[1].count).toBe(0);
@@ -339,12 +313,8 @@ describe('AnalyticsService', () => {
         snapshot_date: expect.any(Date),
       };
 
-      portfolioSnapshotRepository.create.mockReturnValue(
-        mockCreatedSnapshot as any,
-      );
-      portfolioSnapshotRepository.save.mockResolvedValue(
-        mockCreatedSnapshot as any,
-      );
+      portfolioSnapshotRepository.create.mockReturnValue(mockCreatedSnapshot as any);
+      portfolioSnapshotRepository.save.mockResolvedValue(mockCreatedSnapshot as any);
 
       const result = await service.createSnapshot(mockUserId);
 
@@ -380,12 +350,8 @@ describe('AnalyticsService', () => {
         snapshot_date: expect.any(Date),
       };
 
-      portfolioSnapshotRepository.create.mockReturnValue(
-        mockCreatedSnapshot as any,
-      );
-      portfolioSnapshotRepository.save.mockResolvedValue(
-        mockCreatedSnapshot as any,
-      );
+      portfolioSnapshotRepository.create.mockReturnValue(mockCreatedSnapshot as any);
+      portfolioSnapshotRepository.save.mockResolvedValue(mockCreatedSnapshot as any);
 
       const result = await service.createSnapshot(mockUserId);
 

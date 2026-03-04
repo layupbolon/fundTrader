@@ -1,16 +1,5 @@
-import {
-  Controller,
-  Get,
-  Query,
-  BadRequestException,
-} from '@nestjs/common';
-import {
-  ApiBearerAuth,
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiQuery,
-} from '@nestjs/swagger';
+import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AnalyticsService } from '../core/analytics/analytics.service';
 import { CurrentUser } from '../auth/user.decorator';
 
@@ -114,11 +103,7 @@ export class AnalyticsController {
       throw new BadRequestException('Invalid date format. Use YYYY-MM-DD');
     }
 
-    const data = await this.analyticsService.getReturnsData(
-      user.id,
-      startDate,
-      endDate,
-    );
+    const data = await this.analyticsService.getReturnsData(user.id, startDate, endDate);
 
     return { data };
   }
@@ -171,11 +156,7 @@ export class AnalyticsController {
       throw new BadRequestException('Invalid date format. Use YYYY-MM-DD');
     }
 
-    const data = await this.analyticsService.getTransactionStats(
-      user.id,
-      startDate,
-      endDate,
-    );
+    const data = await this.analyticsService.getTransactionStats(user.id, startDate, endDate);
 
     return { data };
   }

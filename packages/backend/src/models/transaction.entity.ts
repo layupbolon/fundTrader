@@ -204,7 +204,11 @@ export class Transaction {
    * - CANCELLED: 用户手动取消
    * - TIMEOUT_CANCELLED: 超时自动取消
    */
-  @Column({ type: 'enum', enum: TransactionConfirmationStatus, default: TransactionConfirmationStatus.PENDING_CONFIRMATION })
+  @Column({
+    type: 'enum',
+    enum: TransactionConfirmationStatus,
+    default: TransactionConfirmationStatus.PENDING_CONFIRMATION,
+  })
   confirmation_status: TransactionConfirmationStatus;
 
   /**

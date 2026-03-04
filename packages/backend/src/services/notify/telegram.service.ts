@@ -175,10 +175,7 @@ export class TelegramService {
         await handler(transactionId, action);
 
         // 回复用户确认结果
-        const successText =
-          action === 'confirm'
-            ? '✅ 交易已确认，正在执行...'
-            : '❌ 交易已取消';
+        const successText = action === 'confirm' ? '✅ 交易已确认，正在执行...' : '❌ 交易已取消';
 
         await this.bot.answerCallbackQuery(callbackQuery.id, {
           text: successText,

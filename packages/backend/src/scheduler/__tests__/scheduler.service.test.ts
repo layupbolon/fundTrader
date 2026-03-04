@@ -6,6 +6,7 @@ describe('SchedulerService', () => {
   let service: SchedulerService;
   let tradingQueue: any;
   let dataSyncQueue: any;
+  let healthCheckQueue: any;
 
   beforeEach(async () => {
     tradingQueue = {
@@ -16,11 +17,16 @@ describe('SchedulerService', () => {
       add: jest.fn().mockResolvedValue(undefined),
     };
 
+    healthCheckQueue = {
+      add: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SchedulerService,
         { provide: getQueueToken('trading'), useValue: tradingQueue },
         { provide: getQueueToken('data-sync'), useValue: dataSyncQueue },
+        { provide: getQueueToken('health-check'), useValue: healthCheckQueue },
       ],
     }).compile();
 

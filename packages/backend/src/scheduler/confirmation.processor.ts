@@ -14,9 +14,7 @@ import { TradingConfirmationService } from '../core/trading/trading-confirmation
 export class ConfirmationProcessor {
   private readonly logger = new Logger(ConfirmationProcessor.name);
 
-  constructor(
-    private readonly tradingConfirmationService: TradingConfirmationService,
-  ) {}
+  constructor(private readonly tradingConfirmationService: TradingConfirmationService) {}
 
   /**
    * 处理确认超时检查任务
@@ -34,7 +32,9 @@ export class ConfirmationProcessor {
 
     try {
       const cancelledCount = await this.tradingConfirmationService.cancelTimeoutTransactions();
-      this.logger.log(`Confirmation timeout check completed, cancelled ${cancelledCount} transactions`);
+      this.logger.log(
+        `Confirmation timeout check completed, cancelled ${cancelledCount} transactions`,
+      );
       return cancelledCount;
     } catch (error) {
       this.logger.error(`Failed to check confirmation timeout: ${error.message}`);
