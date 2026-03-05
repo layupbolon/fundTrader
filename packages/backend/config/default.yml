@@ -28,3 +28,8 @@ notify:
     app_id: ${FEISHU_APP_ID}
     app_secret: ${FEISHU_APP_SECRET}
     user_id: ${FEISHU_USER_ID}
+
+backup:
+  directory: ${BACKUP_DIR:-./backups}
+  retention_days: ${BACKUP_RETENTION_DAYS:-7}
+  schedule: ${BACKUP_SCHEDULE:-0 2 * * *}

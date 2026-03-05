@@ -86,6 +86,7 @@ async function bootstrap() {
     .addTag('transactions', '交易记录')
     .addTag('funds', '基金信息')
     .addTag('backtest', '策略回测')
+    .addTag('backup', '数据库备份管理')
     .addTag('监控', '系统监控和健康检查')
     .build();
   const document = SwaggerModule.createDocument(app, config);

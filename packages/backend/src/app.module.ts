@@ -57,6 +57,7 @@ import { ConfirmationProcessor } from './scheduler/confirmation.processor';
 import { SnapshotProcessor } from './scheduler/snapshot.processor';
 import { HealthCheckProcessor } from './scheduler/health-check.processor';
 import { LogCleanupProcessor } from './scheduler/log-cleanup.processor';
+import { BackupProcessor } from './scheduler/backup.processor';
 
 // Trading Confirmation
 import { TradingConfirmationModule } from './core/trading/trading-confirmation.module';
@@ -66,6 +67,9 @@ import { MonitoringModule } from './core/monitoring/monitoring.module';
 
 // Logger
 import { LoggerModule } from './core/logger/logger.module';
+
+// Backup
+import { BackupModule } from './core/backup/backup.module';
 
 // API Controllers
 import {
@@ -79,6 +83,7 @@ import {
 } from './api/controllers';
 import { UserController } from './api/user.controller';
 import { LogController } from './api/log.controller';
+import { BackupController } from './api/backup.controller';
 
 @Module({
   imports: [
@@ -138,7 +143,7 @@ import { LogController } from './api/log.controller';
       inject: [ConfigService],
     }),
 
-    // TypeORM实体注册
+    // TypeORM 实体注册
     TypeOrmModule.forFeature([
       User,
       Fund,
@@ -153,7 +158,7 @@ import { LogController } from './api/log.controller';
       OperationLog,
     ]),
 
-    // Bull队列模块
+    // Bull 队列模块
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -170,6 +175,7 @@ import { LogController } from './api/log.controller';
       { name: 'data-sync' },
       { name: 'health-check' },
       { name: 'log-cleanup' },
+      { name: 'backup' },
     ),
 
     // Auth
@@ -189,6 +195,9 @@ import { LogController } from './api/log.controller';
 
     // Logger
     LoggerModule,
+
+    // Backup
+    BackupModule,
   ],
   providers: [
     // Global JWT guard
@@ -222,6 +231,7 @@ import { LogController } from './api/log.controller';
     SnapshotProcessor,
     HealthCheckProcessor,
     LogCleanupProcessor,
+    BackupProcessor,
   ],
   controllers: [
     StrategyController,
@@ -233,6 +243,7 @@ import { LogController } from './api/log.controller';
     RiskController,
     AnalyticsController,
     LogController,
+    BackupController,
   ],
 })
 export class AppModule {}

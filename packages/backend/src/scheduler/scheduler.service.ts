@@ -9,6 +9,7 @@ export class SchedulerService implements OnModuleInit {
     @InjectQueue('data-sync') private dataSyncQueue: Queue,
     @InjectQueue('health-check') private healthCheckQueue: Queue,
     @InjectQueue('log-cleanup') private logCleanupQueue: Queue,
+    @InjectQueue('backup') private backupQueue: Queue,
   ) {}
 
   onModuleInit() {
@@ -142,6 +143,26 @@ export class SchedulerService implements OnModuleInit {
       {},
       {
         repeat: { cron: '0 3 * * 0' },
+        removeOnComplete: true,
+      },
+    );
+
+    // 每天凌晨 2 点备份数据库
+    this.backupQueue.add(
+      'create-backup',
+      {},
+      {
+        repeat: { cron: '0 2 * * *' },
+        removeOnComplete: true,
+      },
+    );
+
+    // 每周日凌晨 4 点清理过期备份（保留 7 天）
+    this.backupQueue.add(
+      'cleanup-old-backups',
+      {},
+      {
+        repeat: { cron: '0 4 * * 0' },
         removeOnComplete: true,
       },
     );

@@ -28,6 +28,10 @@ logs/
 coverage/
 **/coverage/
 
+# Backup files
+backups/
+**/backups/
+
 # Temporary files
 *.tmp
 *.temp
