@@ -88,8 +88,6 @@ export class HealthService {
    * @returns 健康状态响应
    */
   async checkHealth(): Promise<HealthStatusResponse> {
-    const startTime = Date.now();
-
     const [database, redis, browser] = await Promise.all([
       this.checkDatabase(),
       this.checkRedis(),

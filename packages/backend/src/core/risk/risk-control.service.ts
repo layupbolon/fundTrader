@@ -1,6 +1,6 @@
-import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, LessThan, In } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { RiskLimit, RiskLimitType, Blacklist, BlacklistType } from '../../models';
 import { Position, Transaction, TransactionType, TransactionStatus } from '../../models';
 

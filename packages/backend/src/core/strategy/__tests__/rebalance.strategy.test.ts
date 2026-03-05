@@ -1,25 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { RebalanceStrategy } from '../rebalance.strategy';
-import {
-  Strategy,
-  Position,
-  Transaction,
-  StrategyType,
-  TransactionType,
-  TransactionStatus,
-  InvestFrequency,
-} from '../../../models';
+import { Strategy, Position, Transaction, StrategyType, InvestFrequency } from '../../../models';
 import { TiantianBrokerService } from '../../../services/broker/tiantian.service';
 import { FundDataService } from '../../../services/data/fund-data.service';
 import { NotifyService } from '../../../services/notify/notify.service';
 
 jest.mock('../../../utils', () => ({
   isTradeTime: jest.fn(() => true),
-  isWorkday: jest.fn(() => true),
 }));
 
-import { isTradeTime, isWorkday } from '../../../utils';
+import { isTradeTime } from '../../../utils';
 
 describe('RebalanceStrategy', () => {
   let strategy: RebalanceStrategy;

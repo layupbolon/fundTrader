@@ -4,6 +4,7 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
 import * as winston from 'winston';
+import * as fs from 'fs';
 import { AppModule } from './app.module';
 import { PerformanceMiddleware } from './common/performance.middleware';
 import { ErrorInterceptor } from './common/error.interceptor';
@@ -13,8 +14,6 @@ import { LoggingInterceptor } from './common/logging.interceptor';
 async function bootstrap() {
   // 创建日志目录
   const logDir = process.env.LOG_DIR || 'logs';
-  const fs = require('fs');
-  const path = require('path');
 
   if (!fs.existsSync(logDir)) {
     fs.mkdirSync(logDir, { recursive: true });

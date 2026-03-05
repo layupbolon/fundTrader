@@ -3,7 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { AnalyticsService } from '../analytics.service';
 import { PortfolioSnapshot, Position, Transaction } from '../../../models';
-import { TransactionType, TransactionStatus } from '../../../models';
+import { TransactionType } from '../../../models';
 
 describe('AnalyticsService', () => {
   let service: AnalyticsService;

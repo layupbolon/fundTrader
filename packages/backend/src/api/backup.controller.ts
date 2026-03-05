@@ -20,7 +20,6 @@ import {
   ApiBody,
 } from '@nestjs/swagger';
 import { Response } from 'express';
-import * as path from 'path';
 import * as fs from 'fs';
 import { BackupService } from '../core/backup/backup.service';
 import { BackupFile } from '../core/backup/backup.service';

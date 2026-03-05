@@ -7,7 +7,6 @@ import {
   TransactionType,
   TransactionStatus,
   InvestFrequency,
-  TransactionConfirmationStatus,
 } from '../../models';
 import { TiantianBrokerService } from '../../services/broker/tiantian.service';
 import { NotifyService } from '../../services/notify/notify.service';

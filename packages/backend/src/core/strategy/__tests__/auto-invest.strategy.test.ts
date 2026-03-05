@@ -21,8 +21,6 @@ describe('AutoInvestStrategy', () => {
   let transactionRepository: jest.Mocked<Repository<Transaction>>;
   let brokerService: jest.Mocked<TiantianBrokerService>;
   let notifyService: jest.Mocked<NotifyService>;
-  let riskControlService: jest.Mocked<RiskControlService>;
-  let tradingConfirmationService: jest.Mocked<TradingConfirmationService>;
 
   beforeEach(async () => {
     const mockStrategyRepository = {
@@ -104,8 +102,6 @@ describe('AutoInvestStrategy', () => {
     transactionRepository = module.get(getRepositoryToken(Transaction));
     brokerService = module.get(TiantianBrokerService);
     notifyService = module.get(NotifyService);
-    riskControlService = module.get(RiskControlService);
-    tradingConfirmationService = module.get(TradingConfirmationService);
   });
 
   afterEach(() => {

@@ -30,7 +30,7 @@ export class LoggingInterceptor implements NestInterceptor {
     const response = context.switchToHttp().getResponse<Response>();
 
     const startTime = Date.now();
-    const { method, url, body, query, headers } = request;
+    const { method, url, headers } = request;
 
     return next.handle().pipe(
       tap(() => {

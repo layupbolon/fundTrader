@@ -11,7 +11,6 @@ import {
   Position,
   Transaction,
   TransactionType,
-  TransactionStatus,
 } from '../../../models';
 
 describe('RiskControlService', () => {

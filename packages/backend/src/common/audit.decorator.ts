@@ -6,10 +6,11 @@ import {
   ExecutionContext,
   Injectable,
   NestInterceptor,
+  Logger,
 } from '@nestjs/common';
 import { Observable, tap } from 'rxjs';
 import { Request } from 'express';
-import { OperationType, OperationStatus } from '../models/operation-log.entity';
+import { OperationType } from '../models/operation-log.entity';
 
 /**
  * 审计元数据键
@@ -81,6 +82,8 @@ export const Audit = (options: AuditOptions) => SetMetadata(AUDIT_METADATA, opti
  */
 @Injectable()
 export class AuditInterceptor implements NestInterceptor {
+  private readonly logger = new Logger(AuditInterceptor.name);
+
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const req = context.switchToHttp().getRequest<Request>();
     const auditOptions = Reflect.getMetadata(AUDIT_METADATA, context.getHandler());
@@ -90,8 +93,7 @@ export class AuditInterceptor implements NestInterceptor {
     }
 
     const startTime = Date.now();
-    const { type, module, description, logRequestBody, logResponseBody, contextExtractor } =
-      auditOptions;
+    const { type, module, description } = auditOptions;
 
     return next.handle().pipe(
       tap((response) => {
@@ -102,7 +104,7 @@ export class AuditInterceptor implements NestInterceptor {
 
         // 这里应该将审计数据发送到日志服务
         // 由于依赖注入限制，在装饰器中只负责收集数据
-        console.log('[AUDIT]', {
+        this.logger.log(`[AUDIT] ${type} - ${module}`, {
           type,
           module,
           description: this.buildDescription(description, req, response),

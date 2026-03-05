@@ -1,13 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { GridTradingStrategy } from '../grid-trading.strategy';
-import {
-  Strategy,
-  Transaction,
-  StrategyType,
-  TransactionType,
-  TransactionStatus,
-} from '../../../models';
+import { Strategy, Transaction, StrategyType, TransactionType } from '../../../models';
 import { TiantianBrokerService } from '../../../services/broker/tiantian.service';
 import { FundDataService } from '../../../services/data/fund-data.service';
 import { NotifyService } from '../../../services/notify/notify.service';

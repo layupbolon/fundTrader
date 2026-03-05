@@ -172,7 +172,7 @@ describe('StrategyController', () => {
       strategyRepository.findOne.mockResolvedValue({ ...mockStrategy, enabled: true });
       strategyRepository.save.mockResolvedValue({ ...mockStrategy, enabled: false });
 
-      const result = await controller.toggle('strategy-uuid-1', mockUser);
+      await controller.toggle('strategy-uuid-1', mockUser);
 
       expect(strategyRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ enabled: false }),

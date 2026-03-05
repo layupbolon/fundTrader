@@ -314,7 +314,6 @@ export class BackupService {
     this.logger.log(`Cleaning up backups older than ${this.retentionDays} days...`);
 
     try {
-      const now = new Date();
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - this.retentionDays);
 

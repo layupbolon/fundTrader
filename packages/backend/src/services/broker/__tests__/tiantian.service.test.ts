@@ -24,11 +24,13 @@ jest.mock('puppeteer', () => {
   };
 });
 
+import puppeteer from 'puppeteer';
+
 describe('TiantianBrokerService', () => {
   const originalEnv = process.env;
   let TiantianBrokerService: any;
 
-  beforeEach(() => {
+  beforeEach(async () => {
     jest.resetModules();
     process.env = {
       ...originalEnv,
@@ -37,7 +39,7 @@ describe('TiantianBrokerService', () => {
     };
 
     // Re-import after setting env
-    const mod = require('../tiantian.service');
+    const mod = await import('../tiantian.service');
     TiantianBrokerService = mod.TiantianBrokerService;
   });
 
@@ -51,10 +53,10 @@ describe('TiantianBrokerService', () => {
       expect(service).toBeDefined();
     });
 
-    it('should throw when MASTER_KEY is missing', () => {
+    it('should throw when MASTER_KEY is missing', async () => {
       delete process.env.MASTER_KEY;
       jest.resetModules();
-      const mod = require('../tiantian.service');
+      const mod = await import('../tiantian.service');
       expect(() => new mod.TiantianBrokerService()).toThrow(
         'MASTER_KEY environment variable is required for security',
       );
@@ -66,8 +68,9 @@ describe('TiantianBrokerService', () => {
       const service = new TiantianBrokerService();
       const session = await service.login('user', 'pass');
 
-      const puppeteer = require('puppeteer').default;
-      expect(puppeteer.launch).toHaveBeenCalledWith(expect.objectContaining({ headless: true }));
+      expect((puppeteer as any).default.launch).toHaveBeenCalledWith(
+        expect.objectContaining({ headless: true }),
+      );
       expect(session).toHaveProperty('cookies');
       expect(session).toHaveProperty('expiresAt');
     });
@@ -76,14 +79,12 @@ describe('TiantianBrokerService', () => {
       const service = new TiantianBrokerService();
       await service.login('myuser', 'mypass');
 
-      const { __mockPage } = require('puppeteer');
-      expect(__mockPage.type).toHaveBeenCalledWith('#username', 'myuser');
-      expect(__mockPage.type).toHaveBeenCalledWith('#password', 'mypass');
+      expect((puppeteer as any).__mockPage.type).toHaveBeenCalledWith('#username', 'myuser');
+      expect((puppeteer as any).__mockPage.type).toHaveBeenCalledWith('#password', 'mypass');
     });
 
     it('should throw on login failure', async () => {
-      const { __mockPage } = require('puppeteer');
-      __mockPage.waitForNavigation.mockRejectedValueOnce(new Error('timeout'));
+      (puppeteer as any).__mockPage.waitForNavigation.mockRejectedValueOnce(new Error('timeout'));
 
       const service = new TiantianBrokerService();
       await expect(service.login('user', 'pass')).rejects.toThrow('登录失败');
@@ -113,20 +114,18 @@ describe('TiantianBrokerService', () => {
       await service.login('user', 'pass');
       await service.buyFund('110011', 1000);
 
-      const { __mockPage } = require('puppeteer');
-      expect(__mockPage.goto).toHaveBeenCalledWith(
+      expect((puppeteer as any).__mockPage.goto).toHaveBeenCalledWith(
         'https://trade.1234567.com.cn/buy/110011',
         expect.any(Object),
       );
     });
 
     it('should throw on buy failure', async () => {
-      const { __mockPage } = require('puppeteer');
+      (puppeteer as any).__mockPage.waitForSelector.mockRejectedValueOnce(new Error('timeout'));
 
       const service = new TiantianBrokerService();
       await service.login('user', 'pass');
 
-      __mockPage.waitForSelector.mockRejectedValueOnce(new Error('timeout'));
       await expect(service.buyFund('000001', 500)).rejects.toThrow('买入失败');
     });
   });
@@ -149,12 +148,11 @@ describe('TiantianBrokerService', () => {
     });
 
     it('should throw on sell failure', async () => {
-      const { __mockPage } = require('puppeteer');
+      (puppeteer as any).__mockPage.waitForSelector.mockRejectedValueOnce(new Error('timeout'));
 
       const service = new TiantianBrokerService();
       await service.login('user', 'pass');
 
-      __mockPage.waitForSelector.mockRejectedValueOnce(new Error('timeout'));
       await expect(service.sellFund('000001', 100)).rejects.toThrow('卖出失败');
     });
   });
@@ -166,8 +164,9 @@ describe('TiantianBrokerService', () => {
     });
 
     it('should parse CONFIRMED status', async () => {
-      const { __mockPage } = require('puppeteer');
-      __mockPage.$eval.mockResolvedValueOnce('ORDER_123').mockResolvedValueOnce('已确认');
+      (puppeteer as any).__mockPage.$eval
+        .mockResolvedValueOnce('ORDER_123')
+        .mockResolvedValueOnce('已确认');
 
       const service = new TiantianBrokerService();
       await service.login('user', 'pass');
@@ -177,12 +176,11 @@ describe('TiantianBrokerService', () => {
     });
 
     it('should throw on query failure', async () => {
-      const { __mockPage } = require('puppeteer');
+      (puppeteer as any).__mockPage.goto.mockRejectedValueOnce(new Error('network error'));
 
       const service = new TiantianBrokerService();
       await service.login('user', 'pass');
 
-      __mockPage.goto.mockRejectedValueOnce(new Error('network error'));
       await expect(service.getOrderStatus('ORDER_1')).rejects.toThrow('查询订单状态失败');
     });
   });
@@ -192,11 +190,10 @@ describe('TiantianBrokerService', () => {
       const service = new TiantianBrokerService();
       await service.login('user', 'pass');
 
-      const { __mockPage } = require('puppeteer');
-      __mockPage.goto.mockClear();
+      (puppeteer as any).__mockPage.goto.mockClear();
       await service.keepAlive();
 
-      expect(__mockPage.goto).toHaveBeenCalledWith(
+      expect((puppeteer as any).__mockPage.goto).toHaveBeenCalledWith(
         'https://trade.1234567.com.cn/',
         expect.any(Object),
       );
@@ -209,12 +206,11 @@ describe('TiantianBrokerService', () => {
     });
 
     it('should handle errors gracefully', async () => {
-      const { __mockPage } = require('puppeteer');
+      (puppeteer as any).__mockPage.goto.mockRejectedValueOnce(new Error('network'));
 
       const service = new TiantianBrokerService();
       await service.login('user', 'pass');
 
-      __mockPage.goto.mockRejectedValueOnce(new Error('network'));
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
       await service.keepAlive(); // Should not throw
 
@@ -228,10 +224,9 @@ describe('TiantianBrokerService', () => {
       const service = new TiantianBrokerService();
       await service.login('user', 'pass');
 
-      const { __mockBrowser } = require('puppeteer');
       await service.close();
 
-      expect(__mockBrowser.close).toHaveBeenCalled();
+      expect((puppeteer as any).__mockBrowser.close).toHaveBeenCalled();
     });
 
     it('should do nothing when browser is null', async () => {
