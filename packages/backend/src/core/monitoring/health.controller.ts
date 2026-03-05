@@ -72,7 +72,10 @@ export class HealthController {
    */
   @Get()
   @ApiTags('监控')
-  @ApiOperation({ summary: '健康检查', description: '检查系统各组件（数据库、Redis、浏览器会话）的健康状态' })
+  @ApiOperation({
+    summary: '健康检查',
+    description: '检查系统各组件（数据库、Redis、浏览器会话）的健康状态',
+  })
   @ApiResponse({
     status: 200,
     description: '健康检查成功',

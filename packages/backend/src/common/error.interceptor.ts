@@ -1,4 +1,11 @@
-import { Injectable, Logger, ExceptionFilter, Catch, ArgumentsHost, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  ExceptionFilter,
+  Catch,
+  ArgumentsHost,
+  HttpStatus,
+} from '@nestjs/common';
 import { Response } from 'express';
 import { NotifyService } from '../services/notify/notify.service';
 
