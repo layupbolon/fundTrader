@@ -1,4 +1,5 @@
 import type { Position } from '../api/types';
+import QuickTrade from '../components/QuickTrade';
 import EmptyState from '../shared/EmptyState';
 
 interface PositionListProps {
@@ -12,7 +13,7 @@ export default function PositionList({ positions }: PositionListProps) {
 
   return (
     <div className="bg-white rounded-xl border border-gray-200">
-      <div className="px-5 py-4 border-b border-gray-100">
+      <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
         <h2 className="text-base font-semibold text-gray-900">持仓列表</h2>
       </div>
       <div className="overflow-x-auto">
@@ -25,6 +26,7 @@ export default function PositionList({ positions }: PositionListProps) {
               <th className="px-5 py-3 font-medium text-right">成本价</th>
               <th className="px-5 py-3 font-medium text-right">市值</th>
               <th className="px-5 py-3 font-medium text-right">收益率</th>
+              <th className="px-5 py-3 font-medium text-center">操作</th>
             </tr>
           </thead>
           <tbody>
@@ -44,6 +46,9 @@ export default function PositionList({ positions }: PositionListProps) {
                   </td>
                   <td className={`px-5 py-3 text-right font-medium ${profitColor}`}>
                     {sign}{(p.profit_rate * 100).toFixed(2)}%
+                  </td>
+                  <td className="px-5 py-3 text-center">
+                    <QuickTrade fundCode={p.fund_code} fundName={p.fund?.name} />
                   </td>
                 </tr>
               );

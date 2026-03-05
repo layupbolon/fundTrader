@@ -1,4 +1,4 @@
-import { useState, useEffect, type FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { StrategyType } from '../api/types';
 import { createStrategy, updateStrategy, fetchStrategy } from '../api/strategies';
@@ -29,6 +29,21 @@ export default function StrategyForm() {
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(isEdit);
   const [error, setError] = useState('');
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  // 验证表单
+  const validateForm = (): string | null => {
+    if (!name.trim()) {
+      return '请输入策略名称';
+    }
+    if (name.length > 50) {
+      return '策略名称不能超过 50 个字符';
+    }
+    if (!/^[0-9]{6}$/.test(fundCode)) {
+      return '基金代码必须为 6 位数字';
+    }
+    return null;
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -48,11 +63,18 @@ export default function StrategyForm() {
     e.preventDefault();
     setError('');
 
-    if (!/^[0-9]{6}$/.test(fundCode)) {
-      setError('基金代码必须为6位数字');
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
       return;
     }
 
+    // 显示确认弹窗
+    setShowConfirm(true);
+  }
+
+  async function confirmSubmit() {
+    setShowConfirm(false);
     setLoading(true);
     try {
       if (isEdit) {
@@ -96,8 +118,9 @@ export default function StrategyForm() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
-            placeholder="例如：沪深300定投"
+            placeholder="例如：沪深 300 定投"
           />
+          <p className="mt-1 text-xs text-gray-500">{name.length}/50</p>
         </div>
 
         {!isEdit && (
@@ -128,8 +151,11 @@ export default function StrategyForm() {
             onChange={(e) => setFundCode(e.target.value.replace(/\D/g, ''))}
             disabled={isEdit}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
-            placeholder="6位数字，例如 110011"
+            placeholder="6 位数字，例如 110011"
           />
+          {isEdit && (
+            <p className="mt-1 text-xs text-gray-500">编辑时无法修改基金代码</p>
+          )}
         </div>
 
         <div className="border-t border-gray-200 pt-5">
@@ -165,6 +191,32 @@ export default function StrategyForm() {
           </button>
         </div>
       </form>
+
+      {/* 确认弹窗 */}
+      {showConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">确认保存策略</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              确定要{isEdit ? '保存修改' : '创建'}策略「{name}」吗？
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={confirmSubmit}
+                className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg"
+              >
+                确认
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

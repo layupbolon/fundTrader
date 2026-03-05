@@ -159,3 +159,9 @@ export interface BacktestPayload {
   initial_capital: number;
   strategy_config: Record<string, unknown>;
 }
+
+export interface CreateTransactionPayload {
+  fund_code: string;
+  type: TransactionType;
+  amount: number;
+}

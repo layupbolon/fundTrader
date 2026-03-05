@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { PaginatedResponse, Transaction } from './types';
+import type { PaginatedResponse, Transaction, CreateTransactionPayload } from './types';
 
 export function fetchTransactions(
   page = 1,
@@ -13,4 +13,11 @@ export function fetchTransactions(
 
 export function fetchTransaction(id: string): Promise<Transaction> {
   return apiClient<Transaction>(`/transactions/${id}`);
+}
+
+export function createTransaction(payload: CreateTransactionPayload): Promise<{ id: string }> {
+  return apiClient<{ id: string }>('/transactions', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
