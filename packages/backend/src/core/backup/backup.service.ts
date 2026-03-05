@@ -208,7 +208,9 @@ export class BackupService {
           const stats = fs.statSync(filePath);
 
           // 从文件名解析日期时间 backup_YYYYMMDD_HHMMSS.sql.gz
-          const dateMatch = file.match(/backup_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.sql\.gz/);
+          const dateMatch = file.match(
+            /backup_(\d{4})(\d{2})(\d{2})_(\d{2})(\d{2})(\d{2})\.sql\.gz/,
+          );
           let createdAt: Date;
 
           if (dateMatch) {
@@ -240,7 +242,9 @@ export class BackupService {
       this.logger.debug(`Found ${backupFiles.length} backup files`);
       return backupFiles;
     } catch (error) {
-      this.logger.error(`Failed to list backups: ${error instanceof Error ? error.message : error}`);
+      this.logger.error(
+        `Failed to list backups: ${error instanceof Error ? error.message : error}`,
+      );
       return [];
     }
   }

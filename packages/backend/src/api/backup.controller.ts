@@ -64,13 +64,14 @@ export class BackupController {
     summary: '下载备份文件',
     description: '下载指定的数据库备份文件',
   })
-  @ApiParam({ name: 'filename', description: '备份文件名', example: 'backup_20260305_020000.sql.gz' })
+  @ApiParam({
+    name: 'filename',
+    description: '备份文件名',
+    example: 'backup_20260305_020000.sql.gz',
+  })
   @ApiResponse({ status: 200, description: '成功返回备份文件' })
   @ApiResponse({ status: 404, description: '备份文件不存在' })
-  async downloadBackup(
-    @Param('filename') filename: string,
-    @Res() res: Response,
-  ): Promise<void> {
+  async downloadBackup(@Param('filename') filename: string, @Res() res: Response): Promise<void> {
     const filePath = this.backupService.getBackupFilePath(filename);
 
     if (!filePath) {
@@ -114,8 +115,7 @@ export class BackupController {
   @Post('restore')
   @ApiOperation({
     summary: '恢复数据库',
-    description:
-      '从指定的备份文件恢复数据库。⚠️ 警告：此操作会覆盖当前数据库所有数据！',
+    description: '从指定的备份文件恢复数据库。⚠️ 警告：此操作会覆盖当前数据库所有数据！',
   })
   @ApiBody({
     schema: {
@@ -137,9 +137,7 @@ export class BackupController {
   @ApiResponse({ status: 400, description: '未确认操作或参数错误' })
   @ApiResponse({ status: 404, description: '备份文件不存在' })
   @ApiResponse({ status: 500, description: '恢复失败' })
-  async restoreBackup(
-    @Body() body: RestoreDto,
-  ): Promise<{ success: boolean; error?: string }> {
+  async restoreBackup(@Body() body: RestoreDto): Promise<{ success: boolean; error?: string }> {
     if (!body.filename) {
       throw new BadRequestException('filename is required');
     }
@@ -158,10 +156,16 @@ export class BackupController {
     summary: '删除备份文件',
     description: '永久删除指定的数据库备份文件',
   })
-  @ApiParam({ name: 'filename', description: '备份文件名', example: 'backup_20260305_020000.sql.gz' })
+  @ApiParam({
+    name: 'filename',
+    description: '备份文件名',
+    example: 'backup_20260305_020000.sql.gz',
+  })
   @ApiResponse({ status: 200, description: '删除成功' })
   @ApiResponse({ status: 404, description: '备份文件不存在' })
-  async deleteBackup(@Param('filename') filename: string): Promise<{ success: boolean; error?: string }> {
+  async deleteBackup(
+    @Param('filename') filename: string,
+  ): Promise<{ success: boolean; error?: string }> {
     const result = await this.backupService.deleteBackup(filename);
 
     if (!result.success) {
