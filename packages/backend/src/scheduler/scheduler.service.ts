@@ -8,6 +8,7 @@ export class SchedulerService implements OnModuleInit {
     @InjectQueue('trading') private tradingQueue: Queue,
     @InjectQueue('data-sync') private dataSyncQueue: Queue,
     @InjectQueue('health-check') private healthCheckQueue: Queue,
+    @InjectQueue('log-cleanup') private logCleanupQueue: Queue,
   ) {}
 
   onModuleInit() {
@@ -131,6 +132,16 @@ export class SchedulerService implements OnModuleInit {
       {},
       {
         repeat: { cron: '*/5 * * * *' },
+        removeOnComplete: true,
+      },
+    );
+
+    // 每周日凌晨 3 点清理过期日志（保留 30 天）
+    this.logCleanupQueue.add(
+      'cleanup-old-logs',
+      {},
+      {
+        repeat: { cron: '0 3 * * 0' },
         removeOnComplete: true,
       },
     );

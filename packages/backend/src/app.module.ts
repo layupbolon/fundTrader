@@ -20,6 +20,7 @@ import {
   RiskLimit,
   Blacklist,
   PortfolioSnapshot,
+  OperationLog,
 } from './models';
 
 // Auth
@@ -55,12 +56,16 @@ import { DataSyncProcessor } from './scheduler/data-sync.processor';
 import { ConfirmationProcessor } from './scheduler/confirmation.processor';
 import { SnapshotProcessor } from './scheduler/snapshot.processor';
 import { HealthCheckProcessor } from './scheduler/health-check.processor';
+import { LogCleanupProcessor } from './scheduler/log-cleanup.processor';
 
 // Trading Confirmation
 import { TradingConfirmationModule } from './core/trading/trading-confirmation.module';
 
 // Monitoring
 import { MonitoringModule } from './core/monitoring/monitoring.module';
+
+// Logger
+import { LoggerModule } from './core/logger/logger.module';
 
 // API Controllers
 import {
@@ -73,6 +78,7 @@ import {
   AnalyticsController,
 } from './api/controllers';
 import { UserController } from './api/user.controller';
+import { LogController } from './api/log.controller';
 
 @Module({
   imports: [
@@ -124,6 +130,7 @@ import { UserController } from './api/user.controller';
           RiskLimit,
           Blacklist,
           PortfolioSnapshot,
+          OperationLog,
         ],
         synchronize: process.env.NODE_ENV !== 'production',
         logging: process.env.NODE_ENV === 'development',
@@ -143,6 +150,7 @@ import { UserController } from './api/user.controller';
       RiskLimit,
       Blacklist,
       PortfolioSnapshot,
+      OperationLog,
     ]),
 
     // Bull队列模块
@@ -157,7 +165,12 @@ import { UserController } from './api/user.controller';
       inject: [ConfigService],
     }),
 
-    BullModule.registerQueue({ name: 'trading' }, { name: 'data-sync' }, { name: 'health-check' }),
+    BullModule.registerQueue(
+      { name: 'trading' },
+      { name: 'data-sync' },
+      { name: 'health-check' },
+      { name: 'log-cleanup' },
+    ),
 
     // Auth
     AuthModule,
@@ -173,6 +186,9 @@ import { UserController } from './api/user.controller';
 
     // Monitoring
     MonitoringModule,
+
+    // Logger
+    LoggerModule,
   ],
   providers: [
     // Global JWT guard
@@ -205,6 +221,7 @@ import { UserController } from './api/user.controller';
     ConfirmationProcessor,
     SnapshotProcessor,
     HealthCheckProcessor,
+    LogCleanupProcessor,
   ],
   controllers: [
     StrategyController,
@@ -215,6 +232,7 @@ import { UserController } from './api/user.controller';
     UserController,
     RiskController,
     AnalyticsController,
+    LogController,
   ],
 })
 export class AppModule {}

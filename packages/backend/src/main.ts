@@ -3,15 +3,70 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import helmet from 'helmet';
+import * as winston from 'winston';
 import { AppModule } from './app.module';
 import { PerformanceMiddleware } from './common/performance.middleware';
 import { ErrorInterceptor } from './common/error.interceptor';
 import { NotifyService } from './services/notify/notify.service';
+import { LoggingInterceptor } from './common/logging.interceptor';
 
 async function bootstrap() {
+  // 创建日志目录
+  const logDir = process.env.LOG_DIR || 'logs';
+  const fs = require('fs');
+  const path = require('path');
+
+  if (!fs.existsSync(logDir)) {
+    fs.mkdirSync(logDir, { recursive: true });
+  }
+
+  // 创建 winston logger 实例
+  const logger = winston.createLogger({
+    level: process.env.LOG_LEVEL || 'info',
+    format: winston.format.combine(
+      winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss.SSS' }),
+      winston.format.errors({ stack: true }),
+      winston.format.splat(),
+      winston.format.json(),
+    ),
+    defaultMeta: { service: 'fund-trader' },
+    transports: [
+      new winston.transports.File({
+        filename: `${logDir}/error.log`,
+        level: 'error',
+        maxsize: 10485760,
+        maxFiles: 7,
+      }),
+      new winston.transports.File({
+        filename: `${logDir}/combined.log`,
+        maxsize: 10485760,
+        maxFiles: 7,
+      }),
+    ],
+  });
+
+  // 开发环境添加控制台输出
+  if (process.env.NODE_ENV !== 'production') {
+    logger.add(
+      new winston.transports.Console({
+        format: winston.format.combine(
+          winston.format.colorize(),
+          winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
+          winston.format.printf(({ timestamp, level, message, ...meta }) => {
+            const metaStr = Object.keys(meta).length ? JSON.stringify(meta) : '';
+            return `${timestamp} [${level}]: ${message} ${metaStr}`;
+          }),
+        ),
+      }),
+    );
+  }
+
   const app = await NestFactory.create(AppModule, {
     logger: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['error', 'warn', 'log'],
   });
+
+  // 使用 winston 作为 NestJS logger
+  app.useLogger(logger);
 
   // 性能指标采集中间件
   app.use(new PerformanceMiddleware());
@@ -69,6 +124,9 @@ async function bootstrap() {
   // Global error interceptor with alert notifications
   const notifyService = app.get(NotifyService);
   app.useGlobalFilters(new ErrorInterceptor(notifyService));
+
+  // Global logging interceptor
+  app.useGlobalInterceptors(new LoggingInterceptor());
 
   const port = process.env.PORT || 3000;
   await app.listen(port);
