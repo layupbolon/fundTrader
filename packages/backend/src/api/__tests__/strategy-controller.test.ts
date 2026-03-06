@@ -16,7 +16,7 @@ describe('StrategyController', () => {
     name: '沪深300定投',
     type: StrategyType.AUTO_INVEST,
     fund_code: '110011',
-    config: { amount: 1000, frequency: 'weekly', day_of_week: 1 },
+    config: { amount: 1000, frequency: 'WEEKLY', day_of_week: 1 },
     enabled: true,
     created_at: new Date(),
     updated_at: new Date(),
@@ -80,7 +80,7 @@ describe('StrategyController', () => {
         name: '沪深300定投',
         type: StrategyType.AUTO_INVEST,
         fund_code: '110011',
-        config: { amount: 1000, frequency: 'daily' },
+        config: { amount: 1000, frequency: 'DAILY' },
       };
       strategyRepository.create.mockReturnValue({ ...createDto, user_id: 'user-uuid-1' });
       strategyRepository.save.mockResolvedValue({ ...mockStrategy });

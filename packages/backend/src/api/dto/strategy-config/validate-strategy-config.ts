@@ -9,8 +9,7 @@ import { RebalanceConfigDto } from './rebalance-config.dto';
 
 const CONFIG_DTO_MAP: Record<string, new () => any> = {
   [StrategyType.AUTO_INVEST]: AutoInvestConfigDto,
-  [StrategyType.TAKE_PROFIT]: TakeProfitStopLossConfigDto,
-  [StrategyType.STOP_LOSS]: TakeProfitStopLossConfigDto,
+  [StrategyType.TAKE_PROFIT_STOP_LOSS]: TakeProfitStopLossConfigDto,
   [StrategyType.GRID_TRADING]: GridTradingConfigDto,
   [StrategyType.REBALANCE]: RebalanceConfigDto,
 };

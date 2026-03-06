@@ -102,11 +102,15 @@ export interface AutoInvestConfig {
 }
 
 export interface TakeProfitStopLossConfig {
-  take_profit_rate: number;
-  stop_loss_rate: number;
-  sell_ratio: number;
-  trailing_stop?: boolean;
-  trailing_stop_rate?: number;
+  take_profit: {
+    target_rate: number;
+    sell_ratio: number;
+    trailing_stop?: number;
+  };
+  stop_loss: {
+    max_drawdown: number;
+    sell_ratio: number;
+  };
 }
 
 export interface GridTradingConfig {
@@ -164,4 +168,5 @@ export interface CreateTransactionPayload {
   fund_code: string;
   type: TransactionType;
   amount: number;
+  shares?: number;
 }

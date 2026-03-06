@@ -423,21 +423,20 @@ describe('TradingProcessor', () => {
       const positions = [{ id: 'position-1', user_id: 'user-1', fund_code: '000001' }];
       mockPositionRepository.find.mockResolvedValue(positions);
 
-      const takeProfitStrategies = [
+      const tpslStrategies = [
         {
           id: 'tp-1',
           user_id: 'user-1',
           fund_code: '000001',
-          type: 'TAKE_PROFIT',
+          type: 'TAKE_PROFIT_STOP_LOSS',
           enabled: true,
-          config: { target_rate: 0.15, sell_ratio: 1.0 },
+          config: {
+            take_profit: { target_rate: 0.15, sell_ratio: 1.0 },
+            stop_loss: { max_drawdown: -0.1, sell_ratio: 1.0 },
+          },
         },
       ];
-      const stopLossStrategies = [];
-
-      mockStrategyRepository.find
-        .mockResolvedValueOnce(takeProfitStrategies)
-        .mockResolvedValueOnce(stopLossStrategies);
+      mockStrategyRepository.find.mockResolvedValueOnce(tpslStrategies);
 
       mockTakeProfitStopLossStrategy.checkTakeProfit.mockResolvedValue(true);
       mockTakeProfitStopLossStrategy.executeSell.mockResolvedValue(undefined);
@@ -452,22 +451,23 @@ describe('TradingProcessor', () => {
       const positions = [{ id: 'position-1', user_id: 'user-1', fund_code: '000001' }];
       mockPositionRepository.find.mockResolvedValue(positions);
 
-      const takeProfitStrategies = [];
-      const stopLossStrategies = [
+      const tpslStrategies = [
         {
           id: 'sl-1',
           user_id: 'user-1',
           fund_code: '000001',
-          type: 'STOP_LOSS',
+          type: 'TAKE_PROFIT_STOP_LOSS',
           enabled: true,
-          config: { max_drawdown: -0.1, sell_ratio: 1.0 },
+          config: {
+            take_profit: { target_rate: 0.2, sell_ratio: 1.0 },
+            stop_loss: { max_drawdown: -0.1, sell_ratio: 1.0 },
+          },
         },
       ];
 
-      mockStrategyRepository.find
-        .mockResolvedValueOnce(takeProfitStrategies)
-        .mockResolvedValueOnce(stopLossStrategies);
+      mockStrategyRepository.find.mockResolvedValueOnce(tpslStrategies);
 
+      mockTakeProfitStopLossStrategy.checkTakeProfit.mockResolvedValue(false);
       mockTakeProfitStopLossStrategy.checkStopLoss.mockResolvedValue(true);
       mockTakeProfitStopLossStrategy.executeSell.mockResolvedValue(undefined);
 
@@ -481,23 +481,23 @@ describe('TradingProcessor', () => {
       const positions = [{ id: 'position-1', user_id: 'user-1', fund_code: '000001' }];
       mockPositionRepository.find.mockResolvedValue(positions);
 
-      const takeProfitStrategies = [
+      const tpslStrategies = [
         {
           id: 'tp-1',
           user_id: 'user-1',
           fund_code: '000001',
-          type: 'TAKE_PROFIT',
+          type: 'TAKE_PROFIT_STOP_LOSS',
           enabled: true,
-          config: {},
+          config: {
+            take_profit: { target_rate: 0.2, sell_ratio: 1.0 },
+            stop_loss: { max_drawdown: -0.1, sell_ratio: 1.0 },
+          },
         },
       ];
-      const stopLossStrategies = [];
-
-      mockStrategyRepository.find
-        .mockResolvedValueOnce(takeProfitStrategies)
-        .mockResolvedValueOnce(stopLossStrategies);
+      mockStrategyRepository.find.mockResolvedValueOnce(tpslStrategies);
 
       mockTakeProfitStopLossStrategy.checkTakeProfit.mockResolvedValue(false);
+      mockTakeProfitStopLossStrategy.checkStopLoss.mockResolvedValue(false);
 
       await processor.handleTakeProfitStopLoss({} as any);
 

@@ -8,6 +8,7 @@ describe('SchedulerService', () => {
   let dataSyncQueue: any;
   let healthCheckQueue: any;
   let logCleanupQueue: any;
+  let backupQueue: any;
 
   beforeEach(async () => {
     tradingQueue = {
@@ -26,6 +27,10 @@ describe('SchedulerService', () => {
       add: jest.fn().mockResolvedValue(undefined),
     };
 
+    backupQueue = {
+      add: jest.fn().mockResolvedValue(undefined),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         SchedulerService,
@@ -33,6 +38,7 @@ describe('SchedulerService', () => {
         { provide: getQueueToken('data-sync'), useValue: dataSyncQueue },
         { provide: getQueueToken('health-check'), useValue: healthCheckQueue },
         { provide: getQueueToken('log-cleanup'), useValue: logCleanupQueue },
+        { provide: getQueueToken('backup'), useValue: backupQueue },
       ],
     }).compile();
 
@@ -83,6 +89,15 @@ describe('SchedulerService', () => {
         expect(call[2]).toHaveProperty('repeat');
         expect(call[2]).toHaveProperty('removeOnComplete', true);
       });
+
+      expect(dataSyncQueue.add).toHaveBeenCalledWith(
+        'create-snapshot',
+        {},
+        expect.objectContaining({
+          repeat: { cron: '35 22 * * 1-5' },
+          removeOnComplete: true,
+        }),
+      );
     });
 
     it('should set up auto-invest with workday cron', () => {

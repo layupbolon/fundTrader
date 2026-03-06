@@ -8,7 +8,7 @@ describe('validateStrategyConfig', () => {
       await expect(
         validateStrategyConfig(StrategyType.AUTO_INVEST, {
           amount: 1000,
-          frequency: 'daily',
+          frequency: 'DAILY',
         }),
       ).resolves.toBeUndefined();
     });
@@ -17,7 +17,7 @@ describe('validateStrategyConfig', () => {
       await expect(
         validateStrategyConfig(StrategyType.AUTO_INVEST, {
           amount: 500,
-          frequency: 'weekly',
+          frequency: 'WEEKLY',
           day_of_week: 3,
         }),
       ).resolves.toBeUndefined();
@@ -27,7 +27,7 @@ describe('validateStrategyConfig', () => {
       await expect(
         validateStrategyConfig(StrategyType.AUTO_INVEST, {
           amount: 2000,
-          frequency: 'monthly',
+          frequency: 'MONTHLY',
           day_of_month: 15,
         }),
       ).resolves.toBeUndefined();
@@ -37,7 +37,7 @@ describe('validateStrategyConfig', () => {
       await expect(
         validateStrategyConfig(StrategyType.AUTO_INVEST, {
           amount: 5,
-          frequency: 'daily',
+          frequency: 'DAILY',
         }),
       ).rejects.toThrow(BadRequestException);
     });
@@ -54,13 +54,13 @@ describe('validateStrategyConfig', () => {
     it('should reject missing amount', async () => {
       await expect(
         validateStrategyConfig(StrategyType.AUTO_INVEST, {
-          frequency: 'daily',
+          frequency: 'DAILY',
         }),
       ).rejects.toThrow(BadRequestException);
     });
   });
 
-  describe('TAKE_PROFIT', () => {
+  describe('TAKE_PROFIT_STOP_LOSS', () => {
     const validConfig = {
       take_profit: {
         target_rate: 0.15,
@@ -75,13 +75,13 @@ describe('validateStrategyConfig', () => {
 
     it('should pass valid TPSL config', async () => {
       await expect(
-        validateStrategyConfig(StrategyType.TAKE_PROFIT, validConfig),
+        validateStrategyConfig(StrategyType.TAKE_PROFIT_STOP_LOSS, validConfig),
       ).resolves.toBeUndefined();
     });
 
     it('should reject positive max_drawdown', async () => {
       await expect(
-        validateStrategyConfig(StrategyType.TAKE_PROFIT, {
+        validateStrategyConfig(StrategyType.TAKE_PROFIT_STOP_LOSS, {
           ...validConfig,
           stop_loss: { max_drawdown: 0.1, sell_ratio: 1.0 },
         }),
@@ -90,7 +90,7 @@ describe('validateStrategyConfig', () => {
 
     it('should reject sell_ratio greater than 1', async () => {
       await expect(
-        validateStrategyConfig(StrategyType.TAKE_PROFIT, {
+        validateStrategyConfig(StrategyType.TAKE_PROFIT_STOP_LOSS, {
           ...validConfig,
           take_profit: { target_rate: 0.15, sell_ratio: 1.5 },
         }),
@@ -99,7 +99,7 @@ describe('validateStrategyConfig', () => {
 
     it('should reject missing take_profit', async () => {
       await expect(
-        validateStrategyConfig(StrategyType.TAKE_PROFIT, {
+        validateStrategyConfig(StrategyType.TAKE_PROFIT_STOP_LOSS, {
           stop_loss: { max_drawdown: -0.1, sell_ratio: 1.0 },
         }),
       ).rejects.toThrow(BadRequestException);

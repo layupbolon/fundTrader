@@ -8,20 +8,20 @@ export enum TransactionStatus {
   SUBMITTED = 'SUBMITTED',
   CONFIRMED = 'CONFIRMED',
   FAILED = 'FAILED',
+  CANCELLED = 'CANCELLED',
 }
 
 export enum StrategyType {
   AUTO_INVEST = 'AUTO_INVEST',
-  TAKE_PROFIT = 'TAKE_PROFIT',
-  STOP_LOSS = 'STOP_LOSS',
+  TAKE_PROFIT_STOP_LOSS = 'TAKE_PROFIT_STOP_LOSS',
   GRID_TRADING = 'GRID_TRADING',
   REBALANCE = 'REBALANCE',
 }
 
 export enum InvestFrequency {
-  DAILY = 'daily',
-  WEEKLY = 'weekly',
-  MONTHLY = 'monthly',
+  DAILY = 'DAILY',
+  WEEKLY = 'WEEKLY',
+  MONTHLY = 'MONTHLY',
 }
 
 export enum RiskLimitType {

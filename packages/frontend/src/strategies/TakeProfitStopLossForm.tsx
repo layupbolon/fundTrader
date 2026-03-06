@@ -9,8 +9,21 @@ function rateToPercent(val: unknown): string {
 }
 
 export default function TakeProfitStopLossForm({ config, onChange }: TakeProfitStopLossFormProps) {
-  function update(field: string, value: unknown) {
-    onChange({ ...config, [field]: value });
+  const takeProfit = (config.take_profit as Record<string, unknown>) || {};
+  const stopLoss = (config.stop_loss as Record<string, unknown>) || {};
+
+  function updateTakeProfit(field: string, value: unknown) {
+    onChange({
+      ...config,
+      take_profit: { ...takeProfit, [field]: value },
+    });
+  }
+
+  function updateStopLoss(field: string, value: unknown) {
+    onChange({
+      ...config,
+      stop_loss: { ...stopLoss, [field]: value },
+    });
   }
 
   return (
@@ -22,8 +35,8 @@ export default function TakeProfitStopLossForm({ config, onChange }: TakeProfitS
             type="number"
             step="0.01"
             min="0"
-            value={rateToPercent(config.take_profit_rate)}
-            onChange={(e) => update('take_profit_rate', Number(e.target.value) / 100)}
+            value={rateToPercent(takeProfit.target_rate)}
+            onChange={(e) => updateTakeProfit('target_rate', Number(e.target.value) / 100)}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
             placeholder="例如 30"
           />
@@ -34,8 +47,8 @@ export default function TakeProfitStopLossForm({ config, onChange }: TakeProfitS
             type="number"
             step="0.01"
             min="0"
-            value={rateToPercent(config.stop_loss_rate)}
-            onChange={(e) => update('stop_loss_rate', Number(e.target.value) / 100)}
+            value={rateToPercent(Math.abs(Number(stopLoss.max_drawdown ?? 0)))}
+            onChange={(e) => updateStopLoss('max_drawdown', -Number(e.target.value) / 100)}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
             placeholder="例如 10"
           />
@@ -49,8 +62,12 @@ export default function TakeProfitStopLossForm({ config, onChange }: TakeProfitS
           step="1"
           min="1"
           max="100"
-          value={rateToPercent(config.sell_ratio)}
-          onChange={(e) => update('sell_ratio', Number(e.target.value) / 100)}
+          value={rateToPercent(takeProfit.sell_ratio)}
+          onChange={(e) => {
+            const ratio = Number(e.target.value) / 100;
+            updateTakeProfit('sell_ratio', ratio);
+            updateStopLoss('sell_ratio', ratio);
+          }}
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
           placeholder="例如 100"
         />
@@ -60,8 +77,10 @@ export default function TakeProfitStopLossForm({ config, onChange }: TakeProfitS
         <input
           type="checkbox"
           id="trailing_stop"
-          checked={!!config.trailing_stop}
-          onChange={(e) => update('trailing_stop', e.target.checked)}
+          checked={takeProfit.trailing_stop != null}
+          onChange={(e) =>
+            updateTakeProfit('trailing_stop', e.target.checked ? (takeProfit.trailing_stop ?? 0.05) : undefined)
+          }
           className="h-4 w-4 text-primary-600 rounded border-gray-300"
         />
         <label htmlFor="trailing_stop" className="text-sm text-gray-700">
@@ -69,15 +88,15 @@ export default function TakeProfitStopLossForm({ config, onChange }: TakeProfitS
         </label>
       </div>
 
-      {!!config.trailing_stop && (
+      {takeProfit.trailing_stop != null && (
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">移动止盈回撤率 (%)</label>
           <input
             type="number"
             step="0.01"
             min="0"
-            value={rateToPercent(config.trailing_stop_rate)}
-            onChange={(e) => update('trailing_stop_rate', Number(e.target.value) / 100)}
+            value={rateToPercent(takeProfit.trailing_stop)}
+            onChange={(e) => updateTakeProfit('trailing_stop', Number(e.target.value) / 100)}
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
             placeholder="例如 5"
           />

@@ -37,6 +37,16 @@ export class SchedulerService implements OnModuleInit {
       },
     );
 
+    // 工作日 22:35 生成分析快照（净值同步后）
+    this.dataSyncQueue.add(
+      'create-snapshot',
+      {},
+      {
+        repeat: { cron: '35 22 * * 1-5' },
+        removeOnComplete: true,
+      },
+    );
+
     // 工作日 09:00 兜底同步（确保最新数据可用）
     this.dataSyncQueue.add(
       'sync-nav',

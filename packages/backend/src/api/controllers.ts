@@ -21,23 +21,35 @@ import {
   ApiQuery,
   ApiParam,
 } from '@nestjs/swagger';
+import { InjectQueue } from '@nestjs/bull';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { Queue } from 'bull';
 import {
   Strategy,
   Position,
   Transaction,
   Fund,
   BacktestResult as BacktestResultEntity,
+  TransactionType,
+  TransactionStatus,
+  OperationType,
 } from '../models';
 import { BacktestEngine, BacktestResult } from '../core/backtest/backtest.engine';
-import { CreateStrategyDto, UpdateStrategyDto, BacktestDto } from './dto';
+import {
+  CreateStrategyDto,
+  UpdateStrategyDto,
+  BacktestDto,
+  CreateTransactionDto,
+} from './dto';
 import { PaginationDto } from './pagination.dto';
 import { createPaginatedResponse } from './paginated-response';
 import { CurrentUser } from '../auth/user.decorator';
 import { validateStrategyConfig } from './dto/strategy-config';
-import { RiskController } from './risk.controller';
 import { RiskControlService } from '../core/risk/risk-control.service';
+import { TradingConfirmationService } from '../core/trading/trading-confirmation.service';
+import { TiantianBrokerService } from '../services/broker/tiantian.service';
+import { OperationLogService } from '../core/logger/operation-log.service';
 
 @ApiBearerAuth()
 @ApiTags('strategies')
@@ -203,6 +215,14 @@ export class TransactionController {
   constructor(
     @InjectRepository(Transaction)
     private transactionRepository: Repository<Transaction>,
+    @InjectRepository(Fund)
+    private fundRepository: Repository<Fund>,
+    @InjectRepository(Position)
+    private positionRepository: Repository<Position>,
+    private riskControlService: RiskControlService,
+    private tradingConfirmationService: TradingConfirmationService,
+    private brokerService: TiantianBrokerService,
+    private operationLogService: OperationLogService,
   ) {}
 
   @Get()
@@ -231,6 +251,142 @@ export class TransactionController {
     return createPaginatedResponse(data, total, page, limit);
   }
 
+  @Post()
+  @ApiOperation({ summary: '创建交易', description: '手动创建一笔买入/卖出交易' })
+  @ApiResponse({ status: 201, description: '交易创建成功' })
+  @ApiResponse({ status: 400, description: '请求参数错误或风控拦截' })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async create(@Body() createDto: CreateTransactionDto, @CurrentUser() user: { id: string }) {
+    const fund = await this.fundRepository.findOne({ where: { code: createDto.fund_code } });
+    if (!fund) {
+      throw new NotFoundException(`Fund ${createDto.fund_code} not found`);
+    }
+
+    const blacklistCheck = await this.riskControlService.checkFundBlacklist(createDto.fund_code);
+    if (!blacklistCheck.passed) {
+      throw new BadRequestException(blacklistCheck.message);
+    }
+
+    const tradeLimitCheck = await this.riskControlService.checkTradeLimit(
+      user.id,
+      createDto.amount,
+      createDto.type,
+    );
+    if (!tradeLimitCheck.passed) {
+      throw new BadRequestException(tradeLimitCheck.message);
+    }
+
+    if (createDto.type === TransactionType.BUY) {
+      const positionLimitCheck = await this.riskControlService.checkPositionLimit(
+        user.id,
+        createDto.fund_code,
+        createDto.amount,
+      );
+      if (!positionLimitCheck.passed) {
+        throw new BadRequestException(positionLimitCheck.message);
+      }
+    }
+
+    const needsConfirmation = await this.tradingConfirmationService.needsConfirmation(
+      user.id,
+      createDto.amount,
+    );
+
+    if (needsConfirmation) {
+      const pending = await this.tradingConfirmationService.createPendingTransaction({
+        userId: user.id,
+        fundCode: createDto.fund_code,
+        amount: createDto.amount,
+        type: createDto.type,
+        confirmationTimeoutMinutes: 30,
+      });
+      await this.tradingConfirmationService.sendConfirmationRequest(pending);
+
+      await this.operationLogService.logUserAction(
+        user.id,
+        createDto.type === TransactionType.BUY ? OperationType.TRADE_BUY : OperationType.TRADE_SELL,
+        'trade',
+        `创建待确认交易 ${pending.id}`,
+        {
+          fund_code: createDto.fund_code,
+          amount: createDto.amount,
+          type: createDto.type,
+          requires_confirmation: true,
+        },
+      );
+
+      return {
+        id: pending.id,
+        status: pending.status,
+        requires_confirmation: true,
+      };
+    }
+
+    let orderId: string;
+    let shares = createDto.shares;
+    let amount = createDto.amount;
+
+    if (createDto.type === TransactionType.BUY) {
+      const order = await this.brokerService.buyFund(createDto.fund_code, amount);
+      orderId = order.id;
+    } else {
+      const position = await this.positionRepository.findOne({
+        where: { user_id: user.id, fund_code: createDto.fund_code },
+      });
+
+      if (!position || position.shares <= 0) {
+        throw new BadRequestException(`No position found for fund ${createDto.fund_code}`);
+      }
+
+      if (!shares) {
+        const referenceNav = Number(position.avg_price);
+        if (!referenceNav || referenceNav <= 0) {
+          throw new BadRequestException('Cannot estimate sell shares without valid NAV');
+        }
+        shares = createDto.amount / referenceNav;
+      }
+
+      if (shares > position.shares) {
+        throw new BadRequestException('Sell shares exceed current position');
+      }
+
+      const order = await this.brokerService.sellFund(createDto.fund_code, shares);
+      orderId = order.id;
+      amount = createDto.amount || shares * Number(position.avg_price);
+    }
+
+    const transaction = this.transactionRepository.create({
+      user_id: user.id,
+      fund_code: createDto.fund_code,
+      type: createDto.type,
+      amount,
+      shares,
+      status: TransactionStatus.PENDING,
+      order_id: orderId,
+    });
+    const saved = await this.transactionRepository.save(transaction);
+
+    await this.operationLogService.logUserAction(
+      user.id,
+      createDto.type === TransactionType.BUY ? OperationType.TRADE_BUY : OperationType.TRADE_SELL,
+      'trade',
+      `创建交易 ${saved.id}`,
+      {
+        fund_code: createDto.fund_code,
+        amount: saved.amount,
+        type: createDto.type,
+        shares: saved.shares,
+        order_id: saved.order_id,
+      },
+    );
+
+    return {
+      id: saved.id,
+      status: saved.status,
+      requires_confirmation: false,
+    };
+  }
+
   @Get(':id')
   @ApiOperation({ summary: '获取交易详情', description: '根据ID获取单笔交易的详细信息' })
   @ApiParam({ name: 'id', description: '交易ID' })
@@ -241,6 +397,82 @@ export class TransactionController {
       where: { id },
       relations: ['fund', 'strategy', 'user'],
     });
+  }
+}
+
+@ApiBearerAuth()
+@ApiTags('operations')
+@Controller('operations')
+export class OperationsController {
+  constructor(
+    @InjectQueue('data-sync')
+    private dataSyncQueue: Queue,
+    @InjectQueue('trading')
+    private tradingQueue: Queue,
+    private operationLogService: OperationLogService,
+  ) {}
+
+  @Post('sync-nav')
+  @ApiOperation({ summary: '手动触发净值同步', description: '立即投递基金净值同步任务' })
+  @ApiResponse({ status: 201, description: '任务投递成功' })
+  async triggerNavSync(@CurrentUser() user: { id: string }) {
+    const job = await this.dataSyncQueue.add(
+      'sync-nav',
+      { triggered_by: user.id, manual: true },
+      { removeOnComplete: true },
+    );
+
+    await this.operationLogService.logUserAction(
+      user.id,
+      OperationType.DATA_SYNC_NAV,
+      'ops',
+      '手动触发净值同步',
+      { job_id: job.id },
+    );
+
+    return { message: 'NAV sync job queued', job_id: job.id };
+  }
+
+  @Post('refresh-positions')
+  @ApiOperation({ summary: '手动刷新持仓市值', description: '立即投递持仓市值刷新任务' })
+  @ApiResponse({ status: 201, description: '任务投递成功' })
+  async triggerPositionRefresh(@CurrentUser() user: { id: string }) {
+    const job = await this.tradingQueue.add(
+      'refresh-position-values',
+      { triggered_by: user.id, manual: true },
+      { removeOnComplete: true },
+    );
+
+    await this.operationLogService.logUserAction(
+      user.id,
+      OperationType.POSITION_REFRESH,
+      'ops',
+      '手动触发持仓刷新',
+      { job_id: job.id },
+    );
+
+    return { message: 'Position refresh job queued', job_id: job.id };
+  }
+
+  @Post('create-snapshot')
+  @ApiOperation({ summary: '手动生成资产快照', description: '立即投递资产分析快照任务' })
+  @ApiResponse({ status: 201, description: '任务投递成功' })
+  async triggerSnapshot(@CurrentUser() user: { id: string }) {
+    const job = await this.dataSyncQueue.add(
+      'create-snapshot',
+      { triggered_by: user.id, manual: true },
+      { removeOnComplete: true },
+    );
+
+    await this.operationLogService.logUserAction(
+      user.id,
+      OperationType.MANUAL_OPERATION,
+      'ops',
+      '手动触发资产快照生成',
+      { job_id: job.id },
+    );
+
+    return { message: 'Snapshot job queued', job_id: job.id };
   }
 }
 
@@ -361,6 +593,6 @@ export class BacktestController {
   }
 }
 
-export { RiskController };
+export { RiskController } from './risk.controller';
 export { AnalyticsController } from './analytics.controller';
 export { LogController } from './log.controller';

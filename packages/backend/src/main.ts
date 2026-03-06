@@ -139,7 +139,7 @@ async function bootstrap() {
 ║                                                        ║
 ║   服务已启动：http://localhost:${port}                   ║
 ║   API 文档：http://localhost:${port}/api/docs            ║
-║   健康检查：http://localhost:${port}/health              ║
+║   健康检查：http://localhost:${port}/api/health          ║
 ║                                                        ║
 ║   定时任务：                                              ║
 ║   - 每天 09:00 同步基金净值                               ║

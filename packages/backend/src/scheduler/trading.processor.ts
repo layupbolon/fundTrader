@@ -68,42 +68,38 @@ export class TradingProcessor {
     for (const position of positions) {
       try {
         // 获取该持仓的止盈止损策略
-        const takeProfitStrategies = await this.strategyRepository.find({
+        const tpslStrategies = await this.strategyRepository.find({
           where: {
             user_id: position.user_id,
             fund_code: position.fund_code,
-            type: StrategyType.TAKE_PROFIT,
+            type: StrategyType.TAKE_PROFIT_STOP_LOSS,
             enabled: true,
           },
         });
 
-        const stopLossStrategies = await this.strategyRepository.find({
-          where: {
-            user_id: position.user_id,
-            fund_code: position.fund_code,
-            type: StrategyType.STOP_LOSS,
-            enabled: true,
-          },
-        });
+        for (const strategy of tpslStrategies) {
+          const takeProfitConfig = strategy.config?.take_profit;
+          const stopLossConfig = strategy.config?.stop_loss;
 
-        // 检查止盈
-        for (const strategy of takeProfitStrategies) {
-          if (await this.takeProfitStopLossStrategy.checkTakeProfit(position, strategy.config)) {
+          if (
+            takeProfitConfig &&
+            (await this.takeProfitStopLossStrategy.checkTakeProfit(position, takeProfitConfig))
+          ) {
             await this.takeProfitStopLossStrategy.executeSell(
               position,
-              strategy.config.sell_ratio,
+              takeProfitConfig.sell_ratio,
               '止盈',
               strategy.id,
             );
+            continue;
           }
-        }
-
-        // 检查止损
-        for (const strategy of stopLossStrategies) {
-          if (await this.takeProfitStopLossStrategy.checkStopLoss(position, strategy.config)) {
+          if (
+            stopLossConfig &&
+            (await this.takeProfitStopLossStrategy.checkStopLoss(position, stopLossConfig))
+          ) {
             await this.takeProfitStopLossStrategy.executeSell(
               position,
-              strategy.config.sell_ratio,
+              stopLossConfig.sell_ratio,
               '止损',
               strategy.id,
             );

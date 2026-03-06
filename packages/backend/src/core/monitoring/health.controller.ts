@@ -1,6 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { HealthService, HealthStatusResponse } from './health.service';
+import { Public } from '../../auth/public.decorator';
 
 /**
  * 健康检查控制器
@@ -71,6 +72,7 @@ export class HealthController {
    * }
    */
   @Get()
+  @Public()
   @ApiTags('监控')
   @ApiOperation({
     summary: '健康检查',

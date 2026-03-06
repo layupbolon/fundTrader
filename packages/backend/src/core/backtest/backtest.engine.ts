@@ -294,11 +294,8 @@ export class BacktestEngine {
       case StrategyType.AUTO_INVEST:
         return this.evaluateAutoInvest(config, currentNav, state);
 
-      case StrategyType.TAKE_PROFIT:
-        return this.evaluateTakeProfit(config, currentNav, state);
-
-      case StrategyType.STOP_LOSS:
-        return this.evaluateStopLoss(config, currentNav, state);
+      case StrategyType.TAKE_PROFIT_STOP_LOSS:
+        return this.evaluateTakeProfitStopLoss(config, currentNav, state);
 
       case StrategyType.GRID_TRADING:
         return this.evaluateGridTrading(config, currentNav, state, context);
@@ -464,6 +461,28 @@ export class BacktestEngine {
     // 亏损达到最大回撤时触发止损
     if (profitRate <= max_drawdown) {
       return { action: 'SELL', ratio: sell_ratio };
+    }
+
+    return { action: 'HOLD' };
+  }
+
+  private evaluateTakeProfitStopLoss(
+    config: any,
+    currentNav: FundNav,
+    state: { cash: number; shares: number; totalCost: number },
+  ): Signal {
+    const takeProfitConfig = config.take_profit;
+    const stopLossConfig = config.stop_loss;
+
+    if (takeProfitConfig) {
+      const takeProfitSignal = this.evaluateTakeProfit(takeProfitConfig, currentNav, state);
+      if (takeProfitSignal.action !== 'HOLD') {
+        return takeProfitSignal;
+      }
+    }
+
+    if (stopLossConfig) {
+      return this.evaluateStopLoss(stopLossConfig, currentNav, state);
     }
 
     return { action: 'HOLD' };

@@ -10,7 +10,7 @@ import {
   IsOptional,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { StrategyType } from '../models';
+import { StrategyType, TransactionType } from '../models';
 
 export class CreateStrategyDto {
   @ApiProperty({ description: '策略名称', example: '沪深300定投' })
@@ -96,4 +96,37 @@ export class BacktestDto {
   })
   @IsObject()
   strategy_config: any;
+}
+
+export class CreateTransactionDto {
+  @ApiProperty({ description: '基金代码（6位数字）', example: '110011' })
+  @IsString()
+  @Matches(/^[0-9]{6}$/, { message: 'fund_code must be a 6-digit number' })
+  fund_code: string;
+
+  @ApiProperty({
+    description: '交易类型',
+    enum: TransactionType,
+    example: TransactionType.BUY,
+  })
+  @IsEnum(TransactionType)
+  type: TransactionType;
+
+  @ApiProperty({
+    description: '交易金额（元）',
+    example: 1000,
+    minimum: 0.01,
+  })
+  @IsNumber()
+  @Min(0.01)
+  amount: number;
+
+  @ApiPropertyOptional({
+    description: '卖出份额（仅 SELL 时可选，不传则按 amount/净值估算）',
+    example: 100.5,
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0.0001)
+  shares?: number;
 }

@@ -110,9 +110,15 @@ describe('BacktestEngine', () => {
 
       const params = {
         strategy_config: {
-          type: StrategyType.TAKE_PROFIT,
-          target_rate: 0.15,
-          sell_ratio: 1.0,
+          type: StrategyType.TAKE_PROFIT_STOP_LOSS,
+          take_profit: {
+            target_rate: 0.15,
+            sell_ratio: 1.0,
+          },
+          stop_loss: {
+            max_drawdown: -0.1,
+            sell_ratio: 1.0,
+          },
         },
         fund_code: '000001',
         start_date: new Date('2026-01-01'),
