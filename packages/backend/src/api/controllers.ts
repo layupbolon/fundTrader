@@ -47,7 +47,7 @@ import {
 import { PaginationDto } from './pagination.dto';
 import { createPaginatedResponse } from './paginated-response';
 import { CurrentUser } from '../auth/user.decorator';
-import { validateStrategyConfig } from './dto/strategy-config';
+import { validateStrategyConfig, normalizeStrategyConfig } from './dto/strategy-config';
 import { RiskControlService } from '../core/risk/risk-control.service';
 import { TradingConfirmationService } from '../core/trading/trading-confirmation.service';
 import { TiantianBrokerService } from '../services/broker/tiantian.service';
@@ -96,7 +96,8 @@ export class StrategyController {
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
   async create(@Body() createDto: CreateStrategyDto, @CurrentUser() user: { id: string }) {
-    await validateStrategyConfig(createDto.type, createDto.config);
+    const normalizedConfig = normalizeStrategyConfig(createDto.type, createDto.config);
+    await validateStrategyConfig(createDto.type, normalizedConfig);
 
     // 风控检查：检查基金是否在黑名单中
     const blacklistCheck = await this.riskControlService.checkFundBlacklist(createDto.fund_code);
@@ -106,6 +107,7 @@ export class StrategyController {
 
     const strategy = this.strategyRepository.create({
       ...createDto,
+      config: normalizedConfig,
       user_id: user.id,
     });
     return this.strategyRepository.save(strategy);
@@ -130,10 +132,12 @@ export class StrategyController {
     if (strategy.user_id !== user.id) {
       throw new ForbiddenException('You do not have permission to update this strategy');
     }
+    let normalizedConfig = updateDto.config;
     if (updateDto.config) {
-      await validateStrategyConfig(strategy.type, updateDto.config);
+      normalizedConfig = normalizeStrategyConfig(strategy.type, updateDto.config);
+      await validateStrategyConfig(strategy.type, normalizedConfig);
     }
-    const updated = { ...strategy, ...updateDto };
+    const updated = { ...strategy, ...updateDto, ...(normalizedConfig && { config: normalizedConfig }) };
     return this.strategyRepository.save(updated);
   }
 

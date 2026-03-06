@@ -93,6 +93,34 @@ describe('StrategyController', () => {
         user_id: 'user-uuid-1',
       });
     });
+
+    it('should normalize auto-invest config when frequency is missing', async () => {
+      const createDto = {
+        name: '黄金ETF定投',
+        type: StrategyType.AUTO_INVEST,
+        fund_code: '159934',
+        config: { amount: 100, day_of_week: 4 },
+      };
+
+      strategyRepository.create.mockReturnValue({
+        ...createDto,
+        config: { ...createDto.config, frequency: 'WEEKLY' },
+        user_id: 'user-uuid-1',
+      });
+      strategyRepository.save.mockResolvedValue({
+        ...mockStrategy,
+        ...createDto,
+        config: { ...createDto.config, frequency: 'WEEKLY' },
+      });
+
+      await controller.create(createDto as any, mockUser);
+
+      expect(strategyRepository.create).toHaveBeenCalledWith({
+        ...createDto,
+        config: { ...createDto.config, frequency: 'WEEKLY' },
+        user_id: 'user-uuid-1',
+      });
+    });
   });
 
   describe('update', () => {
