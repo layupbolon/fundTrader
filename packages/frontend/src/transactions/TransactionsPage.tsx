@@ -16,6 +16,41 @@ import ErrorMessage from '../shared/ErrorMessage';
 import EmptyState from '../shared/EmptyState';
 
 const PAGE_SIZE = 10;
+const BATCH_HISTORY_STORAGE_KEY = 'fundtrader.transaction.batch.history.v1';
+const MAX_BATCH_HISTORY = 10;
+
+type BatchAction = 'refresh' | 'cancel';
+
+type BatchResultItem = {
+  id: string;
+  success: boolean;
+  message?: string;
+  status?: string;
+};
+
+type BatchResultRecord = {
+  history_id: string;
+  created_at: string;
+  action: BatchAction;
+  total: number;
+  success_count: number;
+  failed_count: number;
+  results: BatchResultItem[];
+};
+
+function isBatchResultRecord(value: unknown): value is BatchResultRecord {
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Partial<BatchResultRecord>;
+  return (
+    typeof record.history_id === 'string' &&
+    typeof record.created_at === 'string' &&
+    (record.action === 'refresh' || record.action === 'cancel') &&
+    typeof record.total === 'number' &&
+    typeof record.success_count === 'number' &&
+    typeof record.failed_count === 'number' &&
+    Array.isArray(record.results)
+  );
+}
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -31,13 +66,8 @@ export default function TransactionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
-  const [batchResult, setBatchResult] = useState<{
-    action: 'refresh' | 'cancel';
-    total: number;
-    success_count: number;
-    failed_count: number;
-    results: Array<{ id: string; success: boolean; message?: string; status?: string }>;
-  } | null>(null);
+  const [batchResult, setBatchResult] = useState<BatchResultRecord | null>(null);
+  const [batchHistory, setBatchHistory] = useState<BatchResultRecord[]>([]);
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     action: 'single-cancel' | 'batch-cancel';
@@ -73,6 +103,35 @@ export default function TransactionsPage() {
     loadTransactions();
   }, [loadTransactions]);
 
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(BATCH_HISTORY_STORAGE_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) return;
+      const history = parsed.filter(isBatchResultRecord).slice(0, MAX_BATCH_HISTORY);
+      setBatchHistory(history);
+      setBatchResult(history[0] || null);
+    } catch {
+      localStorage.removeItem(BATCH_HISTORY_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem(BATCH_HISTORY_STORAGE_KEY, JSON.stringify(batchHistory));
+  }, [batchHistory]);
+
+  function saveBatchResultToHistory(result: Omit<BatchResultRecord, 'history_id' | 'created_at'>) {
+    const record: BatchResultRecord = {
+      ...result,
+      history_id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      created_at: new Date().toISOString(),
+    };
+
+    setBatchResult(record);
+    setBatchHistory((prev) => [record, ...prev].slice(0, MAX_BATCH_HISTORY));
+  }
+
   function toggleSelect(id: string) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
   }
@@ -106,7 +165,7 @@ export default function TransactionsPage() {
     }
   }
 
-  async function runBatchAction(action: 'refresh' | 'cancel') {
+  async function runBatchAction(action: BatchAction) {
     if (selectedIds.length === 0) return;
     setActionLoading(true);
     setError(null);
@@ -121,7 +180,7 @@ export default function TransactionsPage() {
       setNotice(
         `批量${action === 'refresh' ? '刷新' : '撤单'}完成：成功 ${result.success_count}，失败 ${result.failed_count}`,
       );
-      setBatchResult({
+      saveBatchResultToHistory({
         action,
         total: result.total,
         success_count: result.success_count,
@@ -242,6 +301,44 @@ export default function TransactionsPage() {
 
       {notice && <div className="p-3 text-sm rounded-lg bg-success-50 text-success-700">{notice}</div>}
       {error && <div className="p-3 text-sm rounded-lg bg-danger-50 text-danger-700">{error}</div>}
+      {batchHistory.length > 0 && (
+        <div className="rounded-xl border border-gray-200 bg-white p-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-gray-900">最近批量操作历史（最近 {MAX_BATCH_HISTORY} 次）</h2>
+            <button
+              onClick={() => {
+                setBatchHistory([]);
+                setBatchResult(null);
+                setNotice('批量操作历史已清空');
+              }}
+              className="px-2 py-1 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded"
+            >
+              清空历史
+            </button>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {batchHistory.map((item) => {
+              const selected = batchResult?.history_id === item.history_id;
+              return (
+                <button
+                  key={item.history_id}
+                  onClick={() => setBatchResult(item)}
+                  className={`rounded-lg border px-3 py-2 text-left text-xs ${
+                    selected
+                      ? 'border-primary-300 bg-primary-50 text-primary-700'
+                      : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300'
+                  }`}
+                >
+                  <div className="font-medium">
+                    {item.action === 'refresh' ? '批量刷新' : '批量撤单'} | 成功 {item.success_count}，失败 {item.failed_count}
+                  </div>
+                  <div className="mt-1 text-[11px] text-gray-400">{new Date(item.created_at).toLocaleString('zh-CN')}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
       {batchResult && (
         <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
           <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
@@ -249,6 +346,10 @@ export default function TransactionsPage() {
               <h2 className="text-sm font-semibold text-gray-900">批量操作结果明细</h2>
               <p className="text-xs text-gray-500 mt-1">
                 总计 {batchResult.total}，成功 {batchResult.success_count}，失败 {batchResult.failed_count}
+              </p>
+              <p className="text-xs text-gray-400 mt-1">
+                {batchResult.action === 'refresh' ? '批量刷新' : '批量撤单'} ·{' '}
+                {new Date(batchResult.created_at).toLocaleString('zh-CN')}
               </p>
             </div>
             <button
