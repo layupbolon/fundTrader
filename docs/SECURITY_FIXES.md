@@ -1,101 +1,108 @@
-# 🔒 Security Fixes Applied
+# 🔒 Security Fixes Applied（历史记录 + 当前状态）
 
-## ✅ Critical Issues Fixed
+> 历史文档说明：
+> 本文档最初记录的是早期安全修复阶段。当前项目已进入后续阶段，部分“待实现项”已落地。
+> 实时项目状态请以 [IMPLEMENTATION.md](./IMPLEMENTATION.md) 为准。
+>
+> 最后更新：2026-03-06
+
+## ✅ Critical Issues Fixed（历史修复项）
 
 ### 1. Encryption Security
-- ✅ Removed hardcoded encryption key fallback
-- ✅ Fixed hardcoded salt - now requires ENCRYPTION_SALT env var
-- ✅ Updated .env.example with proper encryption variables
+
+- ✅ 移除硬编码加密 Key 回退
+- ✅ 移除硬编码 Salt，要求 `ENCRYPTION_SALT`
+- ✅ 更新 `.env.example` 加密相关变量
 
 **Files Modified:**
-- `src/utils/crypto.util.ts:8`
-- `src/services/broker/tiantian.service.ts:32`
+
+- `packages/backend/src/utils/crypto.util.ts`
+- `packages/backend/src/services/broker/tiantian.service.ts`
 - `.env.example`
 
 ### 2. HTTPS for External APIs
-- ✅ Changed HTTP to HTTPS for fund data APIs
-- ✅ Prevents man-in-the-middle attacks
+
+- ✅ 将基金数据外部调用从 HTTP 调整为 HTTPS
 
 **Files Modified:**
-- `src/services/data/fund-data.service.ts:109,131`
+
+- `packages/backend/src/services/data/fund-data.service.ts`
 
 ### 3. Database Auto-Sync
-- ✅ Disabled synchronize in production
-- ✅ Enabled logging in development only
+
+- ✅ 生产环境禁用 `synchronize`
+- ✅ 开发环境启用 SQL logging
 
 **Files Modified:**
-- `src/app.module.ts:73`
+
+- `packages/backend/src/app.module.ts`
 
 ### 4. Puppeteer Security
-- ✅ Removed insecure `--no-sandbox` flag
-- ✅ Using safer browser configuration
+
+- ✅ 调整浏览器启动参数，移除不安全默认项
 
 **Files Modified:**
-- `src/services/broker/tiantian.service.ts:40`
+
+- `packages/backend/src/services/broker/tiantian.service.ts`
 
 ### 5. Input Validation
-- ✅ Added class-validator DTOs
-- ✅ Validation on strategy creation
-- ✅ Validation on backtest endpoint
-- ✅ Global validation pipe
 
-**Files Created:**
-- `src/api/dto.ts`
+- ✅ DTO + class-validator 参数校验
+- ✅ 全局 ValidationPipe
 
-**Files Modified:**
-- `src/api/controllers.ts`
-- `src/main.ts`
+**Files Created/Modified:**
+
+- `packages/backend/src/api/dto.ts`
+- `packages/backend/src/api/controllers.ts`
+- `packages/backend/src/main.ts`
 
 ### 6. Security Headers
-- ✅ Helmet middleware with CSP
-- ✅ XSS protection
-- ✅ Clickjacking protection
+
+- ✅ Helmet 安全头
 
 **Files Modified:**
-- `src/main.ts`
+
+- `packages/backend/src/main.ts`
 
 ### 7. Rate Limiting
-- ✅ 100 requests per minute per IP
-- ✅ Prevents DoS attacks
+
+- ✅ Throttler 速率限制
 
 **Files Modified:**
-- `src/app.module.ts`
+
+- `packages/backend/src/app.module.ts`
 
 ### 8. CORS Configuration
-- ✅ Whitelist-based origin control
-- ✅ Configurable via ALLOWED_ORIGINS env var
+
+- ✅ 白名单来源控制（`ALLOWED_ORIGINS`）
 
 **Files Modified:**
-- `src/main.ts`
+
+- `packages/backend/src/main.ts`
 - `.env.example`
 
-## ⚠️ Remaining Issues (Require Manual Implementation)
+## ✅ 已补齐（相对历史文档）
 
-### Authentication & Authorization (CRITICAL)
-**Status:** Not implemented - requires architectural decision
+### Authentication & Authorization（已实现）
 
-**Why not automated:**
-- Requires choosing auth strategy (JWT, session, OAuth)
-- Needs user management system
-- Requires password hashing implementation
-- Needs role-based access control design
+历史版本标注为“未实现”的鉴权能力已落地：
 
-**Recommendation:**
-```bash
-# Install auth packages
-npm install @nestjs/passport @nestjs/jwt passport passport-jwt bcrypt
-npm install -D @types/passport-jwt @types/bcrypt
+- ✅ JWT 登录/注册流程
+- ✅ 全局 `JwtAuthGuard`
+- ✅ `@Public()` 白名单端点机制
+- ✅ API Bearer 鉴权接入（Swagger）
 
-# Create auth module
-# - JWT strategy
-# - Auth guard
-# - User service with password hashing
-# - Login/register endpoints
-```
+**Implemented In:**
 
-**Impact:** Without authentication, all endpoints are still publicly accessible.
+- `packages/backend/src/auth/auth.module.ts`
+- `packages/backend/src/auth/auth.controller.ts`
+- `packages/backend/src/auth/auth.service.ts`
+- `packages/backend/src/auth/jwt.strategy.ts`
+- `packages/backend/src/auth/jwt-auth.guard.ts`
+- `packages/backend/src/auth/public.decorator.ts`
+- `packages/backend/src/app.module.ts`
 
-## 📋 Security Checklist
+## 📋 Security Checklist（当前视角）
 
 - [x] Remove hardcoded secrets
 - [x] Fix encryption implementation
@@ -106,56 +113,55 @@ npm install -D @types/passport-jwt @types/bcrypt
 - [x] Security headers (Helmet)
 - [x] Rate limiting
 - [x] CORS configuration
-- [ ] **Authentication & Authorization** (CRITICAL - Manual)
-- [ ] CSRF protection (requires session/cookie auth)
-- [ ] Audit logging
-- [ ] Error message sanitization
-- [ ] Dependency vulnerability scanning
+- [x] Authentication & Authorization (JWT)
+- [x] Audit logging（operation logs）
+- [ ] CSRF protection（如切换到 cookie/session 模式再启用）
+- [ ] Error message sanitization（可继续细化）
+- [ ] Dependency vulnerability scanning（CI 持续执行）
 
-## 🚀 Next Steps
+## 🚀 Current Recommended Steps
 
-1. **Implement Authentication** (Required before production)
-   - Choose auth strategy
-   - Create auth module
-   - Protect all endpoints
-   - Add user management
+1. **Build & run (pnpm)**
 
-2. **Test Security Fixes**
-   ```bash
-   npm run build
-   npm run start:dev
-   ```
+```bash
+pnpm build
+pnpm dev
+```
 
-3. **Update Environment Variables**
-   ```bash
-   cp .env.example .env
-   # Set strong MASTER_KEY (min 32 chars)
-   # Set random ENCRYPTION_SALT (min 16 chars)
-   # Configure ALLOWED_ORIGINS
-   ```
+2. **Update environment variables**
 
-4. **Run Security Audit**
-   ```bash
-   npm audit
-   npm audit fix
-   ```
+```bash
+cp .env.example .env
+# Set strong MASTER_KEY (min 32 chars)
+# Set random ENCRYPTION_SALT (min 16 chars)
+# Configure ALLOWED_ORIGINS
+# Configure JWT_SECRET
+```
+
+3. **Run security audit**
+
+```bash
+pnpm audit
+pnpm audit --fix
+```
 
 ## 📝 Configuration Required
 
 Add to your `.env` file:
+
 ```env
 NODE_ENV=development
 PORT=3000
-ALLOWED_ORIGINS=http://localhost:3000
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
 
-# CRITICAL: Change these!
+# CRITICAL: Change these in production
 MASTER_KEY=your_secure_master_key_min_32_characters_long
 ENCRYPTION_SALT=your_random_salt_min_16_chars
+JWT_SECRET=your_jwt_secret_here_change_in_production_min_32_chars
 ```
 
-## ✅ Build Status
+## ✅ Build Status Check
 
-Run this to verify all fixes compile:
 ```bash
-npm run build
+pnpm build
 ```

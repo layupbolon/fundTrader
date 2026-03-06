@@ -17,22 +17,19 @@
 
 ```
 fundTrader/
-├── src/
-│   ├── core/           # 核心业务逻辑
-│   │   ├── strategy/   # 策略引擎（定投、止盈止损）
-│   │   ├── backtest/   # 回测系统
-│   │   └── risk/       # 风控模块
-│   ├── services/       # 外部服务集成
-│   │   ├── broker/     # 交易平台接入（天天基金等）
-│   │   ├── data/       # 数据获取（基金净值、行情）
-│   │   └── notify/     # 通知服务（Telegram/飞书）
-│   ├── scheduler/      # 定时任务调度
-│   ├── api/            # REST API（可选Web界面）
-│   ├── models/         # 数据模型
-│   └── utils/          # 工具函数
-├── config/             # 配置文件
-├── migrations/         # 数据库迁移
-└── tests/              # 测试
+├── packages/
+│   ├── backend/
+│   │   ├── src/
+│   │   │   ├── core/         # 核心业务逻辑
+│   │   │   ├── services/     # 外部服务集成
+│   │   │   ├── scheduler/    # 定时任务调度
+│   │   │   ├── api/          # REST API
+│   │   │   ├── models/       # 数据模型
+│   │   │   └── utils/        # 工具函数
+│   │   └── config/           # 后端配置
+│   ├── frontend/             # Web 前端
+│   └── shared/               # 前后端共享类型
+└── docs/                     # 项目文档
 ```
 
 ### 技术栈选型
@@ -177,7 +174,7 @@ BacktestResult {
 **天天基金接入**（推荐优先实现）
 
 ```typescript
-// src/services/broker/tiantian.service.ts
+// packages/backend/src/services/broker/tiantian.service.ts
 class TiantianBrokerService {
   // 使用Puppeteer模拟登录
   async login(username: string, password: string): Promise<Session>
@@ -209,7 +206,7 @@ class TiantianBrokerService {
 **数据获取方案**
 
 ```typescript
-// src/services/data/fund-data.service.ts
+// packages/backend/src/services/data/fund-data.service.ts
 class FundDataService {
   // 从天天基金API获取基金信息
   async getFundInfo(fundCode: string): Promise<Fund>
@@ -230,14 +227,14 @@ class FundDataService {
 ```
 
 **数据源**：
-- 天天基金公开API: `http://fundgz.1234567.com.cn/js/{fundCode}.js`
-- 东方财富API: `http://fund.eastmoney.com/`
+- 天天基金公开API: `https://fundgz.1234567.com.cn/js/{fundCode}.js`
+- 东方财富API: `https://fund.eastmoney.com/`
 - 备用：AKShare Python库（通过子进程调用）
 
 ### 2. 定投策略引擎
 
 ```typescript
-// src/core/strategy/auto-invest.strategy.ts
+// packages/backend/src/core/strategy/auto-invest.strategy.ts
 class AutoInvestStrategy {
   // 检查是否需要执行定投
   async shouldExecute(strategy: Strategy): Promise<boolean> {
@@ -281,7 +278,7 @@ class AutoInvestStrategy {
 ### 3. 止盈止损策略
 
 ```typescript
-// src/core/strategy/take-profit-stop-loss.strategy.ts
+// packages/backend/src/core/strategy/take-profit-stop-loss.strategy.ts
 class TakeProfitStopLossStrategy {
   // 检查止盈条件
   async checkTakeProfit(position: Position, config: TakeProfitConfig): Promise<boolean> {
@@ -326,7 +323,7 @@ class TakeProfitStopLossStrategy {
 ### 4. 回测系统
 
 ```typescript
-// src/core/backtest/backtest.engine.ts
+// packages/backend/src/core/backtest/backtest.engine.ts
 class BacktestEngine {
   async runBacktest(params: BacktestParams): Promise<BacktestResult> {
     const { strategy_config, fund_code, start_date, end_date, initial_capital } = params;
@@ -387,7 +384,7 @@ class BacktestEngine {
 ### 5. 定时任务调度
 
 ```typescript
-// src/scheduler/scheduler.service.ts
+// packages/backend/src/scheduler/scheduler.service.ts
 @Injectable()
 class SchedulerService {
   constructor(
@@ -445,7 +442,7 @@ class TradingProcessor {
 ### 6. 通知系统
 
 ```typescript
-// src/services/notify/notify.service.ts
+// packages/backend/src/services/notify/notify.service.ts
 interface NotifyMessage {
   title: string;
   content: string;
@@ -518,7 +515,7 @@ class FeishuService {
 ### 敏感信息加密
 
 ```typescript
-// src/utils/crypto.util.ts
+// packages/backend/src/utils/crypto.util.ts
 import * as crypto from 'crypto';
 
 class CryptoUtil {
@@ -682,25 +679,25 @@ notify:
 
 1. **数据获取测试**
    ```bash
-   npm run test:data-service
+   pnpm --filter @fundtrader/backend test src/services/data/__tests__/fund-data.service.test.ts
    # 验证能否正确获取基金信息和净值
    ```
 
 2. **交易平台测试**（使用测试账号）
    ```bash
-   npm run test:broker-service
+   pnpm --filter @fundtrader/backend test src/services/broker/__tests__/tiantian.service.test.ts
    # 验证登录、买入、卖出功能
    ```
 
 3. **策略测试**
    ```bash
-   npm run test:strategy
+   pnpm --filter @fundtrader/backend test src/core/strategy/__tests__
    # 使用历史数据验证策略逻辑
    ```
 
 4. **回测测试**
    ```bash
-   npm run backtest -- --fund=000001 --start=2023-01-01 --end=2024-01-01
+   pnpm --filter @fundtrader/backend test src/core/backtest/__tests__/backtest.engine.test.ts
    # 验证回测结果准确性
    ```
 
@@ -714,12 +711,12 @@ notify:
 
 2. **数据库迁移**
    ```bash
-   npm run migration:run
+   pnpm --filter @fundtrader/backend typeorm migration:run
    ```
 
 3. **启动服务**
    ```bash
-   npm run start:prod
+   pnpm start:prod
    ```
 
 4. **监控日志**
@@ -736,7 +733,7 @@ notify:
 ## 关键文件路径
 
 ```
-src/
+packages/backend/src/
 ├── main.ts                                    # 应用入口
 ├── app.module.ts                              # 根模块
 ├── core/
@@ -765,11 +762,10 @@ src/
 └── utils/
     └── crypto.util.ts                        # 加密工具
 
-config/
-├── default.yml                               # 默认配置
-└── production.yml                            # 生产配置
+packages/backend/config/
+└── default.yml                               # 默认配置
 
-migrations/                                   # 数据库迁移文件
+packages/shared/src/                          # 前后端共享类型
 ```
 
 ## 风险提示

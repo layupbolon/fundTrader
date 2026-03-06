@@ -1,277 +1,131 @@
 # A股基金自动交易平台
 
-基于 Node.js/TypeScript 的场外基金自动交易系统，支持定投、止盈止损、策略回测等功能。
+基于 Node.js/TypeScript 的场外基金自动交易系统（Monorepo），支持策略交易、风控、交易确认、回测、监控告警与审计运维。
 
-> 本项目采用 Monorepo 架构，使用 pnpm workspaces 管理多个包。
+## 当前状态
 
-## 功能特性
+- ✅ 可用于开发测试与联调
+- ✅ 后端核心能力已落地（交易/风控/确认/分析/监控/日志/备份）
+- ✅ 前端管理端已可用（认证、仪表盘、策略、交易、回测、分析）
 
-- ✅ 自动定投（日/周/月频率）
-- ✅ 智能止盈止损
-- ✅ 策略回测系统
-- ✅ 多渠道通知（Telegram/飞书）
-- ✅ 基金净值自动同步
-- ✅ 会话自动保活
-- ✅ Swagger API 文档
+权威状态文档：[`docs/IMPLEMENTATION.md`](./docs/IMPLEMENTATION.md)
+
+## 核心特性
+
+- 自动定投（`AUTO_INVEST`）
+- 止盈止损（`TAKE_PROFIT_STOP_LOSS`）
+- 网格交易（`GRID_TRADING`）
+- 动态再平衡（`REBALANCE`）
+- 手动交易闭环（下单、状态刷新、单笔/批量撤单）
+- 风控与大额交易确认（Telegram/飞书）
+- 回测与分析（收益、持仓分布、交易统计）
+- 监控告警、日志审计、数据库备份恢复
+- Swagger API 文档
 
 ## 技术栈
 
-- **框架**: NestJS + TypeScript
-- **数据库**: PostgreSQL + TypeORM
-- **任务队列**: Bull + Redis
-- **浏览器自动化**: Puppeteer
-- **通知**: Telegram Bot API + 飞书 SDK
+- NestJS + TypeScript
+- PostgreSQL + TypeORM
+- Bull + Redis
+- Puppeteer
+- React + TypeScript（frontend）
+- pnpm workspaces
 
 ## 快速开始
 
-### 1. 环境要求
-
-- Node.js >= 18
-- PostgreSQL >= 13
-- Redis >= 6
-
-### 2. 安装依赖
+### 1) 安装依赖
 
 ```bash
-# 在根目录安装所有包的依赖
 pnpm install
 ```
 
-### 3. 配置环境变量
+### 2) 启动数据库依赖
 
 ```bash
-cp packages/backend/.env.example packages/backend/.env
-```
-
-编辑 `.env` 文件，填写以下配置：
-
-```env
-# 数据库配置
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=your_password
-DB_DATABASE=fundtrader
-
-# Redis配置
-REDIS_HOST=localhost
-REDIS_PORT=6379
-
-# 加密密钥（生产环境务必修改）
-MASTER_KEY=your_secure_master_key
-
-# Telegram通知
-TELEGRAM_BOT_TOKEN=your_bot_token
-TELEGRAM_CHAT_ID=your_chat_id
-
-# 飞书通知
-FEISHU_APP_ID=your_app_id
-FEISHU_APP_SECRET=your_app_secret
-FEISHU_USER_ID=your_user_id
-
-# 天天基金账号
-TIANTIAN_USERNAME=your_username
-TIANTIAN_PASSWORD=your_password
-```
-
-### 4. 启动数据库
-
-```bash
-# 使用 Docker 快速启动 PostgreSQL 和 Redis
 pnpm dcup
 ```
 
-或手动启动：
+### 3) 配置环境变量
 
 ```bash
-# PostgreSQL
-createdb fundtrader
-
-# Redis
-redis-server
+cp .env.example .env
 ```
 
-### 5. 运行应用
+按需填写数据库、Redis、JWT、通知和交易平台配置。
+
+### 4) 启动服务
 
 ```bash
-# 开发模式（热重载）
+# 后端
 pnpm dev
 
-# 构建所有包
-pnpm build
-
-# 生产模式
-pnpm start:prod
+# 前端（可选）
+pnpm dev:frontend
 ```
 
-## 使用指南
+### 5) 常用地址
 
-### API 文档
+- Swagger UI: `http://localhost:3000/api/docs`
+- Swagger JSON: `http://localhost:3000/api/docs-json`
+- Health: `http://localhost:3000/api/health`
 
-启动应用后，访问 Swagger API 文档：
+## 认证与调用说明
 
-- **Swagger UI**: http://localhost:3000/api/docs
-- **Swagger JSON**: http://localhost:3000/api/docs-json
-
-Swagger 提供交互式 API 文档，可以直接在浏览器中测试所有 API 接口。
-
-### 创建定投策略
-
-通过 API 创建定投策略：
+除 `auth` 和 `health` 公共端点外，API 默认需要 JWT。示例：
 
 ```bash
 curl -X POST http://localhost:3000/api/strategies \
+  -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": "your_user_id",
-    "name": "沪深300定投",
+    "name": "沪深300每周定投",
     "type": "AUTO_INVEST",
     "fund_code": "000300",
     "enabled": true,
     "config": {
       "amount": 1000,
-      "frequency": "weekly",
+      "frequency": "WEEKLY",
       "day_of_week": 1,
       "start_date": "2024-01-01"
     }
   }'
 ```
 
-### 创建止盈策略
+## 主要定时任务（当前）
 
-```bash
-curl -X POST http://localhost:3000/api/strategies \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "your_user_id",
-    "name": "15%止盈",
-    "type": "TAKE_PROFIT",
-    "fund_code": "000300",
-    "enabled": true,
-    "config": {
-      "target_rate": 0.15,
-      "sell_ratio": 0.5,
-      "trailing_stop": 0.05
-    }
-  }'
-```
-
-### 创建止损策略
-
-```bash
-curl -X POST http://localhost:3000/api/strategies \
-  -H "Content-Type: application/json" \
-  -d '{
-    "user_id": "your_user_id",
-    "name": "10%止损",
-    "type": "STOP_LOSS",
-    "fund_code": "000300",
-    "enabled": true,
-    "config": {
-      "max_drawdown": -0.10,
-      "sell_ratio": 1.0
-    }
-  }'
-```
-
-### 运行回测
-
-```bash
-curl -X POST http://localhost:3000/api/backtest \
-  -H "Content-Type: application/json" \
-  -d '{
-    "fund_code": "000300",
-    "start_date": "2023-01-01",
-    "end_date": "2024-01-01",
-    "initial_capital": 10000,
-    "strategy_config": {
-      "type": "AUTO_INVEST",
-      "amount": 1000,
-      "frequency": "monthly"
-    }
-  }'
-```
-
-## 定时任务
-
-系统会自动执行以下定时任务：
-
-| 任务 | 执行时间 | 说明 |
-|------|---------|------|
-| 同步基金净值 | 每天 09:00 | 更新所有基金的最新净值 |
-| 检查定投策略 | 工作日 14:30 | 执行符合条件的定投策略 |
-| 检查止盈止损 | 每小时 | 监控持仓，触发止盈止损 |
-| 保持会话活跃 | 每30分钟 | 维持交易平台登录状态 |
+- 工作日 20:00 / 22:00 / 09:00：净值同步
+- 工作日 22:35：资产快照
+- 工作日 14:30：定投检查
+- 每小时：止盈止损检查
+- 工作日 21:00：T+1 确认
+- 工作日 21:30：持仓刷新
+- 每 30 分钟：会话保活
+- 每 5 分钟：确认超时检查、健康检查
+- 每天 02:00：数据库备份（周日 04:00 清理）
 
 ## 项目结构
 
-```
-fundTrader/                    # Monorepo 根目录
+```text
+fundTrader/
 ├── packages/
-│   ├── backend/              # 后端服务
-│   │   ├── src/
-│   │   │   ├── models/      # 数据模型
-│   │   │   ├── services/    # 服务层
-│   │   │   │   ├── broker/  # 交易平台接入
-│   │   │   │   ├── data/    # 数据获取
-│   │   │   │   └── notify/  # 通知服务
-│   │   │   ├── core/        # 核心业务逻辑
-│   │   │   │   ├── strategy/ # 策略引擎
-│   │   │   │   └── backtest/ # 回测系统
-│   │   │   ├── scheduler/   # 定时任务
-│   │   │   ├── api/         # REST API
-│   │   │   ├── utils/       # 工具函数
-│   │   │   ├── app.module.ts
-│   │   │   └── main.ts
-│   │   ├── config/          # 配置文件
-│   │   └── package.json
-│   ├── shared/              # 前后端共享代码
-│   │   ├── src/
-│   │   │   ├── types.ts    # 共享类型定义
-│   │   │   ├── enums.ts    # 共享枚举
-│   │   │   └── index.ts
-│   │   └── package.json
-│   └── frontend/            # 前端应用（待开发）
-├── docs/                    # 项目文档
-│   ├── PLAN.md             # 技术方案
-│   ├── IMPLEMENTATION.md   # 实施总结
-│   ├── QUICKSTART.md       # 快速开始
-│   └── SECURITY_FIXES.md   # 安全修复
-├── pnpm-workspace.yaml      # pnpm workspace 配置
-├── MONOREPO.md              # Monorepo 使用指南
-└── package.json             # 根 package.json
+│   ├── backend/
+│   ├── frontend/
+│   └── shared/
+├── docs/
+├── pnpm-workspace.yaml
+└── package.json
 ```
 
-## 安全建议
+## 文档导航
 
-1. **加密存储**: 敏感信息（账号密码）使用 AES-256-GCM 加密
-2. **环境变量**: 不要将 `.env` 文件提交到版本控制
-3. **小额测试**: 先用小额资金测试系统稳定性
-4. **风控限制**: 设置单日最大交易额度
-5. **定期备份**: 定期备份数据库
+- [docs/README.md](./docs/README.md): docs 导航
+- [docs/IMPLEMENTATION.md](./docs/IMPLEMENTATION.md): 当前权威状态
+- [docs/SETUP.md](./docs/SETUP.md): 环境配置
+- [docs/QUICKSTART.md](./docs/QUICKSTART.md): 快速启动
+- [docs/PHASE4_PLAN.md](./docs/PHASE4_PLAN.md): Phase 4 计划与执行状态
 
 ## 风险提示
 
-⚠️ **重要提示**：
-
-- 本系统仅供个人学习和研究使用
-- 自动交易存在风险，可能因程序错误导致损失
-- 使用前请充分测试，建议先用小额资金试运行
-- 确保使用方式符合交易平台服务条款
-- 投资有风险，入市需谨慎
-
-## 开发计划
-
-详见 [PLAN.md](./docs/PLAN.md)
-
-- [x] Phase 1: MVP（定投功能）
-- [ ] Phase 2: 止盈止损 + 回测
-- [ ] Phase 3: Web界面 + 高级功能
-
-## 许可证
-
-MIT License
-
-## 贡献
-
-欢迎提交 Issue 和 Pull Request
+- 自动交易存在风险，建议先小额验证。
+- 生产环境必须使用强密钥并妥善管理 `.env`。
+- 使用前请确认符合目标平台条款与合规要求。

@@ -4,10 +4,10 @@
 
 ```bash
 # 使用 Docker Compose 启动 PostgreSQL 和 Redis
-docker-compose up -d
+pnpm dcup
 
 # 验证服务运行状态
-docker-compose ps
+cd packages/backend && docker-compose ps
 ```
 
 ## 2. 配置环境变量
@@ -27,11 +27,11 @@ cp .env.example .env
 
 ```bash
 # 开发模式（支持热重载）
-npm run start:dev
+pnpm dev
 
 # 生产模式
-npm run build
-npm run start:prod
+pnpm build
+pnpm start:prod
 ```
 
 ## 4. 验证服务
@@ -49,16 +49,16 @@ Swagger 提供完整的交互式 API 文档，可以直接在浏览器中测试�
 
 ```bash
 curl -X POST http://localhost:3000/api/strategies \
+  -H "Authorization: Bearer <access_token>" \
   -H "Content-Type: application/json" \
   -d '{
-    "user_id": "test-user",
     "name": "沪深300每周定投",
     "type": "AUTO_INVEST",
     "fund_code": "000300",
     "enabled": true,
     "config": {
       "amount": 1000,
-      "frequency": "weekly",
+      "frequency": "WEEKLY",
       "day_of_week": 1,
       "start_date": "2024-01-01"
     }
@@ -87,7 +87,7 @@ VALUES (
   '沪深300每周定投',
   'AUTO_INVEST',
   '000300',
-  '{"amount": 1000, "frequency": "weekly", "day_of_week": 1, "start_date": "2024-01-01"}',
+  '{"amount": 1000, "frequency": "WEEKLY", "day_of_week": 1, "start_date": "2024-01-01"}',
   true,
   NOW()
 );
@@ -97,7 +97,7 @@ VALUES (
 
 ```bash
 # 查看应用日志
-npm run start:dev
+pnpm dev
 
 # 查看定时任务执行情况
 # 应用会在控制台输出任务执行日志
@@ -123,14 +123,14 @@ psql -h localhost -U postgres -d fundtrader -c "SELECT * FROM transactions ORDER
 
 确保 PostgreSQL 服务正在运行：
 ```bash
-docker-compose ps
+cd packages/backend && docker-compose ps
 ```
 
 ### 2. Redis 连接失败
 
 确保 Redis 服务正在运行：
 ```bash
-docker-compose ps
+cd packages/backend && docker-compose ps
 ```
 
 ### 3. 通知未收到

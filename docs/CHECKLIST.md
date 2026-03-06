@@ -40,14 +40,14 @@
 pnpm install
 
 # 2. 启动数据库（Docker）
-docker-compose up -d
+pnpm dcup
 
 # 3. 配置环境变量
 cp .env.example .env
 # 编辑 .env 文件
 
 # 4. 启动应用
-pnpm start:dev
+pnpm dev
 ```
 
 ## 🧪 测试建议

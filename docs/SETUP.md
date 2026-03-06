@@ -6,7 +6,7 @@
 - Node.js >= 18
 - PostgreSQL >= 13
 - Redis >= 6
-- pnpm (推荐) 或 npm
+- pnpm
 
 ## 快速启动步骤
 
@@ -21,7 +21,7 @@ pnpm install
 使用Docker Compose快速启动：
 
 ```bash
-docker-compose up -d
+pnpm dcup
 ```
 
 或手动启动PostgreSQL和Redis。
@@ -72,7 +72,7 @@ FEISHU_USER_ID=your_user_id
 开发模式（带热重载）：
 
 ```bash
-pnpm start:dev
+pnpm dev
 ```
 
 生产模式：

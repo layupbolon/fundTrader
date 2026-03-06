@@ -315,8 +315,8 @@ await expect(service.safeOperation()).resolves.not.toThrow();
 ## 测试统计
 
 ### 测试文件分布
-```
-src/
+``` 
+packages/backend/src/
 ├── auth/__tests__/
 │   ├── auth.service.test.ts          (已有)
 │   ├── auth.controller.test.ts       (新增)

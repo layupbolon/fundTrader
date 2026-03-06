@@ -4,7 +4,7 @@
 
 这是一个基于 Node.js/TypeScript 的场外基金自动交易系统，用于个人投资管理。系统实现了自动定投、智能止盈止损、策略回测和实时监控功能。
 
-**项目状态**: ✅ Phase 1 MVP 已完成，可用于开发测试
+**项目状态**: ✅ Phase 4 核心能力已落地，可用于开发测试与联调
 
 **关键特性**:
 
@@ -36,7 +36,7 @@ fundTrader/                        # Monorepo 根目录
 ├── packages/
 │   ├── backend/                  # 后端服务包
 │   │   ├── src/
-│   │   │   ├── models/          # 数据模型（7个实体）
+│   │   │   ├── models/          # 数据模型（11个实体）
 │   │   │   │   ├── user.entity.ts
 │   │   │   │   ├── fund.entity.ts
 │   │   │   │   ├── fund-nav.entity.ts
@@ -85,7 +85,7 @@ fundTrader/                        # Monorepo 根目录
 │   │   │   └── index.ts      # 导出入口
 │   │   ├── tsconfig.json     # TypeScript 配置
 │   │   └── package.json      # Shared 包配置
-│   └── frontend/             # 前端应用包（待开发）
+│   └── frontend/             # 前端应用包（已可用）
 ├── docs/                     # 项目文档
 │   ├── PLAN.md              # 技术方案
 │   ├── IMPLEMENTATION.md    # 实施总结
@@ -111,6 +111,10 @@ fundTrader/                        # Monorepo 根目录
 - **Transaction**: 交易记录（买入/卖出、状态跟踪）
 - **Strategy**: 策略配置（定投/止盈/止损参数）
 - **BacktestResult**: 回测结果（收益率、夏普比率、最大回撤）
+- **RiskLimit**: 风控限额配置
+- **Blacklist**: 交易黑名单
+- **PortfolioSnapshot**: 资产快照
+- **OperationLog**: 操作审计日志
 
 #### 2. 服务层 (services/)
 
@@ -143,10 +147,15 @@ fundTrader/                        # Monorepo 根目录
 
 #### 4. 定时任务层 (scheduler/)
 
-- 每天 09:00 同步基金净值
+- 工作日 20:00/22:00/09:00 同步基金净值
+- 工作日 22:35 生成资产快照
 - 工作日 14:30 检查定投策略
 - 每小时检查止盈止损
+- 工作日 21:00 执行 T+1 确认
+- 工作日 21:30 刷新持仓市值
 - 每 30 分钟保持会话活跃
+- 每 5 分钟检查确认超时与系统健康
+- 每天 02:00 数据库备份（周日 04:00 清理）
 
 ## 开发规范
 
@@ -220,22 +229,8 @@ src/
 
 #### 测试覆盖率现状
 
-**当前覆盖率**: 47.73% (78 个测试通过)
-
-**已完成测试** (100% 覆盖):
-- ✅ `utils/` - 工具函数 (时间、加密)
-- ✅ `services/data/` - 基金数据服务
-- ✅ `services/notify/notify.service.ts` - 通知服务
-- ✅ `core/strategy/` - 定投和止盈止损策略 (98.71%)
-
-**部分覆盖**:
-- 🟡 `core/backtest/` - 回测引擎 (68.26%)
-
-**待测试模块**:
-- ⚪ `api/` - REST API 控制器
-- ⚪ `scheduler/` - 定时任务处理器
-- ⚪ `services/broker/` - 交易平台接入
-- ⚪ `services/notify/` - Telegram/飞书服务
+- 当前整体覆盖率已达到 **80%+**（Phase 3 后达到 85%+ 水平）。
+- 具体测试数量和覆盖率以 `docs/PHASE3_IMPLEMENTATION.md` 与后续测试报告为准。
 
 #### 编写测试的最佳实践
 
@@ -330,7 +325,7 @@ src/
    - 使用 NestJS 依赖注入
 
 3. **更新配置**
-   - 新增环境变量需要更新 packages/backend/.env.example
+   - 新增环境变量需要更新根目录 `.env.example`
    - 新增配置项需要更新 packages/backend/config/default.yml
    - 新增 API 需要更新 packages/backend/src/api/controllers.ts
 
@@ -404,8 +399,8 @@ pnpm dcup
 pnpm install
 
 # 3. 配置环境变量
-cp packages/backend/.env.example packages/backend/.env
-# 编辑 packages/backend/.env 文件
+cp .env.example .env
+# 编辑根目录 .env 文件
 
 # 4. 启动应用
 pnpm dev
@@ -415,7 +410,7 @@ pnpm dev
 
 ### 配置文件
 
-- `packages/backend/.env.example` - 环境变量模板
+- `.env.example` - 环境变量模板（根目录）
 - `packages/backend/config/default.yml` - 应用配置
 - `packages/backend/tsconfig.json` - 后端 TypeScript 配置
 - `packages/backend/docker-compose.yml` - 数据库服务配置
@@ -503,23 +498,32 @@ pnpm dev
 - [x] 通知系统
 - [x] 回测系统
 
-### Phase 2: 完善功能（进行中）
+### Phase 2: 完善功能 ✅ 已完成
 
-- [ ] 止盈止损策略优化
-- [ ] Web 界面开发
-- [ ] 更多策略类型
-- [ ] 性能优化
+- [x] 交易安全修复
+- [x] JWT 认证与用户管理
+- [x] 网格交易与再平衡策略
+- [x] 前端基础能力
 
-### Phase 3: 高级功能（规划中）
+### Phase 3: 测试与质量 ✅ 已完成
 
-- [ ] 多账户支持
-- [ ] 风险控制增强
-- [ ] 数据分析和可视化
-- [ ] 移动端 App
+- [x] 覆盖率提升到 80%+
+- [x] API/调度/鉴权等关键模块测试完善
+
+### Phase 4: 产品能力完善 🟡 主要能力已完成
+
+- [x] 风控系统
+- [x] 交易确认机制
+- [x] 监控告警
+- [x] 日志审计
+- [x] 数据备份
+- [x] 前端体验优化
+- [ ] 持续优化项（分析能力深化、体验细节打磨）
 
 ## 参考文档
 
+- [文档导航](./docs/README.md) - docs 目录索引与阅读顺序
 - [技术方案](./docs/PLAN.md) - 完整的技术架构设计
-- [实施总结](./docs/IMPLEMENTATION.md) - 已完成功能清单
+- [实施总结（权威）](./docs/IMPLEMENTATION.md) - 当前唯一权威状态文档
 - [快速开始](./docs/QUICKSTART.md) - 部署和使用指南
 - [安全修复](./docs/SECURITY_FIXES.md) - 安全问题修复记录
