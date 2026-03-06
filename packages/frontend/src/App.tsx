@@ -9,6 +9,7 @@ import StrategiesPage from './strategies/StrategiesPage';
 import StrategyForm from './strategies/StrategyForm';
 import BacktestPage from './backtest/BacktestPage';
 import AnalyticsPage from './analytics/AnalyticsPage';
+import TransactionsPage from './transactions/TransactionsPage';
 
 export default function App() {
   return (
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/strategies/:id/edit" element={<StrategyForm />} />
             <Route path="/backtest" element={<BacktestPage />} />
             <Route path="/analytics" element={<AnalyticsPage />} />
+            <Route path="/transactions" element={<TransactionsPage />} />
           </Route>
 
           {/* Fallback */}

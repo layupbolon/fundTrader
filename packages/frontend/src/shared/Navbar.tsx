@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { path: '/strategies', label: '策略管理' },
   { path: '/backtest', label: '策略回测' },
   { path: '/analytics', label: '收益分析' },
+  { path: '/transactions', label: '交易管理' },
 ];
 
 export default function Navbar() {

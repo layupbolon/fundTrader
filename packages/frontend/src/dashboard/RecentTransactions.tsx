@@ -2,6 +2,7 @@ import type { Transaction } from '../api/types';
 import { TransactionType } from '../api/types';
 import StatusBadge from '../shared/StatusBadge';
 import EmptyState from '../shared/EmptyState';
+import { Link } from 'react-router-dom';
 
 interface RecentTransactionsProps {
   transactions: Transaction[];
@@ -15,7 +16,12 @@ export default function RecentTransactions({ transactions }: RecentTransactionsP
   return (
     <div className="bg-white rounded-xl border border-gray-200">
       <div className="px-5 py-4 border-b border-gray-100">
-        <h2 className="text-base font-semibold text-gray-900">最近交易</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-base font-semibold text-gray-900">最近交易</h2>
+          <Link to="/transactions" className="text-xs text-primary-600 hover:text-primary-700">
+            查看全部
+          </Link>
+        </div>
       </div>
       <div className="divide-y divide-gray-50">
         {transactions.map((tx) => (

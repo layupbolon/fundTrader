@@ -86,7 +86,38 @@
 
 ---
 
-## 4. 测试与验证
+## 4. 前端页面联调落地
+
+### 4.1 新增交易管理页
+
+新增文件：`packages/frontend/src/transactions/TransactionsPage.tsx`
+
+实现内容：
+
+1. 交易列表分页查询（支持基金代码筛选）
+2. 单笔操作：
+   - 刷新状态
+   - 撤单（仅 `PENDING/SUBMITTED` 可用）
+3. 批量操作：
+   - 批量刷新状态
+   - 批量撤单
+4. 结果反馈：
+   - 成功/失败提示
+   - 批量操作成功数与失败数
+
+### 4.2 路由与导航接入
+
+修改文件：
+- `packages/frontend/src/App.tsx`
+- `packages/frontend/src/shared/Navbar.tsx`
+
+变更：
+- 新增路由：`/transactions`
+- 顶部导航新增“交易管理”
+
+---
+
+## 5. 测试与验证
 
 ### 4.1 后端测试
 
@@ -109,7 +140,7 @@ pnpm --filter @fundtrader/backend test -- \
 
 ---
 
-## 5. 接口清单（新增）
+## 6. 接口清单（新增）
 
 1. `POST /api/transactions/:id/refresh-status`
 2. `POST /api/transactions/:id/cancel`
@@ -126,9 +157,8 @@ pnpm --filter @fundtrader/backend test -- \
 
 ---
 
-## 6. 后续建议
+## 7. 后续建议
 
 1. 在前端交易列表页增加“刷新状态/撤单”操作按钮并支持多选批量操作。
 2. 将批量任务执行结果以 toast + 明细面板展示，便于运营排障。
 3. 对接真实 broker 后补充集成测试（当前为模拟接口语义）。
-

@@ -1,0 +1,252 @@
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  fetchTransactions,
+  refreshTransactionStatus,
+  cancelTransaction,
+  batchRefreshTransactionStatus,
+  batchCancelTransactions,
+} from '../api/transactions';
+import type { Transaction } from '../api/types';
+import { TransactionType, TransactionStatus } from '../api/types';
+import { ApiError } from '../api/client';
+import StatusBadge from '../shared/StatusBadge';
+import Pagination from '../shared/Pagination';
+import LoadingSpinner from '../shared/LoadingSpinner';
+import ErrorMessage from '../shared/ErrorMessage';
+import EmptyState from '../shared/EmptyState';
+
+const PAGE_SIZE = 10;
+
+export default function TransactionsPage() {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [fundCode, setFundCode] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+
+  const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
+  const allOnPageSelected =
+    transactions.length > 0 && transactions.every((tx) => selectedSet.has(tx.id));
+
+  const loadTransactions = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetchTransactions(page, PAGE_SIZE, fundCode.trim() || undefined);
+      setTransactions(res.data);
+      setTotalPages(res.totalPages);
+      setSelectedIds((prev) => prev.filter((id) => res.data.some((tx) => tx.id === id)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加载交易记录失败');
+    } finally {
+      setLoading(false);
+    }
+  }, [page, fundCode]);
+
+  useEffect(() => {
+    loadTransactions();
+  }, [loadTransactions]);
+
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  function toggleSelectAllOnPage() {
+    if (allOnPageSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !transactions.some((tx) => tx.id === id)));
+      return;
+    }
+    setSelectedIds((prev) => Array.from(new Set([...prev, ...transactions.map((tx) => tx.id)])));
+  }
+
+  async function runSingleAction(action: 'refresh' | 'cancel', tx: Transaction) {
+    setActionLoading(true);
+    setError(null);
+    setNotice(null);
+    try {
+      if (action === 'refresh') {
+        const result = await refreshTransactionStatus(tx.id);
+        setNotice(`交易 ${tx.id.slice(0, 8)} 状态已刷新为 ${result.status}`);
+      } else {
+        const result = await cancelTransaction(tx.id);
+        setNotice(`交易 ${tx.id.slice(0, 8)} 已撤销（${result.status}）`);
+      }
+      await loadTransactions();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '操作失败');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  async function runBatchAction(action: 'refresh' | 'cancel') {
+    if (selectedIds.length === 0) return;
+    setActionLoading(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const result =
+        action === 'refresh'
+          ? await batchRefreshTransactionStatus(selectedIds)
+          : await batchCancelTransactions(selectedIds);
+
+      setNotice(
+        `批量${action === 'refresh' ? '刷新' : '撤单'}完成：成功 ${result.success_count}，失败 ${result.failed_count}`,
+      );
+      await loadTransactions();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : '批量操作失败');
+    } finally {
+      setActionLoading(false);
+    }
+  }
+
+  if (loading) return <LoadingSpinner />;
+  if (error && transactions.length === 0) return <ErrorMessage message={error} onRetry={loadTransactions} />;
+
+  return (
+    <div className="space-y-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-xl font-bold text-gray-900">交易记录管理</h1>
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            maxLength={6}
+            value={fundCode}
+            onChange={(e) => setFundCode(e.target.value.replace(/\D/g, ''))}
+            placeholder="按基金代码筛选"
+            className="w-44 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          />
+          <button
+            onClick={() => {
+              setPage(1);
+              loadTransactions();
+            }}
+            className="px-3 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg"
+          >
+            查询
+          </button>
+        </div>
+      </div>
+
+      {notice && <div className="p-3 text-sm rounded-lg bg-success-50 text-success-700">{notice}</div>}
+      {error && <div className="p-3 text-sm rounded-lg bg-danger-50 text-danger-700">{error}</div>}
+
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <label className="inline-flex items-center gap-2 text-sm text-gray-600">
+              <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAllOnPage} />
+              全选当前页
+            </label>
+            <span className="text-sm text-gray-500">已选 {selectedIds.length} 笔</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => runBatchAction('refresh')}
+              disabled={selectedIds.length === 0 || actionLoading}
+              className="px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              批量刷新状态
+            </button>
+            <button
+              onClick={() => runBatchAction('cancel')}
+              disabled={selectedIds.length === 0 || actionLoading}
+              className="px-3 py-1.5 text-xs font-medium text-danger-700 bg-danger-50 hover:bg-danger-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              批量撤单
+            </button>
+          </div>
+        </div>
+
+        {transactions.length === 0 ? (
+          <EmptyState message="暂无交易记录" />
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="px-4 py-2 text-left">选择</th>
+                  <th className="px-4 py-2 text-left">基金</th>
+                  <th className="px-4 py-2 text-left">类型</th>
+                  <th className="px-4 py-2 text-left">金额</th>
+                  <th className="px-4 py-2 text-left">状态</th>
+                  <th className="px-4 py-2 text-left">提交时间</th>
+                  <th className="px-4 py-2 text-left">操作</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {transactions.map((tx) => {
+                  const canCancel =
+                    tx.status === TransactionStatus.PENDING || tx.status === TransactionStatus.SUBMITTED;
+                  return (
+                    <tr key={tx.id}>
+                      <td className="px-4 py-3">
+                        <input
+                          type="checkbox"
+                          checked={selectedSet.has(tx.id)}
+                          onChange={() => toggleSelect(tx.id)}
+                        />
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-gray-900">{tx.fund?.name || tx.fund_code}</div>
+                        <div className="text-xs text-gray-400">{tx.fund_code}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={
+                            tx.type === TransactionType.BUY ? 'text-success-700 font-medium' : 'text-danger-700 font-medium'
+                          }
+                        >
+                          {tx.type === TransactionType.BUY ? '买入' : '卖出'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        ¥
+                        {tx.amount.toLocaleString('zh-CN', {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        })}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={tx.status} />
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {new Date(tx.submitted_at).toLocaleString('zh-CN')}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => runSingleAction('refresh', tx)}
+                            disabled={actionLoading}
+                            className="px-2 py-1 text-xs text-primary-700 bg-primary-50 hover:bg-primary-100 rounded disabled:opacity-50"
+                          >
+                            刷新状态
+                          </button>
+                          <button
+                            onClick={() => runSingleAction('cancel', tx)}
+                            disabled={!canCancel || actionLoading}
+                            className="px-2 py-1 text-xs text-danger-700 bg-danger-50 hover:bg-danger-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            撤单
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+    </div>
+  );
+}
+
