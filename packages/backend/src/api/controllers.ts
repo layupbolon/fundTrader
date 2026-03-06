@@ -23,7 +23,7 @@ import {
 } from '@nestjs/swagger';
 import { InjectQueue } from '@nestjs/bull';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, MoreThanOrEqual, LessThanOrEqual, Between } from 'typeorm';
 import { Queue } from 'bull';
 import {
   Strategy,
@@ -233,15 +233,42 @@ export class TransactionController {
     description: '获取交易记录列表，支持按基金筛选（分页）',
   })
   @ApiQuery({ name: 'fund_code', required: false, description: '基金代码（可选）' })
+  @ApiQuery({ name: 'type', required: false, description: '交易类型（BUY/SELL）' })
+  @ApiQuery({
+    name: 'status',
+    required: false,
+    description: '交易状态（PENDING/SUBMITTED/CONFIRMED/FAILED/CANCELLED）',
+  })
+  @ApiQuery({ name: 'start_date', required: false, description: '提交开始日期（YYYY-MM-DD）' })
+  @ApiQuery({ name: 'end_date', required: false, description: '提交结束日期（YYYY-MM-DD）' })
   @ApiResponse({ status: 200, description: '成功返回交易记录列表' })
   async findAll(
     @Query() pagination: PaginationDto,
     @CurrentUser() user: { id: string },
     @Query('fund_code') fundCode?: string,
+    @Query('type') type?: TransactionType,
+    @Query('status') status?: TransactionStatus,
+    @Query('start_date') startDate?: string,
+    @Query('end_date') endDate?: string,
   ) {
     const { page, limit } = pagination;
     const where: any = { user_id: user.id };
     if (fundCode) where.fund_code = fundCode;
+    if (type) where.type = type;
+    if (status) where.status = status;
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      where.submitted_at = Between(start, end);
+    } else if (startDate) {
+      where.submitted_at = MoreThanOrEqual(new Date(startDate));
+    } else if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+      where.submitted_at = LessThanOrEqual(end);
+    }
 
     const [data, total] = await this.transactionRepository.findAndCount({
       where,

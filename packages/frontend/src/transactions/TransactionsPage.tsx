@@ -22,11 +22,20 @@ export default function TransactionsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [fundCode, setFundCode] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [confirmState, setConfirmState] = useState<{
+    open: boolean;
+    action: 'single-cancel' | 'batch-cancel';
+    transaction?: Transaction;
+  }>({ open: false, action: 'single-cancel' });
 
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds]);
   const allOnPageSelected =
@@ -36,7 +45,13 @@ export default function TransactionsPage() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchTransactions(page, PAGE_SIZE, fundCode.trim() || undefined);
+      const res = await fetchTransactions(page, PAGE_SIZE, {
+        fundCode: fundCode.trim() || undefined,
+        type: typeFilter || undefined,
+        status: statusFilter || undefined,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+      });
       setTransactions(res.data);
       setTotalPages(res.totalPages);
       setSelectedIds((prev) => prev.filter((id) => res.data.some((tx) => tx.id === id)));
@@ -45,7 +60,7 @@ export default function TransactionsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, fundCode]);
+  }, [page, fundCode, typeFilter, statusFilter, startDate, endDate]);
 
   useEffect(() => {
     loadTransactions();
@@ -121,6 +136,39 @@ export default function TransactionsPage() {
             placeholder="按基金代码筛选"
             className="w-44 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
           />
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          >
+            <option value="">全部类型</option>
+            <option value={TransactionType.BUY}>买入</option>
+            <option value={TransactionType.SELL}>卖出</option>
+          </select>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          >
+            <option value="">全部状态</option>
+            {Object.values(TransactionStatus).map((status) => (
+              <option key={status} value={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          />
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
+          />
           <button
             onClick={() => {
               setPage(1);
@@ -129,6 +177,19 @@ export default function TransactionsPage() {
             className="px-3 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg"
           >
             查询
+          </button>
+          <button
+            onClick={() => {
+              setFundCode('');
+              setTypeFilter('');
+              setStatusFilter('');
+              setStartDate('');
+              setEndDate('');
+              setPage(1);
+            }}
+            className="px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg"
+          >
+            重置
           </button>
         </div>
       </div>
@@ -154,7 +215,7 @@ export default function TransactionsPage() {
               批量刷新状态
             </button>
             <button
-              onClick={() => runBatchAction('cancel')}
+              onClick={() => setConfirmState({ open: true, action: 'batch-cancel' })}
               disabled={selectedIds.length === 0 || actionLoading}
               className="px-3 py-1.5 text-xs font-medium text-danger-700 bg-danger-50 hover:bg-danger-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
@@ -228,7 +289,9 @@ export default function TransactionsPage() {
                             刷新状态
                           </button>
                           <button
-                            onClick={() => runSingleAction('cancel', tx)}
+                            onClick={() =>
+                              setConfirmState({ open: true, action: 'single-cancel', transaction: tx })
+                            }
                             disabled={!canCancel || actionLoading}
                             className="px-2 py-1 text-xs text-danger-700 bg-danger-50 hover:bg-danger-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
@@ -246,7 +309,42 @@ export default function TransactionsPage() {
       </div>
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
+
+      {confirmState.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl">
+            <h3 className="text-base font-semibold text-gray-900 mb-2">确认操作</h3>
+            <p className="text-sm text-gray-600 mb-5">
+              {confirmState.action === 'single-cancel'
+                ? `确定撤销交易 ${confirmState.transaction?.id.slice(0, 8)} 吗？`
+                : `确定批量撤销已选择的 ${selectedIds.length} 笔交易吗？`}
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setConfirmState((prev) => ({ ...prev, open: false }))}
+                className="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={async () => {
+                  const action = confirmState.action;
+                  const tx = confirmState.transaction;
+                  setConfirmState((prev) => ({ ...prev, open: false }));
+                  if (action === 'single-cancel' && tx) {
+                    await runSingleAction('cancel', tx);
+                  } else if (action === 'batch-cancel') {
+                    await runBatchAction('cancel');
+                  }
+                }}
+                className="flex-1 px-3 py-2 text-sm rounded-lg bg-danger-600 text-white hover:bg-danger-700"
+              >
+                确认撤单
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
-

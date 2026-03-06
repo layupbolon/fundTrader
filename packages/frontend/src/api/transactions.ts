@@ -10,10 +10,20 @@ import type {
 export function fetchTransactions(
   page = 1,
   limit = 10,
-  fundCode?: string,
+  filters?: {
+    fundCode?: string;
+    type?: string;
+    status?: string;
+    startDate?: string;
+    endDate?: string;
+  },
 ): Promise<PaginatedResponse<Transaction>> {
   const params = new URLSearchParams({ page: String(page), limit: String(limit) });
-  if (fundCode) params.set('fund_code', fundCode);
+  if (filters?.fundCode) params.set('fund_code', filters.fundCode);
+  if (filters?.type) params.set('type', filters.type);
+  if (filters?.status) params.set('status', filters.status);
+  if (filters?.startDate) params.set('start_date', filters.startDate);
+  if (filters?.endDate) params.set('end_date', filters.endDate);
   return apiClient<PaginatedResponse<Transaction>>(`/transactions?${params}`);
 }
 
