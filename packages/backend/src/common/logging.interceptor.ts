@@ -51,7 +51,10 @@ export class LoggingInterceptor implements NestInterceptor {
         });
 
         // 添加响应头 - 性能指标
-        response.setHeader('X-Response-Time', `${duration}ms`);
+        // 对于手动流式响应等场景，响应头可能已发送，需避免重复设置导致异常。
+        if (!response.headersSent) {
+          response.setHeader('X-Response-Time', `${duration}ms`);
+        }
       }),
     );
   }

@@ -68,7 +68,8 @@ async function bootstrap() {
   app.useLogger(logger);
 
   // 性能指标采集中间件
-  app.use(new PerformanceMiddleware());
+  const performanceMiddleware = new PerformanceMiddleware();
+  app.use(performanceMiddleware.use.bind(performanceMiddleware));
 
   // Swagger configuration
   // Global prefix - must be set before Swagger document creation

@@ -26,15 +26,20 @@ export interface ConfirmationRequestParams {
 
 @Injectable()
 export class TelegramService {
-  private bot: TelegramBot;
-  private chatId: string;
+  private bot?: TelegramBot;
+  private chatId?: string;
+  private readonly pollingEnabled: boolean;
 
   constructor() {
     const token = process.env.TELEGRAM_BOT_TOKEN;
     this.chatId = process.env.TELEGRAM_CHAT_ID;
+    this.pollingEnabled = process.env.TELEGRAM_POLLING_ENABLED === 'true';
 
     if (token && this.chatId) {
-      this.bot = new TelegramBot(token, { polling: true });
+      this.bot = new TelegramBot(token, { polling: this.pollingEnabled });
+      this.bot.on('polling_error', (error) => {
+        console.error('Telegram polling error:', error.message);
+      });
     }
   }
 
@@ -153,6 +158,12 @@ export class TelegramService {
     handler: (transactionId: string, action: 'confirm' | 'cancel') => Promise<void>,
   ): void {
     if (!this.bot) {
+      return;
+    }
+    if (!this.pollingEnabled) {
+      console.warn(
+        'Telegram polling is disabled, confirmation callback listener is not registered',
+      );
       return;
     }
 
