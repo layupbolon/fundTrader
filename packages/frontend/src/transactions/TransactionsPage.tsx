@@ -31,6 +31,13 @@ export default function TransactionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [batchResult, setBatchResult] = useState<{
+    action: 'refresh' | 'cancel';
+    total: number;
+    success_count: number;
+    failed_count: number;
+    results: Array<{ id: string; success: boolean; message?: string; status?: string }>;
+  } | null>(null);
   const [confirmState, setConfirmState] = useState<{
     open: boolean;
     action: 'single-cancel' | 'batch-cancel';
@@ -82,6 +89,7 @@ export default function TransactionsPage() {
     setActionLoading(true);
     setError(null);
     setNotice(null);
+    setBatchResult(null);
     try {
       if (action === 'refresh') {
         const result = await refreshTransactionStatus(tx.id);
@@ -103,6 +111,7 @@ export default function TransactionsPage() {
     setActionLoading(true);
     setError(null);
     setNotice(null);
+    setBatchResult(null);
     try {
       const result =
         action === 'refresh'
@@ -112,6 +121,18 @@ export default function TransactionsPage() {
       setNotice(
         `批量${action === 'refresh' ? '刷新' : '撤单'}完成：成功 ${result.success_count}，失败 ${result.failed_count}`,
       );
+      setBatchResult({
+        action,
+        total: result.total,
+        success_count: result.success_count,
+        failed_count: result.failed_count,
+        results: result.results.map((item) => ({
+          id: item.id,
+          success: item.success,
+          message: item.message,
+          status: item.status,
+        })),
+      });
       await loadTransactions();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : '批量操作失败');
@@ -122,6 +143,31 @@ export default function TransactionsPage() {
 
   if (loading) return <LoadingSpinner />;
   if (error && transactions.length === 0) return <ErrorMessage message={error} onRetry={loadTransactions} />;
+
+  function downloadBatchResultCsv() {
+    if (!batchResult) return;
+    const rows = [
+      ['action', 'transaction_id', 'success', 'status', 'message'].join(','),
+      ...batchResult.results.map((item) =>
+        [
+          batchResult.action,
+          item.id,
+          item.success ? 'true' : 'false',
+          item.status || '',
+          `"${(item.message || '').replace(/"/g, '""')}"`,
+        ].join(','),
+      ),
+    ];
+    const blob = new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transaction-batch-result-${Date.now()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="space-y-5">
@@ -196,6 +242,50 @@ export default function TransactionsPage() {
 
       {notice && <div className="p-3 text-sm rounded-lg bg-success-50 text-success-700">{notice}</div>}
       {error && <div className="p-3 text-sm rounded-lg bg-danger-50 text-danger-700">{error}</div>}
+      {batchResult && (
+        <div className="rounded-xl border border-gray-200 bg-white overflow-hidden">
+          <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-semibold text-gray-900">批量操作结果明细</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                总计 {batchResult.total}，成功 {batchResult.success_count}，失败 {batchResult.failed_count}
+              </p>
+            </div>
+            <button
+              onClick={downloadBatchResultCsv}
+              className="px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 rounded"
+            >
+              导出 CSV
+            </button>
+          </div>
+          <div className="max-h-56 overflow-auto">
+            <table className="min-w-full text-xs">
+              <thead className="bg-gray-50 text-gray-600">
+                <tr>
+                  <th className="px-3 py-2 text-left">交易ID</th>
+                  <th className="px-3 py-2 text-left">结果</th>
+                  <th className="px-3 py-2 text-left">状态</th>
+                  <th className="px-3 py-2 text-left">消息</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {batchResult.results.map((item) => (
+                  <tr key={item.id}>
+                    <td className="px-3 py-2 font-mono text-gray-700">{item.id.slice(0, 12)}</td>
+                    <td className="px-3 py-2">
+                      <span className={item.success ? 'text-success-700' : 'text-danger-700'}>
+                        {item.success ? '成功' : '失败'}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 text-gray-600">{item.status || '-'}</td>
+                    <td className="px-3 py-2 text-gray-500">{item.message || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
