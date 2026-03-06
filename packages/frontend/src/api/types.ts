@@ -170,3 +170,24 @@ export interface CreateTransactionPayload {
   amount: number;
   shares?: number;
 }
+
+export interface TransactionStatusRefreshResult {
+  id: string;
+  status: TransactionStatus;
+  order_status: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'CANCELLED';
+  shares?: number;
+  price?: number;
+}
+
+export interface BatchTransactionOperationResult {
+  total: number;
+  success_count: number;
+  failed_count: number;
+  results: Array<{
+    id: string;
+    success: boolean;
+    message?: string;
+    status?: TransactionStatus;
+    data?: TransactionStatusRefreshResult;
+  }>;
+}

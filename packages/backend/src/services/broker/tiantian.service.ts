@@ -44,7 +44,7 @@ interface OrderStatus {
   id: string;
 
   /** 订单状态 */
-  status: 'PENDING' | 'CONFIRMED' | 'FAILED';
+  status: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'CANCELLED';
 
   /** 确认份额（仅确认后有值） */
   shares?: number;
@@ -351,6 +351,25 @@ export class TiantianBrokerService {
     }
   }
 
+  async cancelOrder(orderId: string): Promise<{ id: string; status: 'CANCELLED' }> {
+    if (!this.isSessionValid()) {
+      throw new Error('会话已过期，请重新登录');
+    }
+
+    try {
+      await this.page.goto(`https://trade.1234567.com.cn/order/${orderId}`, {
+        waitUntil: 'networkidle2',
+      });
+      await this.page.click('#cancelBtn');
+      await this.page.waitForSelector('.cancel-success', { timeout: 10000 });
+
+      return { id: orderId, status: 'CANCELLED' };
+    } catch (error) {
+      console.error('Cancel order failed:', error);
+      throw new Error('撤单失败');
+    }
+  }
+
   /**
    * 保持会话活跃
    *
@@ -425,11 +444,14 @@ export class TiantianBrokerService {
    * @returns 标准订单状态
    * @private
    */
-  private parseOrderStatus(status: string): 'PENDING' | 'CONFIRMED' | 'FAILED' {
+  private parseOrderStatus(status: string): 'PENDING' | 'CONFIRMED' | 'FAILED' | 'CANCELLED' {
     if (status.includes('已确认') || status.includes('成功')) {
       return 'CONFIRMED';
     }
-    if (status.includes('失败') || status.includes('取消')) {
+    if (status.includes('取消')) {
+      return 'CANCELLED';
+    }
+    if (status.includes('失败')) {
       return 'FAILED';
     }
     return 'PENDING';

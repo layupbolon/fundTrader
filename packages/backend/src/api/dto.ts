@@ -8,6 +8,9 @@ import {
   IsEnum,
   IsBoolean,
   IsOptional,
+  IsArray,
+  ArrayMinSize,
+  IsUUID,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { StrategyType, TransactionType } from '../models';
@@ -129,4 +132,16 @@ export class CreateTransactionDto {
   @IsNumber()
   @Min(0.0001)
   shares?: number;
+}
+
+export class BatchTransactionIdsDto {
+  @ApiProperty({
+    description: '交易 ID 列表',
+    type: [String],
+    example: ['2d9c80f2-5e32-4c6f-a588-8cae6ee3e0e4'],
+  })
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  transaction_ids: string[];
 }

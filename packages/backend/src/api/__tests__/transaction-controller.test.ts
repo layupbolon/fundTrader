@@ -40,6 +40,7 @@ describe('TransactionController', () => {
       findAndCount: jest.fn(),
       create: jest.fn(),
       save: jest.fn(),
+      update: jest.fn(),
     };
     fundRepository = {
       findOne: jest.fn(),
@@ -254,6 +255,94 @@ describe('TransactionController', () => {
       const result = await controller.findOne('nonexistent-tx');
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('refreshStatus', () => {
+    it('should refresh transaction status from broker', async () => {
+      transactionRepository.findOne
+        .mockResolvedValueOnce({
+          ...mockTransaction,
+          order_id: 'order-1',
+          user_id: mockUser.id,
+        })
+        .mockResolvedValueOnce({
+          ...mockTransaction,
+          id: 'tx-uuid-1',
+          status: TransactionStatus.CONFIRMED,
+        });
+      brokerService.getOrderStatus = jest.fn().mockResolvedValue({
+        id: 'order-1',
+        status: 'CONFIRMED',
+        shares: 100,
+        price: 1.23,
+      });
+
+      const result = await controller.refreshStatus('tx-uuid-1', mockUser);
+
+      expect(transactionRepository.update).toHaveBeenCalledWith(
+        'tx-uuid-1',
+        expect.objectContaining({ status: TransactionStatus.CONFIRMED }),
+      );
+      expect(result.status).toBe(TransactionStatus.CONFIRMED);
+    });
+  });
+
+  describe('cancel', () => {
+    it('should cancel pending transaction', async () => {
+      transactionRepository.findOne.mockResolvedValue({
+        ...mockTransaction,
+        id: 'tx-uuid-1',
+        user_id: mockUser.id,
+        status: TransactionStatus.PENDING,
+        order_id: 'order-1',
+      });
+      brokerService.cancelOrder = jest.fn().mockResolvedValue({ id: 'order-1', status: 'CANCELLED' });
+
+      const result = await controller.cancel('tx-uuid-1', mockUser);
+
+      expect(transactionRepository.update).toHaveBeenCalledWith(
+        'tx-uuid-1',
+        expect.objectContaining({ status: TransactionStatus.CANCELLED }),
+      );
+      expect(result.status).toBe(TransactionStatus.CANCELLED);
+    });
+  });
+
+  describe('batch operations', () => {
+    it('should batch refresh status', async () => {
+      transactionRepository.findOne
+        .mockResolvedValueOnce({
+          ...mockTransaction,
+          id: 'tx-1',
+          user_id: mockUser.id,
+          order_id: 'order-1',
+        })
+        .mockResolvedValueOnce({
+          ...mockTransaction,
+          id: 'tx-1',
+          status: TransactionStatus.PENDING,
+        });
+      brokerService.getOrderStatus = jest.fn().mockResolvedValue({ id: 'order-1', status: 'PENDING' });
+
+      const result = await controller.batchRefreshStatus({ transaction_ids: ['tx-1'] }, mockUser);
+      expect(result.total).toBe(1);
+      expect(result.success_count).toBe(1);
+    });
+
+    it('should batch cancel transactions', async () => {
+      transactionRepository.findOne.mockResolvedValue({
+        ...mockTransaction,
+        id: 'tx-1',
+        user_id: mockUser.id,
+        status: TransactionStatus.PENDING,
+        order_id: 'order-1',
+      });
+      brokerService.cancelOrder = jest.fn().mockResolvedValue({ id: 'order-1', status: 'CANCELLED' });
+
+      const result = await controller.batchCancel({ transaction_ids: ['tx-1'] }, mockUser);
+      expect(result.total).toBe(1);
+      expect(result.success_count).toBe(1);
     });
   });
 });

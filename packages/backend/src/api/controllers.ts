@@ -34,6 +34,7 @@ import {
   TransactionType,
   TransactionStatus,
   OperationType,
+  TransactionConfirmationStatus,
 } from '../models';
 import { BacktestEngine, BacktestResult } from '../core/backtest/backtest.engine';
 import {
@@ -41,6 +42,7 @@ import {
   UpdateStrategyDto,
   BacktestDto,
   CreateTransactionDto,
+  BatchTransactionIdsDto,
 } from './dto';
 import { PaginationDto } from './pagination.dto';
 import { createPaginatedResponse } from './paginated-response';
@@ -387,6 +389,159 @@ export class TransactionController {
     };
   }
 
+  @Post(':id/refresh-status')
+  @ApiOperation({ summary: '刷新交易状态', description: '向券商查询并更新单笔交易状态' })
+  @ApiParam({ name: 'id', description: '交易ID' })
+  @ApiResponse({ status: 200, description: '刷新成功' })
+  @ApiResponse({ status: 404, description: '交易不存在' })
+  async refreshStatus(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    const transaction = await this.transactionRepository.findOne({ where: { id } });
+    if (!transaction) {
+      throw new NotFoundException('Transaction not found');
+    }
+    if (transaction.user_id !== user.id) {
+      throw new ForbiddenException('You do not have permission to access this transaction');
+    }
+    return this.refreshTransactionStatus(transaction, user.id);
+  }
+
+  @Post(':id/cancel')
+  @ApiOperation({ summary: '撤销交易', description: '撤销单笔待处理交易' })
+  @ApiParam({ name: 'id', description: '交易ID' })
+  @ApiResponse({ status: 200, description: '撤单成功' })
+  @ApiResponse({ status: 400, description: '当前状态不可撤单' })
+  async cancel(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    const transaction = await this.transactionRepository.findOne({ where: { id } });
+    if (!transaction) {
+      throw new NotFoundException('Transaction not found');
+    }
+    if (transaction.user_id !== user.id) {
+      throw new ForbiddenException('You do not have permission to cancel this transaction');
+    }
+
+    if (
+      transaction.requires_confirmation &&
+      transaction.confirmation_status === TransactionConfirmationStatus.PENDING_CONFIRMATION
+    ) {
+      await this.tradingConfirmationService.handleCancellation(transaction.id, { source: 'manual_api' });
+      const refreshed = await this.transactionRepository.findOne({ where: { id: transaction.id } });
+      return {
+        id: transaction.id,
+        status: refreshed?.status || transaction.status,
+        confirmation_status:
+          refreshed?.confirmation_status || TransactionConfirmationStatus.CANCELLED,
+      };
+    }
+
+    if (![TransactionStatus.PENDING, TransactionStatus.SUBMITTED].includes(transaction.status)) {
+      throw new BadRequestException(`Transaction status ${transaction.status} cannot be cancelled`);
+    }
+    if (!transaction.order_id) {
+      throw new BadRequestException('Transaction has no broker order id');
+    }
+
+    await this.brokerService.cancelOrder(transaction.order_id);
+    await this.transactionRepository.update(transaction.id, {
+      status: TransactionStatus.CANCELLED,
+      confirmed_at: new Date(),
+    });
+
+    await this.operationLogService.logUserAction(
+      user.id,
+      OperationType.TRADE_CANCEL,
+      'trade',
+      `撤销交易 ${transaction.id}`,
+      { transaction_id: transaction.id, order_id: transaction.order_id },
+    );
+
+    return { id: transaction.id, status: TransactionStatus.CANCELLED };
+  }
+
+  @Post('batch/refresh-status')
+  @ApiOperation({ summary: '批量刷新交易状态', description: '批量向券商查询并更新交易状态' })
+  @ApiResponse({ status: 200, description: '批量刷新完成' })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async batchRefreshStatus(
+    @Body() body: BatchTransactionIdsDto,
+    @CurrentUser() user: { id: string },
+  ) {
+    const { transaction_ids } = body;
+    const results: Array<Record<string, any>> = [];
+
+    for (const transactionId of transaction_ids) {
+      const transaction = await this.transactionRepository.findOne({ where: { id: transactionId } });
+      if (!transaction || transaction.user_id !== user.id) {
+        results.push({ id: transactionId, success: false, message: 'Transaction not found' });
+        continue;
+      }
+      try {
+        const updated = await this.refreshTransactionStatus(transaction, user.id);
+        results.push({ id: transactionId, success: true, data: updated });
+      } catch (error) {
+        results.push({ id: transactionId, success: false, message: error.message });
+      }
+    }
+
+    return {
+      total: transaction_ids.length,
+      success_count: results.filter((r) => r.success).length,
+      failed_count: results.filter((r) => !r.success).length,
+      results,
+    };
+  }
+
+  @Post('batch/cancel')
+  @ApiOperation({ summary: '批量撤单', description: '批量撤销待处理交易' })
+  @ApiResponse({ status: 200, description: '批量撤单完成' })
+  @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
+  async batchCancel(@Body() body: BatchTransactionIdsDto, @CurrentUser() user: { id: string }) {
+    const { transaction_ids } = body;
+    const results: Array<Record<string, any>> = [];
+
+    for (const transactionId of transaction_ids) {
+      const transaction = await this.transactionRepository.findOne({ where: { id: transactionId } });
+      if (!transaction || transaction.user_id !== user.id) {
+        results.push({ id: transactionId, success: false, message: 'Transaction not found' });
+        continue;
+      }
+      try {
+        if (!transaction.order_id) {
+          throw new BadRequestException('Transaction has no broker order id');
+        }
+        if (![TransactionStatus.PENDING, TransactionStatus.SUBMITTED].includes(transaction.status)) {
+          throw new BadRequestException(
+            `Transaction status ${transaction.status} cannot be cancelled`,
+          );
+        }
+
+        await this.brokerService.cancelOrder(transaction.order_id);
+        await this.transactionRepository.update(transaction.id, {
+          status: TransactionStatus.CANCELLED,
+          confirmed_at: new Date(),
+        });
+
+        await this.operationLogService.logUserAction(
+          user.id,
+          OperationType.TRADE_CANCEL,
+          'trade',
+          `批量撤销交易 ${transaction.id}`,
+          { transaction_id: transaction.id, order_id: transaction.order_id },
+        );
+
+        results.push({ id: transactionId, success: true, status: TransactionStatus.CANCELLED });
+      } catch (error) {
+        results.push({ id: transactionId, success: false, message: error.message });
+      }
+    }
+
+    return {
+      total: transaction_ids.length,
+      success_count: results.filter((r) => r.success).length,
+      failed_count: results.filter((r) => !r.success).length,
+      results,
+    };
+  }
+
   @Get(':id')
   @ApiOperation({ summary: '获取交易详情', description: '根据ID获取单笔交易的详细信息' })
   @ApiParam({ name: 'id', description: '交易ID' })
@@ -397,6 +552,53 @@ export class TransactionController {
       where: { id },
       relations: ['fund', 'strategy', 'user'],
     });
+  }
+
+  private async refreshTransactionStatus(transaction: Transaction, userId: string) {
+    if (!transaction.order_id) {
+      throw new BadRequestException('Transaction has no broker order id');
+    }
+
+    const orderStatus = await this.brokerService.getOrderStatus(transaction.order_id);
+    const now = new Date();
+
+    if (orderStatus.status === 'CONFIRMED') {
+      await this.transactionRepository.update(transaction.id, {
+        status: TransactionStatus.CONFIRMED,
+        confirmed_at: now,
+        confirmed_shares: orderStatus.shares ?? transaction.confirmed_shares,
+        confirmed_price: orderStatus.price ?? transaction.confirmed_price,
+        shares: orderStatus.shares ?? transaction.shares,
+        price: orderStatus.price ?? transaction.price,
+      });
+    } else if (orderStatus.status === 'FAILED') {
+      await this.transactionRepository.update(transaction.id, {
+        status: TransactionStatus.FAILED,
+        confirmed_at: now,
+      });
+    } else if (orderStatus.status === 'CANCELLED') {
+      await this.transactionRepository.update(transaction.id, {
+        status: TransactionStatus.CANCELLED,
+        confirmed_at: now,
+      });
+    }
+
+    await this.operationLogService.logUserAction(
+      userId,
+      OperationType.MANUAL_OPERATION,
+      'trade',
+      `刷新交易状态 ${transaction.id}`,
+      { transaction_id: transaction.id, order_status: orderStatus.status },
+    );
+
+    const latest = await this.transactionRepository.findOne({ where: { id: transaction.id } });
+    return {
+      id: transaction.id,
+      status: latest?.status || transaction.status,
+      order_status: orderStatus.status,
+      shares: latest?.shares ?? transaction.shares,
+      price: latest?.price ?? transaction.price,
+    };
   }
 }
 
