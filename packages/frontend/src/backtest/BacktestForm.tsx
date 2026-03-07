@@ -66,7 +66,11 @@ export default function BacktestForm({ onSubmit, loading }: BacktestFormProps) {
   }[strategyType];
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white rounded-xl border border-gray-200 p-6 space-y-5"
+      data-testid="backtest-form"
+    >
       {error && (
         <div className="p-3 bg-danger-50 text-danger-700 rounded-lg text-sm">{error}</div>
       )}
@@ -80,6 +84,7 @@ export default function BacktestForm({ onSubmit, loading }: BacktestFormProps) {
             maxLength={6}
             value={fundCode}
             onChange={(e) => setFundCode(e.target.value.replace(/\D/g, ''))}
+            data-testid="backtest-fund-code-input"
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
             placeholder="例如 110011"
           />
@@ -92,6 +97,7 @@ export default function BacktestForm({ onSubmit, loading }: BacktestFormProps) {
             min="1"
             value={initialCapital}
             onChange={(e) => setInitialCapital(Number(e.target.value))}
+            data-testid="backtest-initial-capital-input"
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
           />
         </div>
@@ -105,6 +111,7 @@ export default function BacktestForm({ onSubmit, loading }: BacktestFormProps) {
             required
             value={startDate}
             onChange={(e) => setStartDate(e.target.value)}
+            data-testid="backtest-start-date-input"
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
           />
         </div>
@@ -115,6 +122,7 @@ export default function BacktestForm({ onSubmit, loading }: BacktestFormProps) {
             required
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
+            data-testid="backtest-end-date-input"
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
           />
         </div>
@@ -128,6 +136,7 @@ export default function BacktestForm({ onSubmit, loading }: BacktestFormProps) {
             setStrategyType(e.target.value as StrategyType);
             setConfig({});
           }}
+          data-testid="backtest-strategy-type-select"
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
         >
           {Object.entries(TYPE_LABELS).map(([val, label]) => (
@@ -144,6 +153,7 @@ export default function BacktestForm({ onSubmit, loading }: BacktestFormProps) {
       <button
         type="submit"
         disabled={loading}
+        data-testid="backtest-submit-button"
         className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? '回测中...' : '开始回测'}

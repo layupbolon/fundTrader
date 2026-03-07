@@ -55,6 +55,7 @@ export default function StrategiesPage() {
         <h1 className="text-xl font-bold text-gray-900">策略管理</h1>
         <Link
           to="/strategies/new"
+          data-testid="new-strategy-button"
           className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors"
         >
           新建策略
@@ -70,6 +71,7 @@ export default function StrategiesPage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              data-testid="strategy-search-input"
               placeholder="搜索策略名称或基金代码..."
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
             />

@@ -100,6 +100,9 @@ interface OrderStatus {
  */
 @Injectable()
 export class TiantianBrokerService {
+  /** 是否启用 mock broker（用于测试环境） */
+  private readonly mockEnabled: boolean;
+
   /** Puppeteer 浏览器实例 */
   private browser: Browser | null = null;
 
@@ -110,7 +113,7 @@ export class TiantianBrokerService {
   private session: Session | null = null;
 
   /** 加密工具实例 */
-  private cryptoUtil: CryptoUtil;
+  private cryptoUtil?: CryptoUtil;
 
   /**
    * 构造函数
@@ -120,6 +123,15 @@ export class TiantianBrokerService {
    * @throws Error 如果 MASTER_KEY 环境变量未设置
    */
   constructor() {
+    this.mockEnabled = process.env.BROKER_MOCK === 'true';
+    if (this.mockEnabled) {
+      this.session = {
+        cookies: [],
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      };
+      return;
+    }
+
     const masterKey = process.env.MASTER_KEY;
     if (!masterKey) {
       throw new Error('MASTER_KEY environment variable is required for security');
@@ -152,6 +164,14 @@ export class TiantianBrokerService {
    * console.log(`会话有效期至: ${session.expiresAt}`);
    */
   async login(username: string, password: string): Promise<Session> {
+    if (this.mockEnabled) {
+      this.session = {
+        cookies: [{ name: 'mock-session', value: `${username}:${password.length}` }],
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      };
+      return this.session;
+    }
+
     try {
       // 启动浏览器
       // headless: true 表示无界面模式
@@ -219,6 +239,15 @@ export class TiantianBrokerService {
    * console.log(`订单号: ${order.id}`);
    */
   async buyFund(fundCode: string, amount: number): Promise<Order> {
+    if (this.mockEnabled) {
+      return {
+        id: `MOCK_BUY_${Date.now()}`,
+        fundCode,
+        amount,
+        status: 'PENDING',
+      };
+    }
+
     if (!this.isSessionValid()) {
       throw new Error('会话已过期，请重新登录');
     }
@@ -278,6 +307,15 @@ export class TiantianBrokerService {
    * console.log(`订单号: ${order.id}`);
    */
   async sellFund(fundCode: string, shares: number): Promise<Order> {
+    if (this.mockEnabled) {
+      return {
+        id: `MOCK_SELL_${Date.now()}`,
+        fundCode,
+        amount: shares,
+        status: 'PENDING',
+      };
+    }
+
     if (!this.isSessionValid()) {
       throw new Error('会话已过期，请重新登录');
     }
@@ -328,6 +366,24 @@ export class TiantianBrokerService {
    * }
    */
   async getOrderStatus(orderId: string): Promise<OrderStatus> {
+    if (this.mockEnabled) {
+      if (orderId.includes('FAILED')) {
+        return { id: orderId, status: 'FAILED', reason: 'Mock failure' };
+      }
+      if (orderId.includes('CANCELLED')) {
+        return { id: orderId, status: 'CANCELLED' };
+      }
+      if (orderId.includes('PENDING')) {
+        return { id: orderId, status: 'PENDING' };
+      }
+      return {
+        id: orderId,
+        status: 'CONFIRMED',
+        shares: 123.4567,
+        price: 1.2345,
+      };
+    }
+
     if (!this.isSessionValid()) {
       throw new Error('会话已过期，请重新登录');
     }
@@ -352,6 +408,10 @@ export class TiantianBrokerService {
   }
 
   async cancelOrder(orderId: string): Promise<{ id: string; status: 'CANCELLED' }> {
+    if (this.mockEnabled) {
+      return { id: orderId, status: 'CANCELLED' };
+    }
+
     if (!this.isSessionValid()) {
       throw new Error('会话已过期，请重新登录');
     }
@@ -383,6 +443,14 @@ export class TiantianBrokerService {
    * }, 30 * 60 * 1000); // 每30分钟
    */
   async keepAlive(): Promise<void> {
+    if (this.mockEnabled) {
+      if (!this.session) {
+        this.session = { cookies: [], expiresAt: new Date() };
+      }
+      this.session.expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      return;
+    }
+
     if (!this.isSessionValid()) {
       return;
     }
@@ -411,6 +479,11 @@ export class TiantianBrokerService {
    * await broker.close();
    */
   async close(): Promise<void> {
+    if (this.mockEnabled) {
+      this.session = null;
+      return;
+    }
+
     if (this.browser) {
       await this.browser.close();
       this.browser = null;
@@ -428,6 +501,10 @@ export class TiantianBrokerService {
    * @private
    */
   private isSessionValid(): boolean {
+    if (this.mockEnabled) {
+      return true;
+    }
+
     if (!this.session) {
       return false;
     }

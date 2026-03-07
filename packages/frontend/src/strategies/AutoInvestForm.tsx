@@ -27,6 +27,7 @@ export default function AutoInvestForm({ config, onChange }: AutoInvestFormProps
           min="1"
           value={(config.amount as number) || ''}
           onChange={(e) => update('amount', Number(e.target.value))}
+          data-testid="auto-invest-amount-input"
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
           placeholder="例如 1000"
         />
@@ -37,6 +38,7 @@ export default function AutoInvestForm({ config, onChange }: AutoInvestFormProps
         <select
           value={frequency}
           onChange={(e) => update('frequency', e.target.value)}
+          data-testid="auto-invest-frequency-select"
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
         >
           {Object.entries(FREQUENCY_LABELS).map(([val, label]) => (

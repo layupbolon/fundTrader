@@ -34,6 +34,7 @@
 
 - [SETUP.md](./SETUP.md): 环境配置与启动
 - [QUICKSTART.md](./QUICKSTART.md): 快速启动
+- [E2E_TESTING.md](./E2E_TESTING.md): 全链路 E2E 测试落地说明（后端 API + 前端 UI）
 - [CHECKLIST.md](./CHECKLIST.md): 部署检查清单
 - [CLOUD_DEPLOYMENT_SIZING.md](./CLOUD_DEPLOYMENT_SIZING.md): 云端部署配置评估（资源规格与变量清单）
 - [SECURITY_FIXES.md](./SECURITY_FIXES.md): 安全修复历史 + 当前状态补充

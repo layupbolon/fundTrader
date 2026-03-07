@@ -69,6 +69,22 @@ pnpm dev:frontend
 - Swagger JSON: `http://localhost:3000/api/docs-json`
 - Health: `http://localhost:3000/api/health`
 
+## E2E 测试
+
+```bash
+# 复制 e2e 环境变量模板（可选）
+cp .env.e2e.example .env.e2e
+
+# API + Web 全链路
+pnpm test:e2e
+
+# PR 冒烟
+pnpm test:e2e:pr
+
+# Nightly 全量
+pnpm test:e2e:nightly
+```
+
 ## 认证与调用说明
 
 除 `auth` 和 `health` 公共端点外，API 默认需要 JWT。示例：

@@ -13,6 +13,10 @@ export class SchedulerService implements OnModuleInit {
   ) {}
 
   onModuleInit() {
+    if (process.env.SCHEDULER_ENABLED === 'false') {
+      console.log('Scheduler disabled by SCHEDULER_ENABLED=false');
+      return;
+    }
     this.setupScheduledJobs();
   }
 

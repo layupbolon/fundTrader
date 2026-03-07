@@ -238,6 +238,7 @@ export default function TransactionsPage() {
             maxLength={6}
             value={fundCode}
             onChange={(e) => setFundCode(e.target.value.replace(/\D/g, ''))}
+            data-testid="transactions-fund-filter-input"
             placeholder="按基金代码筛选"
             className="w-44 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
           />
@@ -279,6 +280,7 @@ export default function TransactionsPage() {
               setPage(1);
               loadTransactions();
             }}
+            data-testid="transactions-query-button"
             className="px-3 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg"
           >
             查询
@@ -392,7 +394,12 @@ export default function TransactionsPage() {
         <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <label className="inline-flex items-center gap-2 text-sm text-gray-600">
-              <input type="checkbox" checked={allOnPageSelected} onChange={toggleSelectAllOnPage} />
+              <input
+                type="checkbox"
+                checked={allOnPageSelected}
+                onChange={toggleSelectAllOnPage}
+                data-testid="transactions-select-all-checkbox"
+              />
               全选当前页
             </label>
             <span className="text-sm text-gray-500">已选 {selectedIds.length} 笔</span>
@@ -401,6 +408,7 @@ export default function TransactionsPage() {
             <button
               onClick={() => runBatchAction('refresh')}
               disabled={selectedIds.length === 0 || actionLoading}
+              data-testid="transactions-batch-refresh-button"
               className="px-3 py-1.5 text-xs font-medium text-primary-700 bg-primary-50 hover:bg-primary-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
               批量刷新状态
@@ -408,6 +416,7 @@ export default function TransactionsPage() {
             <button
               onClick={() => setConfirmState({ open: true, action: 'batch-cancel' })}
               disabled={selectedIds.length === 0 || actionLoading}
+              data-testid="transactions-batch-cancel-button"
               className="px-3 py-1.5 text-xs font-medium text-danger-700 bg-danger-50 hover:bg-danger-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"
             >
               批量撤单
@@ -528,6 +537,7 @@ export default function TransactionsPage() {
                     await runBatchAction('cancel');
                   }
                 }}
+                data-testid="transactions-confirm-cancel-button"
                 className="flex-1 px-3 py-2 text-sm rounded-lg bg-danger-600 text-white hover:bg-danger-700"
               >
                 确认撤单

@@ -10,6 +10,11 @@ const NAV_ITEMS = [
   { path: '/transactions', label: '交易管理' },
 ];
 
+function navTestId(path: string): string {
+  if (path === '/') return 'nav-link-dashboard';
+  return `nav-link-${path.replace('/', '')}`;
+}
+
 export default function Navbar() {
   const { user, logout } = useAuth();
   const location = useLocation();
@@ -30,6 +35,7 @@ export default function Navbar() {
                   <Link
                     key={item.path}
                     to={item.path}
+                    data-testid={navTestId(item.path)}
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                       active
                         ? 'bg-primary-50 text-primary-700'
@@ -47,6 +53,7 @@ export default function Navbar() {
             <span className="text-sm text-gray-500 hidden sm:inline">{user?.username}</span>
             <button
               onClick={logout}
+              data-testid="logout-button"
               className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
             >
               退出登录

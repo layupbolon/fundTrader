@@ -52,7 +52,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" data-testid="register-form">
             <div>
               <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
                 用户名
@@ -63,6 +63,7 @@ export default function RegisterPage() {
                 required
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                data-testid="register-username-input"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
                 placeholder="请输入用户名"
               />
@@ -77,6 +78,7 @@ export default function RegisterPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                data-testid="register-password-input"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
                 placeholder="至少 6 位"
               />
@@ -91,6 +93,7 @@ export default function RegisterPage() {
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                data-testid="register-confirm-password-input"
                 className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none transition-colors"
                 placeholder="再次输入密码"
               />
@@ -98,6 +101,7 @@ export default function RegisterPage() {
             <button
               type="submit"
               disabled={loading}
+              data-testid="register-submit-button"
               className="w-full py-2.5 bg-primary-600 hover:bg-primary-700 text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? '注册中...' : '注册'}

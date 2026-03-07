@@ -65,7 +65,10 @@ export default function StrategyCard({ strategy, onUpdate }: StrategyCardProps) 
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5">
+    <div
+      className="bg-white rounded-xl border border-gray-200 p-5"
+      data-testid={`strategy-card-${strategy.id}`}
+    >
       <div className="flex items-start justify-between mb-3">
         <div>
           <h3 className="text-sm font-semibold text-gray-900">{strategy.name}</h3>
@@ -87,6 +90,7 @@ export default function StrategyCard({ strategy, onUpdate }: StrategyCardProps) 
           <button
             onClick={handleToggle}
             disabled={toggling}
+            data-testid={`strategy-toggle-${strategy.id}`}
             className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50 ${
               strategy.enabled ? 'bg-primary-600' : 'bg-gray-200'
             }`}
@@ -107,6 +111,7 @@ export default function StrategyCard({ strategy, onUpdate }: StrategyCardProps) 
         <div className="flex items-center gap-2">
           <Link
             to={`/strategies/${strategy.id}/edit`}
+            data-testid={`strategy-edit-${strategy.id}`}
             className="text-xs text-primary-600 hover:text-primary-700 font-medium"
           >
             编辑
@@ -130,6 +135,7 @@ export default function StrategyCard({ strategy, onUpdate }: StrategyCardProps) 
           ) : (
             <button
               onClick={() => setConfirmDelete(true)}
+              data-testid={`strategy-delete-${strategy.id}`}
               className="text-xs text-danger-600 hover:text-danger-700 font-medium"
             >
               删除

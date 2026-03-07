@@ -117,6 +117,7 @@ export default function StrategyForm() {
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
+            data-testid="strategy-name-input"
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
             placeholder="例如：沪深 300 定投"
           />
@@ -132,6 +133,7 @@ export default function StrategyForm() {
                 setType(e.target.value as StrategyType);
                 setConfig({});
               }}
+              data-testid="strategy-type-select"
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
             >
               {Object.entries(TYPE_LABELS).map(([val, label]) => (
@@ -150,6 +152,7 @@ export default function StrategyForm() {
             value={fundCode}
             onChange={(e) => setFundCode(e.target.value.replace(/\D/g, ''))}
             disabled={isEdit}
+            data-testid="strategy-fund-code-input"
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
             placeholder="6 位数字，例如 110011"
           />
@@ -185,6 +188,7 @@ export default function StrategyForm() {
           <button
             type="submit"
             disabled={loading}
+            data-testid="strategy-save-button"
             className="px-6 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? '保存中...' : isEdit ? '保存修改' : '创建策略'}
@@ -209,6 +213,7 @@ export default function StrategyForm() {
               </button>
               <button
                 onClick={confirmSubmit}
+                data-testid="strategy-confirm-save-button"
                 className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg"
               >
                 确认
