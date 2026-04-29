@@ -10,6 +10,7 @@ import { PerformanceMiddleware } from './common/performance.middleware';
 import { ErrorInterceptor } from './common/error.interceptor';
 import { NotifyService } from './services/notify/notify.service';
 import { LoggingInterceptor } from './common/logging.interceptor';
+import { WinstonNestLogger } from './common/winston-nest-logger';
 
 async function bootstrap() {
   // 创建日志目录
@@ -64,8 +65,8 @@ async function bootstrap() {
     logger: process.env.NODE_ENV === 'production' ? ['error', 'warn'] : ['error', 'warn', 'log'],
   });
 
-  // 使用 winston 作为 NestJS logger
-  app.useLogger(logger);
+  // 使用适配器将 Nest LoggerService 调用映射到 Winston level/message/meta
+  app.useLogger(new WinstonNestLogger(logger));
 
   // 性能指标采集中间件
   const performanceMiddleware = new PerformanceMiddleware();
@@ -132,8 +133,7 @@ async function bootstrap() {
   const port = process.env.PORT || 3000;
   await app.listen(port);
 
-  // eslint-disable-next-line no-console
-  console.log(`
+  logger.info(`
 ╔════════════════════════════════════════════════════════╗
 ║                                                        ║
 ║   🚀 A 股基金自动交易平台                                  ║

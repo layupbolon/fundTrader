@@ -65,27 +65,46 @@ FEISHU_USER_ID=your_user_id
 
 首次运行时，TypeORM会自动创建表结构（开发模式下`synchronize: true`）。
 
-生产环境建议手动执行迁移脚本。
+生产环境必须通过迁移脚本升级数据库，不要依赖 TypeORM 自动同步。当前应用入口在 `NODE_ENV=production` 下不会自动 `synchronize` 表结构。
 
-#### 生产升级：回测结果用户归属迁移
-
-从包含 `backtest_results.user_id` 的版本开始，生产环境在启动新版本前必须先执行一次迁移脚本。生产环境 `NODE_ENV=production` 下 TypeORM 不会自动同步表结构，如果跳过此步骤，回测接口会因 `backtest_results.user_id` 列不存在而失败。
-
-建议升级顺序：
+通用升级顺序：
 
 ```bash
 # 1. 拉取或发布新版本代码后，先安装依赖
 pnpm install --frozen-lockfile
 
-# 2. 可选：先 dry-run 验证数据库连接和 SQL 路径，dry-run 会回滚
-pnpm --filter @fundtrader/backend migrate:backtest-user-id -- --dry-run
+# 2. 执行部署前检查，确认密钥、数据库、Redis 和备份目录可用
+pnpm --filter @fundtrader/backend deploy:preflight
 
-# 3. 正式执行幂等迁移
-pnpm --filter @fundtrader/backend migrate:backtest-user-id
+# 3. 执行 TypeORM 版本化迁移
+pnpm --filter @fundtrader/backend migration:run
 
-# 4. 迁移完成后再构建并启动新版本
+# 4. 构建并启动新版本
 pnpm build
 pnpm start:prod
+```
+
+当前版本化迁移包含：
+
+- `20260429000000-HardenTradingLifecycle`：为交易状态枚举补充 `CREATED`、`PENDING_SUBMIT`，并为交易状态查询补索引。
+
+#### 生产升级：回测结果用户归属迁移
+
+从包含 `backtest_results.user_id` 的版本开始，生产环境在启动新版本前必须先执行一次迁移脚本。生产环境 `NODE_ENV=production` 下 TypeORM 不会自动同步表结构，如果跳过此步骤，回测接口会因 `backtest_results.user_id` 列不存在而失败。
+
+该脚本是历史过渡迁移，仍需保留给尚未升级过的服务器；新版本升级还应执行上面的 `migration:run`。
+
+建议升级顺序：
+
+```bash
+# 1. 可选：先 dry-run 验证数据库连接和 SQL 路径，dry-run 会回滚
+pnpm --filter @fundtrader/backend migrate:backtest-user-id -- --dry-run
+
+# 2. 正式执行幂等迁移
+pnpm --filter @fundtrader/backend migrate:backtest-user-id
+
+# 3. 再执行当前版本 TypeORM 迁移
+pnpm --filter @fundtrader/backend migration:run
 ```
 
 脚本行为：

@@ -37,7 +37,7 @@ git diff --check
 
 ## 下一阶段执行顺序
 
-> 2026-04-29 迭代记录：Phase A/B/C/D/E 的首轮能力已落地。交易创建改为先写本地意图再由 Bull job 提交 broker；新增 broker adapter 抽象、mock/replay/paper 模式、迁移入口、部署预检、备份恢复校验、净值查询优化、批量 upsert、基金信息解析兜底、数据完整性检查和前端运维任务面板。后续重点转为真实券商页面选择器、长期 paper trading 观察和投研指标数据源深化。
+> 2026-04-29 迭代记录：Phase A/B/C/D/E 的首轮能力已落地。交易创建改为先写本地意图再由 Bull job 提交 broker；新增 broker adapter 抽象、mock/replay/paper 模式、迁移入口、部署预检、备份恢复校验、净值查询优化、批量 upsert、基金信息解析兜底、数据完整性检查和前端运维任务面板。当前又补齐 Nest/Winston 日志适配，避免启动和请求日志被误判为非法 winston level。后续重点转为真实券商页面选择器、长期 paper trading 观察和投研指标数据源深化。
 
 ### Phase A：交易状态机与可恢复性
 
@@ -216,15 +216,15 @@ pnpm test:e2e:pr
 
 ## 推荐下次执行入口
 
-下次继续开发时，建议直接从 **Phase A：交易状态机与可恢复性** 开始。
+下次继续开发时，建议从 **Phase B：Broker Adapter 生产化** 开始，并以长期 paper trading 观察作为验收前置。Phase A 的首轮交易状态机已经落地，后续不要在真实 broker 没有可观测、可回放、可人工接管前继续增加新策略。
 
 推荐提示词：
 
 ```text
-继续执行 docs/EVOLUTION_ROADMAP.md 中的 Phase A：交易状态机与可恢复性。
-先按 TDD 补交易状态机测试，再做最小实现。
-范围控制在后端交易创建、交易任务执行、交易状态迁移和对应测试。
-不要先重构 broker adapter，除非 Phase A 无法推进。
+继续执行 docs/EVOLUTION_ROADMAP.md 中的 Phase B：Broker Adapter 生产化。
+先按 TDD 为 TiantianBrokerService 增加真实页面选择器配置、失败截图/DOM 摘要、人工接管状态和 paper trading 运行记录。
+范围控制在 broker adapter、交易提交/查单调用点、审计日志和对应测试。
+不要新增策略类型，不要接真实资金交易；完成后先用 BROKER_MODE=paper 跑完整交易生命周期观察。
 ```
 
 ## 暂不做的事项
