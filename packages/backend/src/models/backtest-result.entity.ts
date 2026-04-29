@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
+import { User } from './user.entity';
 
 /**
  * 回测结果实体
@@ -27,6 +35,21 @@ export class BacktestResult {
    */
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  /**
+   * 用户ID
+   * 外键，关联到 users 表
+   */
+  @Column({ nullable: true })
+  user_id?: string;
+
+  /**
+   * 用户关联
+   * 多对一关系：一个用户可以有多个回测结果
+   */
+  @ManyToOne(() => User, { nullable: true })
+  @JoinColumn({ name: 'user_id' })
+  user?: User;
 
   /**
    * 策略配置

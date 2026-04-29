@@ -74,6 +74,20 @@ describe('StrategyController', () => {
     });
   });
 
+  describe('findOne', () => {
+    it('should query strategy detail within current user scope', async () => {
+      strategyRepository.findOne.mockResolvedValue(mockStrategy);
+
+      const result = await controller.findOne('strategy-uuid-1', mockUser);
+
+      expect(result).toEqual(mockStrategy);
+      expect(strategyRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 'strategy-uuid-1', user_id: 'user-uuid-1' },
+        relations: ['fund'],
+      });
+    });
+  });
+
   describe('create', () => {
     it('should create strategy with user_id from JWT', async () => {
       const createDto = {

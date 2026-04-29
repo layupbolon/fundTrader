@@ -240,22 +240,22 @@ describe('TransactionController', () => {
   });
 
   describe('findOne', () => {
-    it('should return a single transaction by id', async () => {
+    it('should return a single transaction by id within current user scope', async () => {
       transactionRepository.findOne.mockResolvedValue(mockTransaction);
 
-      const result = await controller.findOne('tx-uuid-1');
+      const result = await controller.findOne('tx-uuid-1', mockUser);
 
       expect(result).toEqual(mockTransaction);
       expect(transactionRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 'tx-uuid-1' },
-        relations: ['fund', 'strategy', 'user'],
+        where: { id: 'tx-uuid-1', user_id: 'user-uuid-1' },
+        relations: ['fund', 'strategy'],
       });
     });
 
     it('should return null when transaction not found', async () => {
       transactionRepository.findOne.mockResolvedValue(null);
 
-      const result = await controller.findOne('nonexistent-tx');
+      const result = await controller.findOne('nonexistent-tx', mockUser);
 
       expect(result).toBeNull();
     });

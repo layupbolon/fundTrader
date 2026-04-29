@@ -67,6 +67,36 @@ FEISHU_USER_ID=your_user_id
 
 生产环境建议手动执行迁移脚本。
 
+#### 生产升级：回测结果用户归属迁移
+
+从包含 `backtest_results.user_id` 的版本开始，生产环境在启动新版本前必须先执行一次迁移脚本。生产环境 `NODE_ENV=production` 下 TypeORM 不会自动同步表结构，如果跳过此步骤，回测接口会因 `backtest_results.user_id` 列不存在而失败。
+
+建议升级顺序：
+
+```bash
+# 1. 拉取或发布新版本代码后，先安装依赖
+pnpm install --frozen-lockfile
+
+# 2. 可选：先 dry-run 验证数据库连接和 SQL 路径，dry-run 会回滚
+pnpm --filter @fundtrader/backend migrate:backtest-user-id -- --dry-run
+
+# 3. 正式执行幂等迁移
+pnpm --filter @fundtrader/backend migrate:backtest-user-id
+
+# 4. 迁移完成后再构建并启动新版本
+pnpm build
+pnpm start:prod
+```
+
+脚本行为：
+
+- 幂等添加 `backtest_results.user_id` nullable `uuid` 列。
+- 幂等添加 `idx_backtest_results_user_id` 索引。
+- 幂等添加 `backtest_results.user_id -> users.id` 外键，删除用户时置空。
+- 如果服务器只有 1 个用户，会把旧回测记录的 `NULL user_id` 回填为该用户。
+- 如果没有用户，只添加列、索引和外键，不回填。
+- 如果有多个用户，不自动回填旧记录，并在输出中提示需要人工确认归属。
+
 ### 5. 启动应用
 
 开发模式（带热重载）：

@@ -15,7 +15,8 @@
     "test:e2e": "vitest run -c vitest.e2e.config.ts",
     "test:e2e:pr": "vitest run -c vitest.e2e.config.ts test/e2e/api/smoke",
     "test:e2e:nightly": "vitest run -c vitest.e2e.config.ts",
-    "test:e2e:seed": "ts-node test/e2e/seed.ts"
+    "test:e2e:seed": "ts-node test/e2e/seed.ts",
+    "migrate:backtest-user-id": "ts-node --transpile-only scripts/migrate-backtest-user-id.ts"
   },
   "keywords": [
     "fund",

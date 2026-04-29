@@ -83,10 +83,10 @@ export class StrategyController {
   @ApiParam({ name: 'id', description: '策略ID' })
   @ApiResponse({ status: 200, description: '成功返回策略详情' })
   @ApiResponse({ status: 404, description: '策略不存在' })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.strategyRepository.findOne({
-      where: { id },
-      relations: ['fund', 'user'],
+      where: { id, user_id: user.id },
+      relations: ['fund'],
     });
   }
 
@@ -210,10 +210,10 @@ export class PositionController {
   @ApiParam({ name: 'id', description: '持仓ID' })
   @ApiResponse({ status: 200, description: '成功返回持仓详情' })
   @ApiResponse({ status: 404, description: '持仓不存在' })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.positionRepository.findOne({
-      where: { id },
-      relations: ['fund', 'user'],
+      where: { id, user_id: user.id },
+      relations: ['fund'],
     });
   }
 }
@@ -590,10 +590,10 @@ export class TransactionController {
   @ApiParam({ name: 'id', description: '交易ID' })
   @ApiResponse({ status: 200, description: '成功返回交易详情' })
   @ApiResponse({ status: 404, description: '交易记录不存在' })
-  async findOne(@Param('id') id: string) {
+  async findOne(@Param('id') id: string, @CurrentUser() user: { id: string }) {
     return this.transactionRepository.findOne({
-      where: { id },
-      relations: ['fund', 'strategy', 'user'],
+      where: { id, user_id: user.id },
+      relations: ['fund', 'strategy'],
     });
   }
 
@@ -766,9 +766,10 @@ export class BacktestController {
   @Get()
   @ApiOperation({ summary: '获取回测结果列表', description: '查询所有回测结果（分页）' })
   @ApiResponse({ status: 200, description: '成功返回回测结果列表' })
-  async findAll(@Query() pagination: PaginationDto) {
+  async findAll(@Query() pagination: PaginationDto, @CurrentUser() user: { id: string }) {
     const { page, limit } = pagination;
     const [data, total] = await this.backtestResultRepository.findAndCount({
+      where: { user_id: user.id },
       skip: (page - 1) * limit,
       take: limit,
       order: { created_at: 'DESC' },
@@ -781,8 +782,8 @@ export class BacktestController {
   @ApiParam({ name: 'id', description: '回测结果ID' })
   @ApiResponse({ status: 200, description: '成功返回回测结果详情' })
   @ApiResponse({ status: 404, description: '回测结果不存在' })
-  async findOne(@Param('id') id: string) {
-    return this.backtestResultRepository.findOne({ where: { id } });
+  async findOne(@Param('id') id: string, @CurrentUser() user: { id: string }) {
+    return this.backtestResultRepository.findOne({ where: { id, user_id: user.id } });
   }
 
   @Post()
@@ -807,7 +808,10 @@ export class BacktestController {
   })
   @ApiResponse({ status: 400, description: '请求参数错误' })
   @UsePipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true }))
-  async runBacktest(@Body() params: BacktestDto): Promise<BacktestResult> {
+  async runBacktest(
+    @Body() params: BacktestDto,
+    @CurrentUser() user: { id: string },
+  ): Promise<BacktestResult> {
     const { fund_code, start_date, end_date, initial_capital, strategy_config } = params;
 
     const result = await this.backtestEngine.runBacktest({
@@ -820,6 +824,7 @@ export class BacktestController {
 
     // 持久化回测结果
     const entity = this.backtestResultRepository.create({
+      user_id: user.id,
       strategy_config,
       fund_code,
       start_date: new Date(start_date),

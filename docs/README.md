@@ -10,6 +10,7 @@
 ## 2. 计划文档（Plan）
 
 - [PLAN.md](./PLAN.md): 初始技术方案（含历史背景）
+- [EVOLUTION_ROADMAP.md](./EVOLUTION_ROADMAP.md): 后续演进路线与下次执行入口
 - [PHASE2_PLAN.md](./PHASE2_PLAN.md): Phase 2 计划与执行记录
 - [PHASE4_PLAN.md](./PHASE4_PLAN.md): Phase 4 计划文档（顶部已补执行状态）
 - [PRODUCT_FEATURES.md](./PRODUCT_FEATURES.md): 功能增强建议
