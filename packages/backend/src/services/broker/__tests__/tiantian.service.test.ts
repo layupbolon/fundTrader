@@ -1,38 +1,53 @@
-jest.mock('puppeteer', () => {
+const puppeteerMocks = vi.hoisted(() => {
   const mockPage = {
-    goto: jest.fn().mockResolvedValue(undefined),
-    type: jest.fn().mockResolvedValue(undefined),
-    click: jest.fn().mockResolvedValue(undefined),
-    waitForNavigation: jest.fn().mockResolvedValue(undefined),
-    waitForSelector: jest.fn().mockResolvedValue(undefined),
-    cookies: jest.fn().mockResolvedValue([{ name: 'session', value: 'abc' }]),
-    $eval: jest.fn().mockResolvedValue('ORDER_123'),
+    goto: vi.fn().mockResolvedValue(undefined),
+    type: vi.fn().mockResolvedValue(undefined),
+    click: vi.fn().mockResolvedValue(undefined),
+    waitForNavigation: vi.fn().mockResolvedValue(undefined),
+    waitForSelector: vi.fn().mockResolvedValue(undefined),
+    cookies: vi.fn().mockResolvedValue([{ name: 'session', value: 'abc' }]),
+    $eval: vi.fn().mockResolvedValue('ORDER_123'),
   };
 
   const mockBrowser = {
-    newPage: jest.fn().mockResolvedValue(mockPage),
-    close: jest.fn().mockResolvedValue(undefined),
+    newPage: vi.fn().mockResolvedValue(mockPage),
+    close: vi.fn().mockResolvedValue(undefined),
   };
 
+  const mockLaunch = vi.fn().mockResolvedValue(mockBrowser);
+
   return {
-    __esModule: true,
-    default: {
-      launch: jest.fn().mockResolvedValue(mockBrowser),
-    },
-    __mockBrowser: mockBrowser,
-    __mockPage: mockPage,
+    mockBrowser,
+    mockLaunch,
+    mockPage,
   };
 });
 
-import puppeteer from 'puppeteer';
-const getPuppeteerMock = () => jest.requireMock('puppeteer') as any;
+vi.mock('puppeteer', () => {
+  return {
+    __esModule: true,
+    default: {
+      launch: puppeteerMocks.mockLaunch,
+    },
+    __mockBrowser: puppeteerMocks.mockBrowser,
+    __mockPage: puppeteerMocks.mockPage,
+  };
+});
+
+const getPuppeteerMock = () => ({
+  default: {
+    launch: puppeteerMocks.mockLaunch,
+  },
+  __mockBrowser: puppeteerMocks.mockBrowser,
+  __mockPage: puppeteerMocks.mockPage,
+});
 
 describe('TiantianBrokerService', () => {
   const originalEnv = process.env;
   let TiantianBrokerService: any;
 
   beforeEach(async () => {
-    jest.resetModules();
+    vi.resetModules();
     process.env = {
       ...originalEnv,
       MASTER_KEY: 'test-master-key-that-is-at-least-32-chars-long',
@@ -56,7 +71,7 @@ describe('TiantianBrokerService', () => {
 
     it('should throw when MASTER_KEY is missing', async () => {
       delete process.env.MASTER_KEY;
-      jest.resetModules();
+      vi.resetModules();
       const mod = await import('../tiantian.service');
       expect(() => new mod.TiantianBrokerService()).toThrow(
         'MASTER_KEY environment variable is required for security',
@@ -70,9 +85,7 @@ describe('TiantianBrokerService', () => {
       const session = await service.login('user', 'pass');
 
       const mock = getPuppeteerMock();
-      expect((mock.default?.launch ?? mock.launch)).toHaveBeenCalledWith(
-        expect.objectContaining({ headless: true }),
-      );
+      expect(mock.default.launch).toHaveBeenCalledWith(expect.objectContaining({ headless: true }));
       expect(session).toHaveProperty('cookies');
       expect(session).toHaveProperty('expiresAt');
     });
@@ -167,8 +180,8 @@ describe('TiantianBrokerService', () => {
     });
 
     it('should parse CONFIRMED status', async () => {
-      getPuppeteerMock().__mockPage.$eval
-        .mockResolvedValueOnce('ORDER_123')
+      getPuppeteerMock()
+        .__mockPage.$eval.mockResolvedValueOnce('ORDER_123')
         .mockResolvedValueOnce('已确认');
 
       const service = new TiantianBrokerService();
@@ -236,7 +249,7 @@ describe('TiantianBrokerService', () => {
       await service.login('user', 'pass');
       getPuppeteerMock().__mockPage.goto.mockRejectedValueOnce(new Error('network'));
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
       await service.keepAlive(); // Should not throw
 
       expect(consoleSpy).toHaveBeenCalled();

@@ -4,7 +4,17 @@ interface PortfolioSummaryProps {
   positions: Position[];
 }
 
-function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
+function StatCard({
+  label,
+  value,
+  sub,
+  color,
+}: {
+  label: string;
+  value: string;
+  sub?: string;
+  color?: string;
+}) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5">
       <p className="text-sm text-gray-500 mb-1">{label}</p>

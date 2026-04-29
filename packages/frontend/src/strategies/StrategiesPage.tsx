@@ -135,9 +135,12 @@ export default function StrategiesPage() {
       {loading && <LoadingSpinner />}
       {error && <ErrorMessage message={error} onRetry={refetch} />}
       {filteredData && filteredData.data.length === 0 && (
-        <EmptyState message={searchQuery || filterStatus !== 'all' || filterType !== 'all'
-          ? '暂无匹配的策略'
-          : '暂无策略，点击「新建策略」开始创建'}
+        <EmptyState
+          message={
+            searchQuery || filterStatus !== 'all' || filterType !== 'all'
+              ? '暂无匹配的策略'
+              : '暂无策略，点击「新建策略」开始创建'
+          }
         />
       )}
       {filteredData && filteredData.data.length > 0 && (
@@ -147,7 +150,11 @@ export default function StrategiesPage() {
               <StrategyCard key={s.id} strategy={s} onUpdate={refetch} />
             ))}
           </div>
-          <Pagination page={filteredData.page} totalPages={filteredData.totalPages} onPageChange={goToPage} />
+          <Pagination
+            page={filteredData.page}
+            totalPages={filteredData.totalPages}
+            onPageChange={goToPage}
+          />
         </>
       )}
     </div>

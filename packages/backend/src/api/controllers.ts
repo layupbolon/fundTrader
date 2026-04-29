@@ -137,7 +137,11 @@ export class StrategyController {
       normalizedConfig = normalizeStrategyConfig(strategy.type, updateDto.config);
       await validateStrategyConfig(strategy.type, normalizedConfig);
     }
-    const updated = { ...strategy, ...updateDto, ...(normalizedConfig && { config: normalizedConfig }) };
+    const updated = {
+      ...strategy,
+      ...updateDto,
+      ...(normalizedConfig && { config: normalizedConfig }),
+    };
     return this.strategyRepository.save(updated);
   }
 
@@ -454,7 +458,9 @@ export class TransactionController {
       transaction.requires_confirmation &&
       transaction.confirmation_status === TransactionConfirmationStatus.PENDING_CONFIRMATION
     ) {
-      await this.tradingConfirmationService.handleCancellation(transaction.id, { source: 'manual_api' });
+      await this.tradingConfirmationService.handleCancellation(transaction.id, {
+        source: 'manual_api',
+      });
       const refreshed = await this.transactionRepository.findOne({ where: { id: transaction.id } });
       return {
         id: transaction.id,
@@ -500,7 +506,9 @@ export class TransactionController {
     const results: Array<Record<string, any>> = [];
 
     for (const transactionId of transaction_ids) {
-      const transaction = await this.transactionRepository.findOne({ where: { id: transactionId } });
+      const transaction = await this.transactionRepository.findOne({
+        where: { id: transactionId },
+      });
       if (!transaction || transaction.user_id !== user.id) {
         results.push({ id: transactionId, success: false, message: 'Transaction not found' });
         continue;
@@ -530,7 +538,9 @@ export class TransactionController {
     const results: Array<Record<string, any>> = [];
 
     for (const transactionId of transaction_ids) {
-      const transaction = await this.transactionRepository.findOne({ where: { id: transactionId } });
+      const transaction = await this.transactionRepository.findOne({
+        where: { id: transactionId },
+      });
       if (!transaction || transaction.user_id !== user.id) {
         results.push({ id: transactionId, success: false, message: 'Transaction not found' });
         continue;
@@ -539,7 +549,9 @@ export class TransactionController {
         if (!transaction.order_id) {
           throw new BadRequestException('Transaction has no broker order id');
         }
-        if (![TransactionStatus.PENDING, TransactionStatus.SUBMITTED].includes(transaction.status)) {
+        if (
+          ![TransactionStatus.PENDING, TransactionStatus.SUBMITTED].includes(transaction.status)
+        ) {
           throw new BadRequestException(
             `Transaction status ${transaction.status} cannot be cancelled`,
           );

@@ -7,8 +7,8 @@ import { FundDataService } from '../../../services/data/fund-data.service';
 import { NotifyService } from '../../../services/notify/notify.service';
 
 // Mock isTradeTime
-jest.mock('../../../utils', () => ({
-  isTradeTime: jest.fn(() => true),
+vi.mock('../../../utils', () => ({
+  isTradeTime: vi.fn(() => true),
 }));
 
 import { isTradeTime } from '../../../utils';
@@ -37,13 +37,13 @@ describe('GridTradingStrategy', () => {
 
   beforeEach(async () => {
     strategyRepository = {
-      update: jest.fn().mockResolvedValue(undefined),
-      save: jest.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+      save: vi.fn().mockResolvedValue(undefined),
     };
 
     transactionRepository = {
-      create: jest.fn().mockImplementation((data) => data),
-      save: jest.fn().mockImplementation((data) => Promise.resolve({ id: 'tx-1', ...data })),
+      create: vi.fn().mockImplementation((data) => data),
+      save: vi.fn().mockImplementation((data) => Promise.resolve({ id: 'tx-1', ...data })),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -53,15 +53,15 @@ describe('GridTradingStrategy', () => {
         { provide: getRepositoryToken(Transaction), useValue: transactionRepository },
         {
           provide: FundDataService,
-          useValue: { getFundNav: jest.fn() },
+          useValue: { getFundNav: vi.fn() },
         },
         {
           provide: TiantianBrokerService,
-          useValue: { buyFund: jest.fn(), sellFund: jest.fn() },
+          useValue: { buyFund: vi.fn(), sellFund: vi.fn() },
         },
         {
           provide: NotifyService,
-          useValue: { send: jest.fn() },
+          useValue: { send: vi.fn() },
         },
       ],
     }).compile();

@@ -6,7 +6,7 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from '../auth.service';
 import { User } from '../../models';
 
-jest.mock('bcrypt');
+vi.mock('bcrypt');
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -22,9 +22,9 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     userRepository = {
-      findOne: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
+      findOne: vi.fn(),
+      create: vi.fn(),
+      save: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -37,7 +37,7 @@ describe('AuthService', () => {
         {
           provide: JwtService,
           useValue: {
-            sign: jest.fn().mockReturnValue('mock-jwt-token'),
+            sign: vi.fn().mockReturnValue('mock-jwt-token'),
           },
         },
       ],
@@ -48,7 +48,7 @@ describe('AuthService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('register', () => {

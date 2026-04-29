@@ -68,9 +68,19 @@ export default function Navbar() {
           >
             <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               {menuOpen ? (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
               )}
             </svg>
           </button>
@@ -87,9 +97,7 @@ export default function Navbar() {
                   to={item.path}
                   onClick={() => setMenuOpen(false)}
                   className={`block px-4 py-2.5 text-sm font-medium ${
-                    active
-                      ? 'bg-primary-50 text-primary-700'
-                      : 'text-gray-600 hover:bg-gray-50'
+                    active ? 'bg-primary-50 text-primary-700' : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
                   {item.label}
@@ -99,7 +107,10 @@ export default function Navbar() {
             <div className="border-t border-gray-200 mt-2 pt-3 px-4">
               <p className="text-sm text-gray-500 mb-3">{user?.username}</p>
               <button
-                onClick={() => { logout(); setMenuOpen(false); }}
+                onClick={() => {
+                  logout();
+                  setMenuOpen(false);
+                }}
                 className="w-full text-left text-sm text-danger-600 hover:text-danger-700 py-2"
               >
                 退出登录

@@ -12,18 +12,18 @@ describe('JwtAuthGuard', () => {
 
   const createMockContext = (): ExecutionContext =>
     ({
-      getHandler: jest.fn(),
-      getClass: jest.fn(),
-      switchToHttp: jest.fn().mockReturnValue({
-        getRequest: jest.fn().mockReturnValue({}),
-        getResponse: jest.fn().mockReturnValue({}),
-        getNext: jest.fn(),
+      getHandler: vi.fn(),
+      getClass: vi.fn(),
+      switchToHttp: vi.fn().mockReturnValue({
+        getRequest: vi.fn().mockReturnValue({}),
+        getResponse: vi.fn().mockReturnValue({}),
+        getNext: vi.fn(),
       }),
     }) as any;
 
   beforeEach(() => {
     reflector = {
-      getAllAndOverride: jest.fn(),
+      getAllAndOverride: vi.fn(),
     } as any;
   });
 

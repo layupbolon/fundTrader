@@ -31,7 +31,9 @@ export default function Pagination({ page, totalPages, onPageChange }: Paginatio
       </button>
       {pages.map((p, i) =>
         p === '...' ? (
-          <span key={`dot-${i}`} className="px-2 text-gray-400">...</span>
+          <span key={`dot-${i}`} className="px-2 text-gray-400">
+            ...
+          </span>
         ) : (
           <button
             key={p}

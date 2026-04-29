@@ -71,9 +71,7 @@ export default function BacktestForm({ onSubmit, loading }: BacktestFormProps) {
       className="bg-white rounded-xl border border-gray-200 p-6 space-y-5"
       data-testid="backtest-form"
     >
-      {error && (
-        <div className="p-3 bg-danger-50 text-danger-700 rounded-lg text-sm">{error}</div>
-      )}
+      {error && <div className="p-3 bg-danger-50 text-danger-700 rounded-lg text-sm">{error}</div>}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
@@ -140,7 +138,9 @@ export default function BacktestForm({ onSubmit, loading }: BacktestFormProps) {
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
         >
           {Object.entries(TYPE_LABELS).map(([val, label]) => (
-            <option key={val} value={val}>{label}</option>
+            <option key={val} value={val}>
+              {label}
+            </option>
           ))}
         </select>
       </div>

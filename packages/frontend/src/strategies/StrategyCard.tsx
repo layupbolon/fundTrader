@@ -76,14 +76,14 @@ export default function StrategyCard({ strategy, onUpdate }: StrategyCardProps) 
             {strategy.fund?.name || strategy.fund_code}
           </p>
         </div>
-        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[strategy.type]}`}>
+        <span
+          className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${TYPE_COLORS[strategy.type]}`}
+        >
           {TYPE_LABELS[strategy.type]}
         </span>
       </div>
 
-      <p className="text-xs text-gray-500 mb-4">
-        {formatConfig(strategy.type, strategy.config)}
-      </p>
+      <p className="text-xs text-gray-500 mb-4">{formatConfig(strategy.type, strategy.config)}</p>
 
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -103,9 +103,7 @@ export default function StrategyCard({ strategy, onUpdate }: StrategyCardProps) 
               }`}
             />
           </button>
-          <span className="text-xs text-gray-500">
-            {strategy.enabled ? '已启用' : '已暂停'}
-          </span>
+          <span className="text-xs text-gray-500">{strategy.enabled ? '已启用' : '已暂停'}</span>
         </div>
 
         <div className="flex items-center gap-2">

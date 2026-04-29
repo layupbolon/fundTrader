@@ -37,9 +37,7 @@ export default function RecentTransactions({ transactions }: RecentTransactionsP
                 {tx.type === TransactionType.BUY ? '买' : '卖'}
               </span>
               <div>
-                <p className="text-sm font-medium text-gray-900">
-                  {tx.fund?.name || tx.fund_code}
-                </p>
+                <p className="text-sm font-medium text-gray-900">{tx.fund?.name || tx.fund_code}</p>
                 <p className="text-xs text-gray-400">
                   {new Date(tx.submitted_at).toLocaleDateString('zh-CN')}
                 </p>
@@ -47,7 +45,11 @@ export default function RecentTransactions({ transactions }: RecentTransactionsP
             </div>
             <div className="flex items-center gap-4">
               <span className="text-sm font-medium text-gray-900">
-                ¥{tx.amount.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                ¥
+                {tx.amount.toLocaleString('zh-CN', {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })}
               </span>
               <StatusBadge status={tx.status} />
             </div>

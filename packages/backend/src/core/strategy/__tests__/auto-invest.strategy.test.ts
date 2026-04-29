@@ -24,47 +24,47 @@ describe('AutoInvestStrategy', () => {
 
   beforeEach(async () => {
     const mockStrategyRepository = {
-      create: jest.fn(),
-      save: jest.fn(),
-      find: jest.fn(),
-      findOne: jest.fn(),
-      update: jest.fn(),
+      create: vi.fn(),
+      save: vi.fn(),
+      find: vi.fn(),
+      findOne: vi.fn(),
+      update: vi.fn(),
     };
 
     const mockQueryBuilder = {
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      getOne: jest.fn().mockResolvedValue(null),
+      where: vi.fn().mockReturnThis(),
+      andWhere: vi.fn().mockReturnThis(),
+      getOne: vi.fn().mockResolvedValue(null),
     };
 
     const mockTransactionRepository = {
-      create: jest.fn(),
-      save: jest.fn(),
-      find: jest.fn(),
-      findOne: jest.fn(),
-      createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+      create: vi.fn(),
+      save: vi.fn(),
+      find: vi.fn(),
+      findOne: vi.fn(),
+      createQueryBuilder: vi.fn().mockReturnValue(mockQueryBuilder),
     };
 
     const mockBrokerService = {
-      buyFund: jest.fn(),
-      sellFund: jest.fn(),
-      login: jest.fn(),
+      buyFund: vi.fn(),
+      sellFund: vi.fn(),
+      login: vi.fn(),
     };
 
     const mockNotifyService = {
-      send: jest.fn(),
+      send: vi.fn(),
     };
 
     const mockRiskControlService = {
-      checkFundBlacklist: jest.fn().mockResolvedValue({ passed: true }),
-      checkTradeLimit: jest.fn().mockResolvedValue({ passed: true }),
-      checkPositionLimit: jest.fn().mockResolvedValue({ passed: true }),
+      checkFundBlacklist: vi.fn().mockResolvedValue({ passed: true }),
+      checkTradeLimit: vi.fn().mockResolvedValue({ passed: true }),
+      checkPositionLimit: vi.fn().mockResolvedValue({ passed: true }),
     };
 
     const mockTradingConfirmationService = {
-      needsConfirmation: jest.fn().mockResolvedValue(false),
-      createPendingTransaction: jest.fn(),
-      sendConfirmationRequest: jest.fn(),
+      needsConfirmation: vi.fn().mockResolvedValue(false),
+      createPendingTransaction: vi.fn(),
+      sendConfirmationRequest: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -105,7 +105,7 @@ describe('AutoInvestStrategy', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('shouldExecute', () => {
@@ -135,8 +135,8 @@ describe('AutoInvestStrategy', () => {
     });
 
     it('should return false if before start date', async () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2025-12-31T10:00:00'));
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2025-12-31T10:00:00'));
 
       const strategy = createStrategy({
         config: {
@@ -151,8 +151,8 @@ describe('AutoInvestStrategy', () => {
     });
 
     it('should return false if after end date', async () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-12-31T10:00:00'));
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-12-31T10:00:00'));
 
       const strategy = createStrategy({
         config: {
@@ -168,8 +168,8 @@ describe('AutoInvestStrategy', () => {
     });
 
     it('should return false on weekend', async () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-02-28T10:00:00')); // Saturday
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-28T10:00:00')); // Saturday
 
       const strategy = createStrategy();
       const result = await service.shouldExecute(strategy);
@@ -177,8 +177,8 @@ describe('AutoInvestStrategy', () => {
     });
 
     it('should return false after 15:00', async () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-02-25T15:30:00')); // Wednesday 15:30
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-25T15:30:00')); // Wednesday 15:30
 
       const strategy = createStrategy();
       const result = await service.shouldExecute(strategy);
@@ -186,8 +186,8 @@ describe('AutoInvestStrategy', () => {
     });
 
     it('should return true for daily strategy on workday', async () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-02-25T14:00:00')); // Wednesday 14:00
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-25T14:00:00')); // Wednesday 14:00
 
       const strategy = createStrategy({
         config: {
@@ -202,8 +202,8 @@ describe('AutoInvestStrategy', () => {
     });
 
     it('should return true for weekly strategy on correct day', async () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-02-23T14:00:00')); // Monday 14:00
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-23T14:00:00')); // Monday 14:00
 
       const strategy = createStrategy({
         config: {
@@ -219,8 +219,8 @@ describe('AutoInvestStrategy', () => {
     });
 
     it('should return false for weekly strategy on wrong day', async () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-02-25T14:00:00')); // Wednesday 14:00
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-25T14:00:00')); // Wednesday 14:00
 
       const strategy = createStrategy({
         config: {
@@ -236,8 +236,8 @@ describe('AutoInvestStrategy', () => {
     });
 
     it('should return true for monthly strategy on correct day', async () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-02-16T14:00:00')); // 16th day, Monday
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-16T14:00:00')); // 16th day, Monday
 
       const strategy = createStrategy({
         config: {
@@ -273,12 +273,12 @@ describe('AutoInvestStrategy', () => {
     });
 
     beforeEach(() => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-02-25T14:00:00')); // Wednesday 14:00
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-25T14:00:00')); // Wednesday 14:00
     });
 
     it('should throw error if not trade time', async () => {
-      jest.setSystemTime(new Date('2026-02-28T10:00:00')); // Saturday
+      vi.setSystemTime(new Date('2026-02-28T10:00:00')); // Saturday
 
       const strategy = createStrategy();
       await expect(service.execute(strategy)).rejects.toThrow('非交易时间');
@@ -299,9 +299,9 @@ describe('AutoInvestStrategy', () => {
       } as Transaction;
 
       const mockQueryBuilder = {
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getOne: jest.fn().mockResolvedValue(existingTransaction),
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        getOne: vi.fn().mockResolvedValue(existingTransaction),
       };
       transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
 

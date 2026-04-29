@@ -61,9 +61,7 @@ export default function DashboardPage() {
         <h1 className="text-xl font-bold text-gray-900">仪表盘</h1>
         <div className="flex items-center gap-3">
           {refreshSuccess && (
-            <span className="text-sm text-success-600 bg-success-50 px-2 py-1 rounded">
-              已刷新
-            </span>
+            <span className="text-sm text-success-600 bg-success-50 px-2 py-1 rounded">已刷新</span>
           )}
           <button
             onClick={() => loadData(true)}

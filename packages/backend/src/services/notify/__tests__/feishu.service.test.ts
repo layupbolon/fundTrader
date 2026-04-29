@@ -1,10 +1,12 @@
-const mockCreate = jest.fn().mockResolvedValue({});
+const feishuMocks = vi.hoisted(() => ({
+  create: vi.fn().mockResolvedValue({}),
+}));
 
-jest.mock('@larksuiteoapi/node-sdk', () => ({
-  Client: jest.fn().mockImplementation(() => ({
+vi.mock('@larksuiteoapi/node-sdk', () => ({
+  Client: vi.fn().mockImplementation(() => ({
     im: {
       message: {
-        create: mockCreate,
+        create: feishuMocks.create,
       },
     },
   })),
@@ -18,7 +20,7 @@ describe('FeishuService', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    mockCreate.mockClear();
+    feishuMocks.create.mockClear();
   });
 
   afterEach(() => {
@@ -58,7 +60,7 @@ describe('FeishuService', () => {
         level: 'info',
       });
 
-      expect(mockCreate).toHaveBeenCalledWith({
+      expect(feishuMocks.create).toHaveBeenCalledWith({
         params: { receive_id_type: 'user_id' },
         data: {
           receive_id: 'user-id',
@@ -73,7 +75,7 @@ describe('FeishuService', () => {
       delete process.env.FEISHU_APP_SECRET;
       delete process.env.FEISHU_USER_ID;
 
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       const service = new FeishuService();
       await service.sendMessage({ title: 'Test', content: 'Test' });
 
@@ -86,9 +88,9 @@ describe('FeishuService', () => {
       process.env.FEISHU_APP_SECRET = 'app-secret';
       process.env.FEISHU_USER_ID = 'user-id';
 
-      mockCreate.mockRejectedValueOnce(new Error('API error'));
+      feishuMocks.create.mockRejectedValueOnce(new Error('API error'));
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
       const service = new FeishuService();
       await service.sendMessage({ title: 'Test', content: 'Test' });
 
@@ -104,7 +106,7 @@ describe('FeishuService', () => {
       const service = new FeishuService();
       await service.sendMessage({ title: 'Title', content: 'Body' });
 
-      const call = mockCreate.mock.calls[0][0];
+      const call = feishuMocks.create.mock.calls[0][0];
       const content = JSON.parse(call.data.content);
       expect(content.text).toContain('Title');
       expect(content.text).toContain('Body');
@@ -115,7 +117,7 @@ describe('FeishuService', () => {
       process.env.FEISHU_APP_SECRET = 'app-secret';
       delete process.env.FEISHU_USER_ID;
 
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       const service = new FeishuService();
       await service.sendMessage({ title: 'Test', content: 'Test' });
 
@@ -143,7 +145,7 @@ describe('FeishuService', () => {
       const service = new FeishuService();
       await service.sendConfirmationMessage(mockConfirmationParams);
 
-      expect(mockCreate).toHaveBeenCalledWith(
+      expect(feishuMocks.create).toHaveBeenCalledWith(
         expect.objectContaining({
           data: expect.objectContaining({
             msg_type: 'interactive',
@@ -157,7 +159,7 @@ describe('FeishuService', () => {
       const service = new FeishuService();
       await service.sendConfirmationMessage(mockConfirmationParams);
 
-      const callArgs = mockCreate.mock.calls[0][0];
+      const callArgs = feishuMocks.create.mock.calls[0][0];
       const content = JSON.parse(callArgs.data.content);
 
       expect(content.elements).toBeDefined();
@@ -179,7 +181,7 @@ describe('FeishuService', () => {
         type: TransactionType.SELL,
       });
 
-      const callArgs = mockCreate.mock.calls[0][0];
+      const callArgs = feishuMocks.create.mock.calls[0][0];
       const content = JSON.parse(callArgs.data.content);
 
       const fieldsText = JSON.stringify(content.elements);
@@ -191,7 +193,7 @@ describe('FeishuService', () => {
       delete process.env.FEISHU_APP_SECRET;
       delete process.env.FEISHU_USER_ID;
 
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       const service = new FeishuService();
       await service.sendConfirmationMessage(mockConfirmationParams);
 

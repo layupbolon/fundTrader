@@ -6,8 +6,8 @@ import { TiantianBrokerService } from '../../../services/broker/tiantian.service
 import { FundDataService } from '../../../services/data/fund-data.service';
 import { NotifyService } from '../../../services/notify/notify.service';
 
-jest.mock('../../../utils', () => ({
-  isTradeTime: jest.fn(() => true),
+vi.mock('../../../utils', () => ({
+  isTradeTime: vi.fn(() => true),
 }));
 
 import { isTradeTime } from '../../../utils';
@@ -38,21 +38,21 @@ describe('RebalanceStrategy', () => {
   };
 
   beforeEach(async () => {
-    jest.useFakeTimers();
-    jest.setSystemTime(new Date('2026-03-01T10:00:00')); // 1st of month, Monday
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-03-01T10:00:00')); // 1st of month, Monday
 
     strategyRepository = {
-      update: jest.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
     };
 
     positionRepository = {
-      find: jest.fn().mockResolvedValue([]),
-      findOne: jest.fn().mockResolvedValue(null),
+      find: vi.fn().mockResolvedValue([]),
+      findOne: vi.fn().mockResolvedValue(null),
     };
 
     transactionRepository = {
-      create: jest.fn().mockImplementation((data) => data),
-      save: jest.fn().mockImplementation((data) => Promise.resolve({ id: 'tx-1', ...data })),
+      create: vi.fn().mockImplementation((data) => data),
+      save: vi.fn().mockImplementation((data) => Promise.resolve({ id: 'tx-1', ...data })),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -61,9 +61,9 @@ describe('RebalanceStrategy', () => {
         { provide: getRepositoryToken(Strategy), useValue: strategyRepository },
         { provide: getRepositoryToken(Position), useValue: positionRepository },
         { provide: getRepositoryToken(Transaction), useValue: transactionRepository },
-        { provide: FundDataService, useValue: { getFundNav: jest.fn() } },
-        { provide: TiantianBrokerService, useValue: { buyFund: jest.fn(), sellFund: jest.fn() } },
-        { provide: NotifyService, useValue: { send: jest.fn() } },
+        { provide: FundDataService, useValue: { getFundNav: vi.fn() } },
+        { provide: TiantianBrokerService, useValue: { buyFund: vi.fn(), sellFund: vi.fn() } },
+        { provide: NotifyService, useValue: { send: vi.fn() } },
       ],
     }).compile();
 
@@ -74,7 +74,7 @@ describe('RebalanceStrategy', () => {
   });
 
   afterEach(() => {
-    jest.useRealTimers();
+    vi.useRealTimers();
   });
 
   describe('getCurrentAllocations', () => {
@@ -163,7 +163,7 @@ describe('RebalanceStrategy', () => {
 
     it('should return false when frequency does not match day', async () => {
       // Set to 2nd of month - MONTHLY check on 1st
-      jest.setSystemTime(new Date('2026-03-02T10:00:00'));
+      vi.setSystemTime(new Date('2026-03-02T10:00:00'));
       const result = await strategy.shouldExecute(mockStrategy as Strategy);
       expect(result).toBe(false);
     });

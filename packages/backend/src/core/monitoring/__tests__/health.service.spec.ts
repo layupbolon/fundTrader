@@ -24,7 +24,7 @@ describe('HealthService', () => {
 
   // Mock Redis class
   class MockRedis {
-    static pingMock = jest.fn();
+    static pingMock = vi.fn();
 
     ping() {
       return MockRedis.pingMock();
@@ -34,17 +34,17 @@ describe('HealthService', () => {
   beforeEach(async () => {
     // 创建 mock 对象
     mockDataSource = {
-      query: jest.fn(),
+      query: vi.fn(),
     } as any;
 
     mockConfigService = {
-      get: jest.fn(),
+      get: vi.fn(),
     } as any;
 
     mockBrokerService = {} as any;
 
     mockNotifyService = {
-      send: jest.fn(),
+      send: vi.fn(),
     } as any;
 
     // Reset Redis mock
@@ -83,7 +83,7 @@ describe('HealthService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('checkDatabase', () => {

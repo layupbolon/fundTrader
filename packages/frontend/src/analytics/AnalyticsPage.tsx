@@ -14,28 +14,34 @@ export default function AnalyticsPage() {
   const [endDate, setEndDate] = useState<string>('');
 
   // 数据状态
-  const [returnsData, setReturnsData] = useState<Array<{
-    date: string;
-    total_assets: number;
-    total_profit: number;
-    total_profit_rate: number;
-    position_count: number;
-  }>>([]);
-  const [positionData, setPositionData] = useState<Array<{
-    fund_code: string;
-    fund_name: string;
-    current_value: number;
-    position_ratio: number;
-    profit: number;
-    profit_rate: number;
-  }>>([]);
-  const [transactionData, setTransactionData] = useState<Array<{
-    type: 'BUY' | 'SELL';
-    count: number;
-    total_amount: number;
-    success_count: number;
-    failed_count: number;
-  }>>([]);
+  const [returnsData, setReturnsData] = useState<
+    Array<{
+      date: string;
+      total_assets: number;
+      total_profit: number;
+      total_profit_rate: number;
+      position_count: number;
+    }>
+  >([]);
+  const [positionData, setPositionData] = useState<
+    Array<{
+      fund_code: string;
+      fund_name: string;
+      current_value: number;
+      position_ratio: number;
+      profit: number;
+      profit_rate: number;
+    }>
+  >([]);
+  const [transactionData, setTransactionData] = useState<
+    Array<{
+      type: 'BUY' | 'SELL';
+      count: number;
+      total_amount: number;
+      success_count: number;
+      failed_count: number;
+    }>
+  >([]);
 
   // 加载状态
   const [loading, setLoading] = useState(true);
@@ -107,8 +113,8 @@ export default function AnalyticsPage() {
                 latestReturn.total_profit >= 0 ? 'text-green-600' : 'text-red-600'
               }`}
             >
-              {latestReturn.total_profit >= 0 ? '+' : ''}
-              ¥{latestReturn.total_profit.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
+              {latestReturn.total_profit >= 0 ? '+' : ''}¥
+              {latestReturn.total_profit.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
             </p>
           </div>
           <div className="bg-white rounded-lg shadow p-6">

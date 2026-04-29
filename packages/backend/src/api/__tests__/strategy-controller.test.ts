@@ -24,11 +24,11 @@ describe('StrategyController', () => {
 
   beforeEach(async () => {
     strategyRepository = {
-      findOne: jest.fn(),
-      findAndCount: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-      remove: jest.fn(),
+      findOne: vi.fn(),
+      findAndCount: vi.fn(),
+      create: vi.fn(),
+      save: vi.fn(),
+      remove: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -41,7 +41,7 @@ describe('StrategyController', () => {
         {
           provide: RiskControlService,
           useValue: {
-            checkFundBlacklist: jest.fn().mockResolvedValue({ passed: true }),
+            checkFundBlacklist: vi.fn().mockResolvedValue({ passed: true }),
           },
         },
       ],
@@ -51,7 +51,7 @@ describe('StrategyController', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('findAll', () => {

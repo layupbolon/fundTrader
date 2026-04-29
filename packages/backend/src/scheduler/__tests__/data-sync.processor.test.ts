@@ -13,7 +13,7 @@ describe('DataSyncProcessor', () => {
         {
           provide: FundDataService,
           useValue: {
-            syncAllFundNav: jest.fn(),
+            syncAllFundNav: vi.fn(),
           },
         },
       ],
@@ -33,7 +33,7 @@ describe('DataSyncProcessor', () => {
     });
 
     it('should handle and log errors', async () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
       fundDataService.syncAllFundNav.mockRejectedValue(new Error('sync failed'));
 
       await processor.handleSyncNav({} as any);
@@ -43,7 +43,7 @@ describe('DataSyncProcessor', () => {
     });
 
     it('should complete successfully', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
       fundDataService.syncAllFundNav.mockResolvedValue(undefined);
 
       await processor.handleSyncNav({} as any);
@@ -53,7 +53,7 @@ describe('DataSyncProcessor', () => {
     });
 
     it('should log start message', async () => {
-      const consoleSpy = jest.spyOn(console, 'log').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
       fundDataService.syncAllFundNav.mockResolvedValue(undefined);
 
       await processor.handleSyncNav({} as any);

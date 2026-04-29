@@ -11,10 +11,8 @@ process.env.DB_DATABASE = process.env.DB_DATABASE || 'fundtrader';
 process.env.REDIS_HOST = process.env.REDIS_HOST || 'localhost';
 process.env.REDIS_PORT = process.env.REDIS_PORT || '6379';
 
-process.env.MASTER_KEY =
-  process.env.MASTER_KEY || 'e2e_master_key_at_least_32_characters_long';
-process.env.ENCRYPTION_SALT =
-  process.env.ENCRYPTION_SALT || 'e2e_salt_at_least_16_chars';
+process.env.MASTER_KEY = process.env.MASTER_KEY || 'e2e_master_key_at_least_32_characters_long';
+process.env.ENCRYPTION_SALT = process.env.ENCRYPTION_SALT || 'e2e_salt_at_least_16_chars';
 
 process.env.SCHEDULER_ENABLED = process.env.SCHEDULER_ENABLED || 'false';
 process.env.BROKER_MOCK = process.env.BROKER_MOCK || 'true';

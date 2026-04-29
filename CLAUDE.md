@@ -76,7 +76,8 @@ fundTrader/                        # Monorepo 根目录
 │   │   ├── .env.example       # 环境变量模板
 │   │   ├── docker-compose.yml # 数据库服务
 │   │   ├── tsconfig.json      # TypeScript 配置
-│   │   ├── jest.config.js     # Jest 配置
+│   │   ├── vitest.config.ts   # Vitest 单元测试配置
+│   │   ├── vitest.e2e.config.ts # Vitest E2E 测试配置
 │   │   └── package.json       # 后端包配置
 │   ├── shared/                # 前后端共享代码包
 │   │   ├── src/
@@ -166,6 +167,7 @@ fundTrader/                        # Monorepo 根目录
 - 使用装饰器进行模块化设计
 - 文件命名：kebab-case（如 `fund-data.service.ts`）
 - 类命名：PascalCase（如 `FundDataService`）
+- 代码检查与格式化统一使用 Biome；当前迁移期基线有意关闭 `recommended`，只将未使用导入/变量设为 error，并保留 `noExplicitAny`、`noConsole` 为 warning，避免工具迁移混入大规模业务重构。后续收紧规则应独立执行。
 
 ### 数据库操作
 
@@ -190,8 +192,8 @@ fundTrader/                        # Monorepo 根目录
 
 #### 测试框架
 
-- **测试框架**: Jest 30.2.0
-- **测试工具**: @nestjs/testing + ts-jest
+- **测试框架**: Vitest 3.2.4
+- **测试工具**: @nestjs/testing + unplugin-swc
 - **覆盖率目标**: 80% (statements, branches, functions, lines)
 - **测试类型**: 单元测试、集成测试
 
@@ -199,7 +201,7 @@ fundTrader/                        # Monorepo 根目录
 
 ```bash
 pnpm test          # 运行所有测试
-pnpm test:watch    # 监听模式（开发时使用）
+pnpm --filter @fundtrader/backend test:watch # 后端监听模式（开发时使用）
 pnpm test:cov      # 生成覆盖率报告
 ```
 
@@ -244,8 +246,8 @@ src/
    ```
 
 2. **Mock 外部依赖**
-   - 使用 `jest.fn()` 创建 mock 函数
-   - 使用 `jest.Mocked<Type>` 类型化 mock 对象
+   - 使用 `vi.fn()` 创建 mock 函数
+   - 使用 `Mocked<Type>` / Vitest mock 类型类型化 mock 对象
    - Mock 数据库 Repository、外部 API、浏览器自动化
 
 3. **测试命名规范**
@@ -261,10 +263,10 @@ src/
 
 5. **时间相关测试**
    ```typescript
-   jest.useFakeTimers();
-   jest.setSystemTime(new Date('2026-02-25T14:00:00'));
+   vi.useFakeTimers();
+   vi.setSystemTime(new Date('2026-02-25T14:00:00'));
    // ... 测试代码
-   jest.useRealTimers();
+   vi.useRealTimers();
    ```
 
 6. **异步测试**
@@ -456,7 +458,8 @@ pnpm dev
 
 ### 测试文件
 
-- `packages/backend/jest.config.js` - Jest 配置文件
+- `packages/backend/vitest.config.ts` - Vitest 单元测试配置文件
+- `packages/backend/vitest.e2e.config.ts` - Vitest E2E 测试配置文件
 - `packages/backend/src/**/__tests__/*.test.ts` - 单元测试文件
 - 测试覆盖率报告: `packages/backend/coverage/` 目录（运行 `pnpm test:cov` 后生成）
 

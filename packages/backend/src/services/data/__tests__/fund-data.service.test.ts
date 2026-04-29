@@ -5,7 +5,7 @@ import { FundDataService } from '../fund-data.service';
 import { Fund, FundNav } from '../../../models';
 import axios from 'axios';
 
-jest.mock('axios');
+vi.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 describe('FundDataService', () => {
@@ -15,17 +15,17 @@ describe('FundDataService', () => {
 
   beforeEach(async () => {
     const mockFundRepository = {
-      findOne: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-      find: jest.fn(),
+      findOne: vi.fn(),
+      create: vi.fn(),
+      save: vi.fn(),
+      find: vi.fn(),
     };
 
     const mockFundNavRepository = {
-      findOne: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-      find: jest.fn(),
+      findOne: vi.fn(),
+      create: vi.fn(),
+      save: vi.fn(),
+      find: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -46,7 +46,7 @@ describe('FundDataService', () => {
     fundRepository = module.get(getRepositoryToken(Fund));
     fundNavRepository = module.get(getRepositoryToken(FundNav));
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('getFundInfo', () => {
@@ -243,7 +243,7 @@ describe('FundDataService', () => {
         .mockRejectedValueOnce(new Error('Sync failed'))
         .mockResolvedValueOnce({} as FundNav);
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
 
       await service.syncAllFundNav();
 

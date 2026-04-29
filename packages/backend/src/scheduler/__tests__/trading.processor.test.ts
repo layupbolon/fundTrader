@@ -19,56 +19,56 @@ describe('TradingProcessor', () => {
 
   beforeEach(async () => {
     const mockStrategyRepository = {
-      find: jest.fn(),
+      find: vi.fn(),
     };
 
     const mockPositionRepository = {
-      find: jest.fn(),
+      find: vi.fn(),
     };
 
     transactionRepository = {
-      createQueryBuilder: jest.fn(),
-      update: jest.fn(),
-      find: jest.fn(),
+      createQueryBuilder: vi.fn(),
+      update: vi.fn(),
+      find: vi.fn(),
     };
 
     brokerService = {
-      buyFund: jest.fn(),
-      sellFund: jest.fn(),
-      login: jest.fn(),
-      keepAlive: jest.fn(),
-      getOrderStatus: jest.fn(),
+      buyFund: vi.fn(),
+      sellFund: vi.fn(),
+      login: vi.fn(),
+      keepAlive: vi.fn(),
+      getOrderStatus: vi.fn(),
     };
 
     notifyService = {
-      send: jest.fn(),
+      send: vi.fn(),
     };
 
     positionService = {
-      updatePositionOnBuy: jest.fn(),
-      updatePositionOnSell: jest.fn(),
-      refreshAllPositionValues: jest.fn(),
+      updatePositionOnBuy: vi.fn(),
+      updatePositionOnSell: vi.fn(),
+      refreshAllPositionValues: vi.fn(),
     };
 
     const mockAutoInvestStrategy = {
-      shouldExecute: jest.fn(),
-      execute: jest.fn(),
+      shouldExecute: vi.fn(),
+      execute: vi.fn(),
     };
 
     const mockTakeProfitStopLossStrategy = {
-      checkTakeProfit: jest.fn(),
-      checkStopLoss: jest.fn(),
-      executeSell: jest.fn(),
+      checkTakeProfit: vi.fn(),
+      checkStopLoss: vi.fn(),
+      executeSell: vi.fn(),
     };
 
     const mockGridTradingStrategy = {
-      shouldExecute: jest.fn(),
-      execute: jest.fn(),
+      shouldExecute: vi.fn(),
+      execute: vi.fn(),
     };
 
     const mockRebalanceStrategy = {
-      shouldExecute: jest.fn(),
-      execute: jest.fn(),
+      shouldExecute: vi.fn(),
+      execute: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -122,9 +122,9 @@ describe('TradingProcessor', () => {
 
   describe('handleConfirmPendingTransactions', () => {
     const mockQueryBuilder = {
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      getMany: jest.fn(),
+      where: vi.fn().mockReturnThis(),
+      andWhere: vi.fn().mockReturnThis(),
+      getMany: vi.fn(),
     };
 
     beforeEach(() => {
@@ -350,13 +350,13 @@ describe('TradingProcessor', () => {
     let mockStrategyRepository: any;
 
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       mockStrategyRepository = {
-        find: jest.fn(),
+        find: vi.fn(),
       };
       mockAutoInvestStrategy = {
-        shouldExecute: jest.fn(),
-        execute: jest.fn(),
+        shouldExecute: vi.fn(),
+        execute: vi.fn(),
       };
       // Access the private properties through the module's mocked providers
       processor['strategyRepository'] = mockStrategyRepository;
@@ -402,17 +402,17 @@ describe('TradingProcessor', () => {
     let mockTakeProfitStopLossStrategy: any;
 
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       mockPositionRepository = {
-        find: jest.fn(),
+        find: vi.fn(),
       };
       mockStrategyRepository = {
-        find: jest.fn(),
+        find: vi.fn(),
       };
       mockTakeProfitStopLossStrategy = {
-        checkTakeProfit: jest.fn(),
-        checkStopLoss: jest.fn(),
-        executeSell: jest.fn(),
+        checkTakeProfit: vi.fn(),
+        checkStopLoss: vi.fn(),
+        executeSell: vi.fn(),
       };
       processor['positionRepository'] = mockPositionRepository;
       processor['strategyRepository'] = mockStrategyRepository;
@@ -520,13 +520,13 @@ describe('TradingProcessor', () => {
     let mockGridTradingStrategy: any;
 
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       mockStrategyRepository = {
-        find: jest.fn(),
+        find: vi.fn(),
       };
       mockGridTradingStrategy = {
-        shouldExecute: jest.fn(),
-        execute: jest.fn(),
+        shouldExecute: vi.fn(),
+        execute: vi.fn(),
       };
       processor['strategyRepository'] = mockStrategyRepository;
       processor['gridTradingStrategy'] = mockGridTradingStrategy;
@@ -570,13 +570,13 @@ describe('TradingProcessor', () => {
     let mockRebalanceStrategy: any;
 
     beforeEach(() => {
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       mockStrategyRepository = {
-        find: jest.fn(),
+        find: vi.fn(),
       };
       mockRebalanceStrategy = {
-        shouldExecute: jest.fn(),
-        execute: jest.fn(),
+        shouldExecute: vi.fn(),
+        execute: vi.fn(),
       };
       processor['strategyRepository'] = mockStrategyRepository;
       processor['rebalanceStrategy'] = mockRebalanceStrategy;

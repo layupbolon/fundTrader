@@ -22,7 +22,10 @@ function loadEnvFile(filePath: string): Record<string, string> {
     if (eq <= 0) continue;
 
     const key = line.slice(0, eq).trim();
-    const value = line.slice(eq + 1).trim().replace(/^['"]|['"]$/g, '');
+    const value = line
+      .slice(eq + 1)
+      .trim()
+      .replace(/^['"]|['"]$/g, '');
     result[key] = value;
   }
 

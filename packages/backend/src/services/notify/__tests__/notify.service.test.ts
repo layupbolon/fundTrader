@@ -10,11 +10,11 @@ describe('NotifyService', () => {
 
   beforeEach(async () => {
     const mockTelegramService = {
-      sendMessage: jest.fn(),
+      sendMessage: vi.fn(),
     };
 
     const mockFeishuService = {
-      sendMessage: jest.fn(),
+      sendMessage: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

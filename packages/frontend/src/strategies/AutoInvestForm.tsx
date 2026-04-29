@@ -42,7 +42,9 @@ export default function AutoInvestForm({ config, onChange }: AutoInvestFormProps
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
         >
           {Object.entries(FREQUENCY_LABELS).map(([val, label]) => (
-            <option key={val} value={val}>{label}</option>
+            <option key={val} value={val}>
+              {label}
+            </option>
           ))}
         </select>
       </div>
@@ -56,7 +58,9 @@ export default function AutoInvestForm({ config, onChange }: AutoInvestFormProps
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
           >
             {['周一', '周二', '周三', '周四', '周五'].map((label, i) => (
-              <option key={i + 1} value={i + 1}>{label}</option>
+              <option key={i + 1} value={i + 1}>
+                {label}
+              </option>
             ))}
           </select>
         </div>

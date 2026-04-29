@@ -42,33 +42,33 @@ describe('TradingConfirmationService', () => {
   } as any;
 
   const transactionRepositoryMock = {
-    create: jest.fn().mockImplementation((data) => data),
-    save: jest.fn().mockImplementation((data) => Promise.resolve({ ...mockTransaction, ...data })),
-    find: jest.fn().mockResolvedValue([]),
-    findOne: jest.fn().mockResolvedValue({ ...mockTransaction }),
-    update: jest.fn().mockResolvedValue({ affected: 1 }),
+    create: vi.fn().mockImplementation((data) => data),
+    save: vi.fn().mockImplementation((data) => Promise.resolve({ ...mockTransaction, ...data })),
+    find: vi.fn().mockResolvedValue([]),
+    findOne: vi.fn().mockResolvedValue({ ...mockTransaction }),
+    update: vi.fn().mockResolvedValue({ affected: 1 }),
   };
 
   const riskControlServiceMock = {
-    getRiskLimits: jest.fn().mockResolvedValue([mockRiskLimit]),
+    getRiskLimits: vi.fn().mockResolvedValue([mockRiskLimit]),
   };
 
   const notifyServiceMock = {
-    send: jest.fn().mockResolvedValue(undefined),
+    send: vi.fn().mockResolvedValue(undefined),
   };
 
   const telegramServiceMock = {
-    sendConfirmationMessage: jest.fn().mockResolvedValue(undefined),
-    onConfirmationCallback: jest.fn(),
+    sendConfirmationMessage: vi.fn().mockResolvedValue(undefined),
+    onConfirmationCallback: vi.fn(),
   };
 
   const feishuServiceMock = {
-    sendConfirmationMessage: jest.fn().mockResolvedValue(undefined),
+    sendConfirmationMessage: vi.fn().mockResolvedValue(undefined),
   };
 
   beforeEach(async () => {
     // 重置所有 mock 为返回基础的 mockTransaction 的拷贝
-    transactionRepositoryMock.findOne = jest.fn().mockResolvedValue({ ...mockTransaction });
+    transactionRepositoryMock.findOne = vi.fn().mockResolvedValue({ ...mockTransaction });
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -102,7 +102,7 @@ describe('TradingConfirmationService', () => {
     notifyService = module.get<NotifyService>(NotifyService);
 
     // 清除所有 mock 调用记录
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -124,7 +124,7 @@ describe('TradingConfirmationService', () => {
     });
 
     it('should return false when no threshold is configured', async () => {
-      riskControlService.getRiskLimits = jest.fn().mockResolvedValue([]);
+      riskControlService.getRiskLimits = vi.fn().mockResolvedValue([]);
       const result = await service.needsConfirmation('user-123', 15000);
       expect(result).toBe(false);
     });
@@ -194,7 +194,7 @@ describe('TradingConfirmationService', () => {
   describe('handleConfirmation', () => {
     beforeEach(() => {
       // 重置 findOne 返回基础的 mockTransaction 的拷贝
-      transactionRepository.findOne = jest.fn().mockResolvedValue({ ...mockTransaction });
+      transactionRepository.findOne = vi.fn().mockResolvedValue({ ...mockTransaction });
     });
 
     it('should confirm a pending transaction successfully', async () => {
@@ -223,7 +223,7 @@ describe('TradingConfirmationService', () => {
     });
 
     it('should throw error when transaction not found', async () => {
-      transactionRepository.findOne = jest.fn().mockResolvedValue(null);
+      transactionRepository.findOne = vi.fn().mockResolvedValue(null);
 
       await expect(service.handleConfirmation('non-existent-id')).rejects.toThrow(
         '交易 non-existent-id 不存在',
@@ -235,7 +235,7 @@ describe('TradingConfirmationService', () => {
         ...mockTransaction,
         confirmation_status: TransactionConfirmationStatus.CONFIRMED,
       };
-      transactionRepository.findOne = jest.fn().mockResolvedValue(confirmedTransaction);
+      transactionRepository.findOne = vi.fn().mockResolvedValue(confirmedTransaction);
 
       await expect(service.handleConfirmation('test-txn-id')).rejects.toThrow(
         '交易 test-txn-id 状态不正确：CONFIRMED',
@@ -247,7 +247,7 @@ describe('TradingConfirmationService', () => {
         ...mockTransaction,
         confirmation_deadline: new Date(Date.now() - 60 * 1000), // 1 分钟前过期
       };
-      transactionRepository.findOne = jest.fn().mockResolvedValue(expiredTransaction);
+      transactionRepository.findOne = vi.fn().mockResolvedValue(expiredTransaction);
 
       await expect(service.handleConfirmation('test-txn-id')).rejects.toThrow(
         '交易 test-txn-id 已超时',
@@ -256,14 +256,14 @@ describe('TradingConfirmationService', () => {
 
     afterEach(() => {
       // 重置 findOne 返回基础的 mockTransaction 的拷贝
-      transactionRepository.findOne = jest.fn().mockResolvedValue({ ...mockTransaction });
+      transactionRepository.findOne = vi.fn().mockResolvedValue({ ...mockTransaction });
     });
   });
 
   describe('handleCancellation', () => {
     beforeEach(() => {
       // 重置 findOne 返回基础的 mockTransaction 的拷贝
-      transactionRepository.findOne = jest.fn().mockResolvedValue({ ...mockTransaction });
+      transactionRepository.findOne = vi.fn().mockResolvedValue({ ...mockTransaction });
     });
 
     it('should cancel a pending transaction successfully', async () => {
@@ -287,7 +287,7 @@ describe('TradingConfirmationService', () => {
     });
 
     it('should throw error when transaction not found', async () => {
-      transactionRepository.findOne = jest.fn().mockResolvedValue(null);
+      transactionRepository.findOne = vi.fn().mockResolvedValue(null);
 
       await expect(service.handleCancellation('non-existent-id')).rejects.toThrow(
         '交易 non-existent-id 不存在',
@@ -303,7 +303,7 @@ describe('TradingConfirmationService', () => {
         confirmation_deadline: new Date(Date.now() - 60 * 1000),
       };
 
-      transactionRepository.find = jest.fn().mockResolvedValue([expiredTransaction]);
+      transactionRepository.find = vi.fn().mockResolvedValue([expiredTransaction]);
 
       const result = await service.cancelTimeoutTransactions();
 
@@ -323,7 +323,7 @@ describe('TradingConfirmationService', () => {
     });
 
     it('should return 0 when no timeout transactions found', async () => {
-      transactionRepository.find = jest.fn().mockResolvedValue([]);
+      transactionRepository.find = vi.fn().mockResolvedValue([]);
 
       const result = await service.cancelTimeoutTransactions();
 
@@ -372,7 +372,7 @@ describe('TradingConfirmationService', () => {
     });
 
     it('should return null when transaction not found', async () => {
-      transactionRepository.findOne = jest.fn().mockResolvedValue(null);
+      transactionRepository.findOne = vi.fn().mockResolvedValue(null);
 
       const result = await service.getConfirmationStatus('non-existent-id');
 

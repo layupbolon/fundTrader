@@ -201,7 +201,8 @@ export default function TransactionsPage() {
   }
 
   if (loading) return <LoadingSpinner />;
-  if (error && transactions.length === 0) return <ErrorMessage message={error} onRetry={loadTransactions} />;
+  if (error && transactions.length === 0)
+    return <ErrorMessage message={error} onRetry={loadTransactions} />;
 
   function downloadBatchResultCsv() {
     if (!batchResult) return;
@@ -301,12 +302,16 @@ export default function TransactionsPage() {
         </div>
       </div>
 
-      {notice && <div className="p-3 text-sm rounded-lg bg-success-50 text-success-700">{notice}</div>}
+      {notice && (
+        <div className="p-3 text-sm rounded-lg bg-success-50 text-success-700">{notice}</div>
+      )}
       {error && <div className="p-3 text-sm rounded-lg bg-danger-50 text-danger-700">{error}</div>}
       {batchHistory.length > 0 && (
         <div className="rounded-xl border border-gray-200 bg-white p-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-semibold text-gray-900">最近批量操作历史（最近 {MAX_BATCH_HISTORY} 次）</h2>
+            <h2 className="text-sm font-semibold text-gray-900">
+              最近批量操作历史（最近 {MAX_BATCH_HISTORY} 次）
+            </h2>
             <button
               onClick={() => {
                 setBatchHistory([]);
@@ -332,9 +337,12 @@ export default function TransactionsPage() {
                   }`}
                 >
                   <div className="font-medium">
-                    {item.action === 'refresh' ? '批量刷新' : '批量撤单'} | 成功 {item.success_count}，失败 {item.failed_count}
+                    {item.action === 'refresh' ? '批量刷新' : '批量撤单'} | 成功{' '}
+                    {item.success_count}，失败 {item.failed_count}
                   </div>
-                  <div className="mt-1 text-[11px] text-gray-400">{new Date(item.created_at).toLocaleString('zh-CN')}</div>
+                  <div className="mt-1 text-[11px] text-gray-400">
+                    {new Date(item.created_at).toLocaleString('zh-CN')}
+                  </div>
                 </button>
               );
             })}
@@ -347,7 +355,8 @@ export default function TransactionsPage() {
             <div>
               <h2 className="text-sm font-semibold text-gray-900">批量操作结果明细</h2>
               <p className="text-xs text-gray-500 mt-1">
-                总计 {batchResult.total}，成功 {batchResult.success_count}，失败 {batchResult.failed_count}
+                总计 {batchResult.total}，成功 {batchResult.success_count}，失败{' '}
+                {batchResult.failed_count}
               </p>
               <p className="text-xs text-gray-400 mt-1">
                 {batchResult.action === 'refresh' ? '批量刷新' : '批量撤单'} ·{' '}
@@ -443,7 +452,8 @@ export default function TransactionsPage() {
               <tbody className="divide-y divide-gray-100">
                 {transactions.map((tx) => {
                   const canCancel =
-                    tx.status === TransactionStatus.PENDING || tx.status === TransactionStatus.SUBMITTED;
+                    tx.status === TransactionStatus.PENDING ||
+                    tx.status === TransactionStatus.SUBMITTED;
                   return (
                     <tr key={tx.id}>
                       <td className="px-4 py-3">
@@ -454,13 +464,17 @@ export default function TransactionsPage() {
                         />
                       </td>
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900">{tx.fund?.name || tx.fund_code}</div>
+                        <div className="font-medium text-gray-900">
+                          {tx.fund?.name || tx.fund_code}
+                        </div>
                         <div className="text-xs text-gray-400">{tx.fund_code}</div>
                       </td>
                       <td className="px-4 py-3">
                         <span
                           className={
-                            tx.type === TransactionType.BUY ? 'text-success-700 font-medium' : 'text-danger-700 font-medium'
+                            tx.type === TransactionType.BUY
+                              ? 'text-success-700 font-medium'
+                              : 'text-danger-700 font-medium'
                           }
                         >
                           {tx.type === TransactionType.BUY ? '买入' : '卖出'}
@@ -490,7 +504,11 @@ export default function TransactionsPage() {
                           </button>
                           <button
                             onClick={() =>
-                              setConfirmState({ open: true, action: 'single-cancel', transaction: tx })
+                              setConfirmState({
+                                open: true,
+                                action: 'single-cancel',
+                                transaction: tx,
+                              })
                             }
                             disabled={!canCancel || actionLoading}
                             className="px-2 py-1 text-xs text-danger-700 bg-danger-50 hover:bg-danger-100 rounded disabled:opacity-50 disabled:cursor-not-allowed"

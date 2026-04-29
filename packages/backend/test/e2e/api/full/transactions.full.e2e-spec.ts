@@ -7,7 +7,7 @@ import { resetDatabase, seedFund } from '../../db-utils';
 import { Transaction, TransactionStatus, TransactionType } from '../../../../src/models';
 
 describe('API Full - Transactions', () => {
-  jest.setTimeout(30_000);
+  vi.setConfig({ testTimeout: 30_000 });
 
   let app: INestApplication;
   let dataSource: DataSource;

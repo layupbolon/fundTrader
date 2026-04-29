@@ -6,13 +6,7 @@ import {
   InvestFrequency,
 } from '@fundtrader/shared';
 
-export {
-  StrategyType,
-  TransactionType,
-  TransactionStatus,
-  FundType,
-  InvestFrequency,
-};
+export { StrategyType, TransactionType, TransactionStatus, FundType, InvestFrequency };
 
 export interface PaginatedResponse<T> {
   data: T[];

@@ -10,14 +10,14 @@ describe('PositionService', () => {
 
   beforeEach(async () => {
     positionRepository = {
-      findOne: jest.fn(),
-      find: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
+      findOne: vi.fn(),
+      find: vi.fn(),
+      create: vi.fn(),
+      save: vi.fn(),
     };
 
     fundNavRepository = {
-      findOne: jest.fn(),
+      findOne: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

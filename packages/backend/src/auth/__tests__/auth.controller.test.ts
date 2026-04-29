@@ -17,9 +17,9 @@ describe('AuthController', () => {
 
   beforeEach(async () => {
     authService = {
-      register: jest.fn(),
-      login: jest.fn(),
-      validateUser: jest.fn(),
+      register: vi.fn(),
+      login: vi.fn(),
+      validateUser: vi.fn(),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -36,7 +36,7 @@ describe('AuthController', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('register', () => {

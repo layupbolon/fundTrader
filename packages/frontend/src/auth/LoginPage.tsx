@@ -35,9 +35,7 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-danger-50 text-danger-700 rounded-lg text-sm">
-              {error}
-            </div>
+            <div className="mb-4 p-3 bg-danger-50 text-danger-700 rounded-lg text-sm">{error}</div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5" data-testid="login-form">

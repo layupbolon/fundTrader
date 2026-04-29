@@ -18,7 +18,7 @@
 ### 2.1 后端 E2E 基建
 
 - 独立 E2E 配置与目录：
-  - `packages/backend/test/e2e/jest-e2e.json`
+  - `packages/backend/vitest.e2e.config.ts`
   - `packages/backend/test/e2e/setup-env.ts`
   - `packages/backend/test/e2e/create-e2e-app.ts`
   - `packages/backend/test/e2e/db-utils.ts`

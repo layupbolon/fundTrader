@@ -7,7 +7,7 @@ import { resetDatabase, seedFund, seedRiskLimit } from '../../db-utils';
 import { RiskLimitType, Strategy, Transaction, TransactionType } from '../../../../src/models';
 
 describe('API Smoke - Strategy & Transaction', () => {
-  jest.setTimeout(30_000);
+  vi.setConfig({ testTimeout: 30_000 });
 
   let app: INestApplication;
   let dataSource: DataSource;

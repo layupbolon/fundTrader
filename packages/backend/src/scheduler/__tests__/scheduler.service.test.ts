@@ -12,23 +12,23 @@ describe('SchedulerService', () => {
 
   beforeEach(async () => {
     tradingQueue = {
-      add: jest.fn().mockResolvedValue(undefined),
+      add: vi.fn().mockResolvedValue(undefined),
     };
 
     dataSyncQueue = {
-      add: jest.fn().mockResolvedValue(undefined),
+      add: vi.fn().mockResolvedValue(undefined),
     };
 
     healthCheckQueue = {
-      add: jest.fn().mockResolvedValue(undefined),
+      add: vi.fn().mockResolvedValue(undefined),
     };
 
     logCleanupQueue = {
-      add: jest.fn().mockResolvedValue(undefined),
+      add: vi.fn().mockResolvedValue(undefined),
     };
 
     backupQueue = {
-      add: jest.fn().mockResolvedValue(undefined),
+      add: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({

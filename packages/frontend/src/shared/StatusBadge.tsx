@@ -11,7 +11,9 @@ const STATUS_STYLES: Record<TransactionStatus, { bg: string; text: string; label
 export default function StatusBadge({ status }: { status: TransactionStatus }) {
   const style = STATUS_STYLES[status] || STATUS_STYLES[TransactionStatus.PENDING];
   return (
-    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${style.bg} ${style.text}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${style.bg} ${style.text}`}
+    >
       {style.label}
     </span>
   );

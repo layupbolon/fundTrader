@@ -22,23 +22,23 @@ describe('AnalyticsService', () => {
         {
           provide: getRepositoryToken(PortfolioSnapshot),
           useValue: {
-            find: jest.fn(),
-            create: jest.fn(),
-            save: jest.fn(),
-            findOne: jest.fn(),
+            find: vi.fn(),
+            create: vi.fn(),
+            save: vi.fn(),
+            findOne: vi.fn(),
           },
         },
         {
           provide: getRepositoryToken(Position),
           useValue: {
-            find: jest.fn(),
-            createQueryBuilder: jest.fn(),
+            find: vi.fn(),
+            createQueryBuilder: vi.fn(),
           },
         },
         {
           provide: getRepositoryToken(Transaction),
           useValue: {
-            createQueryBuilder: jest.fn(),
+            createQueryBuilder: vi.fn(),
           },
         },
       ],
@@ -51,7 +51,7 @@ describe('AnalyticsService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('getReturnsData', () => {
@@ -151,11 +151,11 @@ describe('AnalyticsService', () => {
       ];
 
       const queryBuilderMock = {
-        innerJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        orderBy: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue(mockPositions),
+        innerJoinAndSelect: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        getMany: vi.fn().mockResolvedValue(mockPositions),
       };
 
       positionRepository.createQueryBuilder.mockReturnValue(queryBuilderMock as any);
@@ -183,11 +183,11 @@ describe('AnalyticsService', () => {
 
     it('should return empty array when no positions exist', async () => {
       const queryBuilderMock = {
-        innerJoinAndSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        orderBy: jest.fn().mockReturnThis(),
-        getMany: jest.fn().mockResolvedValue([]),
+        innerJoinAndSelect: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        orderBy: vi.fn().mockReturnThis(),
+        getMany: vi.fn().mockResolvedValue([]),
       };
 
       positionRepository.createQueryBuilder.mockReturnValue(queryBuilderMock as any);
@@ -215,16 +215,13 @@ describe('AnalyticsService', () => {
       };
 
       const queryBuilderMock = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        setParameter: jest.fn().mockReturnThis(),
-        setParameters: jest.fn().mockReturnThis(),
-        getRawOne: jest
-          .fn()
-          .mockResolvedValueOnce(mockBuyStats)
-          .mockResolvedValueOnce(mockSellStats),
+        select: vi.fn().mockReturnThis(),
+        addSelect: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        setParameter: vi.fn().mockReturnThis(),
+        setParameters: vi.fn().mockReturnThis(),
+        getRawOne: vi.fn().mockResolvedValueOnce(mockBuyStats).mockResolvedValueOnce(mockSellStats),
       };
 
       transactionRepository.createQueryBuilder.mockReturnValue(queryBuilderMock as any);
@@ -257,13 +254,13 @@ describe('AnalyticsService', () => {
       };
 
       const queryBuilderMock = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        setParameter: jest.fn().mockReturnThis(),
-        setParameters: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue(mockEmptyStats),
+        select: vi.fn().mockReturnThis(),
+        addSelect: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        setParameter: vi.fn().mockReturnThis(),
+        setParameters: vi.fn().mockReturnThis(),
+        getRawOne: vi.fn().mockResolvedValue(mockEmptyStats),
       };
 
       transactionRepository.createQueryBuilder.mockReturnValue(queryBuilderMock as any);

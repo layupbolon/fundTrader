@@ -8,7 +8,7 @@ describe('JwtStrategy', () => {
 
   beforeEach(async () => {
     configService = {
-      get: jest.fn(),
+      get: vi.fn(),
     } as any;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -25,7 +25,7 @@ describe('JwtStrategy', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('constructor', () => {

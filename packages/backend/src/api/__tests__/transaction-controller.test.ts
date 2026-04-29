@@ -36,34 +36,34 @@ describe('TransactionController', () => {
 
   beforeEach(async () => {
     transactionRepository = {
-      findOne: jest.fn(),
-      findAndCount: jest.fn(),
-      create: jest.fn(),
-      save: jest.fn(),
-      update: jest.fn(),
+      findOne: vi.fn(),
+      findAndCount: vi.fn(),
+      create: vi.fn(),
+      save: vi.fn(),
+      update: vi.fn(),
     };
     fundRepository = {
-      findOne: jest.fn(),
+      findOne: vi.fn(),
     };
     positionRepository = {
-      findOne: jest.fn(),
+      findOne: vi.fn(),
     };
     riskControlService = {
-      checkFundBlacklist: jest.fn().mockResolvedValue({ passed: true }),
-      checkTradeLimit: jest.fn().mockResolvedValue({ passed: true }),
-      checkPositionLimit: jest.fn().mockResolvedValue({ passed: true }),
+      checkFundBlacklist: vi.fn().mockResolvedValue({ passed: true }),
+      checkTradeLimit: vi.fn().mockResolvedValue({ passed: true }),
+      checkPositionLimit: vi.fn().mockResolvedValue({ passed: true }),
     };
     tradingConfirmationService = {
-      needsConfirmation: jest.fn().mockResolvedValue(false),
-      createPendingTransaction: jest.fn(),
-      sendConfirmationRequest: jest.fn(),
+      needsConfirmation: vi.fn().mockResolvedValue(false),
+      createPendingTransaction: vi.fn(),
+      sendConfirmationRequest: vi.fn(),
     };
     brokerService = {
-      buyFund: jest.fn().mockResolvedValue({ id: 'order-buy-1' }),
-      sellFund: jest.fn().mockResolvedValue({ id: 'order-sell-1' }),
+      buyFund: vi.fn().mockResolvedValue({ id: 'order-buy-1' }),
+      sellFund: vi.fn().mockResolvedValue({ id: 'order-sell-1' }),
     };
     operationLogService = {
-      logUserAction: jest.fn().mockResolvedValue(undefined),
+      logUserAction: vi.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -104,7 +104,7 @@ describe('TransactionController', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('create', () => {
@@ -171,7 +171,10 @@ describe('TransactionController', () => {
       });
 
       await expect(
-        controller.create({ fund_code: '110011', type: TransactionType.BUY, amount: 1000 }, mockUser),
+        controller.create(
+          { fund_code: '110011', type: TransactionType.BUY, amount: 1000 },
+          mockUser,
+        ),
       ).rejects.toThrow(BadRequestException);
     });
   });
@@ -271,7 +274,7 @@ describe('TransactionController', () => {
           id: 'tx-uuid-1',
           status: TransactionStatus.CONFIRMED,
         });
-      brokerService.getOrderStatus = jest.fn().mockResolvedValue({
+      brokerService.getOrderStatus = vi.fn().mockResolvedValue({
         id: 'order-1',
         status: 'CONFIRMED',
         shares: 100,
@@ -297,7 +300,7 @@ describe('TransactionController', () => {
         status: TransactionStatus.PENDING,
         order_id: 'order-1',
       });
-      brokerService.cancelOrder = jest.fn().mockResolvedValue({ id: 'order-1', status: 'CANCELLED' });
+      brokerService.cancelOrder = vi.fn().mockResolvedValue({ id: 'order-1', status: 'CANCELLED' });
 
       const result = await controller.cancel('tx-uuid-1', mockUser);
 
@@ -323,7 +326,9 @@ describe('TransactionController', () => {
           id: 'tx-1',
           status: TransactionStatus.PENDING,
         });
-      brokerService.getOrderStatus = jest.fn().mockResolvedValue({ id: 'order-1', status: 'PENDING' });
+      brokerService.getOrderStatus = vi
+        .fn()
+        .mockResolvedValue({ id: 'order-1', status: 'PENDING' });
 
       const result = await controller.batchRefreshStatus({ transaction_ids: ['tx-1'] }, mockUser);
       expect(result.total).toBe(1);
@@ -338,7 +343,7 @@ describe('TransactionController', () => {
         status: TransactionStatus.PENDING,
         order_id: 'order-1',
       });
-      brokerService.cancelOrder = jest.fn().mockResolvedValue({ id: 'order-1', status: 'CANCELLED' });
+      brokerService.cancelOrder = vi.fn().mockResolvedValue({ id: 'order-1', status: 'CANCELLED' });
 
       const result = await controller.batchCancel({ transaction_ids: ['tx-1'] }, mockUser);
       expect(result.total).toBe(1);

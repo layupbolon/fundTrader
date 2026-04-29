@@ -1,12 +1,16 @@
-const mockSendMessage = jest.fn().mockResolvedValue({});
-const mockOnCallbackQuery = jest.fn();
+const telegramMocks = vi.hoisted(() => ({
+  onCallbackQuery: vi.fn(),
+  sendMessage: vi.fn().mockResolvedValue({}),
+}));
 
-jest.mock('node-telegram-bot-api', () => {
-  return jest.fn().mockImplementation(() => ({
-    sendMessage: mockSendMessage,
-    on: mockOnCallbackQuery,
-    answerCallbackQuery: jest.fn().mockResolvedValue({}),
-  }));
+vi.mock('node-telegram-bot-api', () => {
+  return {
+    default: vi.fn().mockImplementation(() => ({
+      sendMessage: telegramMocks.sendMessage,
+      on: telegramMocks.onCallbackQuery,
+      answerCallbackQuery: vi.fn().mockResolvedValue({}),
+    })),
+  };
 });
 
 import { TelegramService } from '../telegram.service';
@@ -17,7 +21,7 @@ describe('TelegramService', () => {
 
   beforeEach(() => {
     process.env = { ...originalEnv };
-    mockSendMessage.mockClear();
+    telegramMocks.sendMessage.mockClear();
   });
 
   afterEach(() => {
@@ -62,7 +66,7 @@ describe('TelegramService', () => {
         level: 'info',
       });
 
-      expect(mockSendMessage).toHaveBeenCalledWith(
+      expect(telegramMocks.sendMessage).toHaveBeenCalledWith(
         'test-chat-id',
         expect.stringContaining('ℹ️'),
         expect.objectContaining({ parse_mode: 'Markdown' }),
@@ -80,7 +84,7 @@ describe('TelegramService', () => {
         level: 'warning',
       });
 
-      expect(mockSendMessage).toHaveBeenCalledWith(
+      expect(telegramMocks.sendMessage).toHaveBeenCalledWith(
         'test-chat-id',
         expect.stringContaining('⚠️'),
         expect.any(Object),
@@ -98,7 +102,7 @@ describe('TelegramService', () => {
         level: 'error',
       });
 
-      expect(mockSendMessage).toHaveBeenCalledWith(
+      expect(telegramMocks.sendMessage).toHaveBeenCalledWith(
         'test-chat-id',
         expect.stringContaining('❌'),
         expect.any(Object),
@@ -109,7 +113,7 @@ describe('TelegramService', () => {
       delete process.env.TELEGRAM_BOT_TOKEN;
       delete process.env.TELEGRAM_CHAT_ID;
 
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       const service = new TelegramService();
       await service.sendMessage({ title: 'Test', content: 'Test' });
 
@@ -121,9 +125,9 @@ describe('TelegramService', () => {
       process.env.TELEGRAM_BOT_TOKEN = 'test-token';
       process.env.TELEGRAM_CHAT_ID = 'test-chat-id';
 
-      mockSendMessage.mockRejectedValueOnce(new Error('API error'));
+      telegramMocks.sendMessage.mockRejectedValueOnce(new Error('API error'));
 
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
       const service = new TelegramService();
       await service.sendMessage({ title: 'Test', content: 'Test' });
 
@@ -141,7 +145,7 @@ describe('TelegramService', () => {
       const service = new TelegramService();
       await service.sendMessage({ title: 'My Title', content: 'Body' });
 
-      expect(mockSendMessage).toHaveBeenCalledWith(
+      expect(telegramMocks.sendMessage).toHaveBeenCalledWith(
         'test-chat-id',
         expect.stringContaining('*My Title*'),
         expect.any(Object),
@@ -167,7 +171,7 @@ describe('TelegramService', () => {
       const service = new TelegramService();
       await service.sendConfirmationMessage(mockConfirmationParams);
 
-      expect(mockSendMessage).toHaveBeenCalledWith(
+      expect(telegramMocks.sendMessage).toHaveBeenCalledWith(
         'test-chat-id',
         expect.stringContaining('大额交易确认'),
         expect.objectContaining({
@@ -183,7 +187,7 @@ describe('TelegramService', () => {
       const service = new TelegramService();
       await service.sendConfirmationMessage(mockConfirmationParams);
 
-      const callArgs = mockSendMessage.mock.calls[0];
+      const callArgs = telegramMocks.sendMessage.mock.calls[0];
       const text = callArgs[1] as string;
 
       expect(text).toContain('000001');
@@ -198,7 +202,7 @@ describe('TelegramService', () => {
         type: TransactionType.SELL,
       });
 
-      const callArgs = mockSendMessage.mock.calls[0];
+      const callArgs = telegramMocks.sendMessage.mock.calls[0];
       const text = callArgs[1] as string;
 
       expect(text).toContain('卖出');
@@ -208,7 +212,7 @@ describe('TelegramService', () => {
       delete process.env.TELEGRAM_BOT_TOKEN;
       delete process.env.TELEGRAM_CHAT_ID;
 
-      const consoleSpy = jest.spyOn(console, 'warn').mockImplementation();
+      const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
       const service = new TelegramService();
       await service.sendConfirmationMessage(mockConfirmationParams);
 
@@ -223,19 +227,22 @@ describe('TelegramService', () => {
     beforeEach(() => {
       process.env.TELEGRAM_BOT_TOKEN = 'test-token';
       process.env.TELEGRAM_CHAT_ID = 'test-chat-id';
-      mockOnCallbackQuery.mockClear();
+      process.env.TELEGRAM_POLLING_ENABLED = 'true';
+      telegramMocks.onCallbackQuery.mockClear();
     });
 
     it('should register callback handler for confirm action', async () => {
       const service = new TelegramService();
-      const handler = jest.fn().mockResolvedValue(undefined);
+      const handler = vi.fn().mockResolvedValue(undefined);
 
       service.onConfirmationCallback(handler);
 
-      expect(mockOnCallbackQuery).toHaveBeenCalled();
+      expect(telegramMocks.onCallbackQuery).toHaveBeenCalled();
 
       // Simulate callback
-      const callbackFn = mockOnCallbackQuery.mock.calls[0][1];
+      const callbackFn = telegramMocks.onCallbackQuery.mock.calls.find(
+        ([event]) => event === 'callback_query',
+      )?.[1];
       await callbackFn({
         data: 'confirm:txn-123:confirm',
         id: 'callback-123',
@@ -246,11 +253,13 @@ describe('TelegramService', () => {
 
     it('should register callback handler for cancel action', async () => {
       const service = new TelegramService();
-      const handler = jest.fn().mockResolvedValue(undefined);
+      const handler = vi.fn().mockResolvedValue(undefined);
 
       service.onConfirmationCallback(handler);
 
-      const callbackFn = mockOnCallbackQuery.mock.calls[0][1];
+      const callbackFn = telegramMocks.onCallbackQuery.mock.calls.find(
+        ([event]) => event === 'callback_query',
+      )?.[1];
       await callbackFn({
         data: 'confirm:txn-123:cancel',
         id: 'callback-123',
@@ -261,11 +270,13 @@ describe('TelegramService', () => {
 
     it('should ignore non-confirmation callbacks', async () => {
       const service = new TelegramService();
-      const handler = jest.fn().mockResolvedValue(undefined);
+      const handler = vi.fn().mockResolvedValue(undefined);
 
       service.onConfirmationCallback(handler);
 
-      const callbackFn = mockOnCallbackQuery.mock.calls[0][1];
+      const callbackFn = telegramMocks.onCallbackQuery.mock.calls.find(
+        ([event]) => event === 'callback_query',
+      )?.[1];
       await callbackFn({
         data: 'other-action',
         id: 'callback-123',

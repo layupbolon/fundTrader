@@ -22,8 +22,8 @@ describe('UserController', () => {
     process.env.ENCRYPTION_SALT = 'test-salt-at-least-16-chars';
 
     userRepository = {
-      findOne: jest.fn(),
-      save: jest.fn(),
+      findOne: vi.fn(),
+      save: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

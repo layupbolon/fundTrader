@@ -7,7 +7,7 @@ describe('ConfirmationProcessor', () => {
   let tradingConfirmationService: TradingConfirmationService;
 
   const tradingConfirmationServiceMock = {
-    cancelTimeoutTransactions: jest.fn(),
+    cancelTimeoutTransactions: vi.fn(),
   };
 
   beforeEach(async () => {
@@ -24,7 +24,7 @@ describe('ConfirmationProcessor', () => {
     processor = module.get<ConfirmationProcessor>(ConfirmationProcessor);
     tradingConfirmationService = module.get<TradingConfirmationService>(TradingConfirmationService);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -38,8 +38,8 @@ describe('ConfirmationProcessor', () => {
       const mockJob = {
         data: {},
         id: 'test-job-id',
-        log: jest.fn(),
-        update: jest.fn(),
+        log: vi.fn(),
+        update: vi.fn(),
       } as any;
 
       const result = await processor.handleCheckConfirmationTimeout(mockJob);
@@ -54,8 +54,8 @@ describe('ConfirmationProcessor', () => {
       const mockJob = {
         data: {},
         id: 'test-job-id',
-        log: jest.fn(),
-        update: jest.fn(),
+        log: vi.fn(),
+        update: vi.fn(),
       } as any;
 
       const result = await processor.handleCheckConfirmationTimeout(mockJob);
@@ -71,8 +71,8 @@ describe('ConfirmationProcessor', () => {
       const mockJob = {
         data: {},
         id: 'test-job-id',
-        log: jest.fn(),
-        update: jest.fn(),
+        log: vi.fn(),
+        update: vi.fn(),
       } as any;
 
       await expect(processor.handleCheckConfirmationTimeout(mockJob)).rejects.toThrow(

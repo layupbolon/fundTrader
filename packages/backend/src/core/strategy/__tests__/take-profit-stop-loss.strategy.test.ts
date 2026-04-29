@@ -15,21 +15,21 @@ describe('TakeProfitStopLossStrategy', () => {
 
   beforeEach(async () => {
     const mockPositionRepository = {
-      findOne: jest.fn(),
-      save: jest.fn(),
+      findOne: vi.fn(),
+      save: vi.fn(),
     };
 
     const mockTransactionRepository = {
-      create: jest.fn(),
-      save: jest.fn(),
+      create: vi.fn(),
+      save: vi.fn(),
     };
 
     const mockBrokerService = {
-      sellFund: jest.fn(),
+      sellFund: vi.fn(),
     };
 
     const mockNotifyService = {
-      send: jest.fn(),
+      send: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

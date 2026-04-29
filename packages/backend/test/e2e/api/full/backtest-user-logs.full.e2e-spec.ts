@@ -7,7 +7,7 @@ import { resetDatabase, seedFund, seedFundNavSeries } from '../../db-utils';
 import { User } from '../../../../src/models';
 
 describe('API Full - Backtest, User, Logs', () => {
-  jest.setTimeout(30_000);
+  vi.setConfig({ testTimeout: 30_000 });
 
   let app: INestApplication;
   let dataSource: DataSource;
@@ -153,7 +153,9 @@ describe('API Full - Backtest, User, Logs', () => {
     const end = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
 
     const statsRes = await request(app.getHttpServer())
-      .get(`/api/logs/stats/range?startTime=${encodeURIComponent(start)}&endTime=${encodeURIComponent(end)}`)
+      .get(
+        `/api/logs/stats/range?startTime=${encodeURIComponent(start)}&endTime=${encodeURIComponent(end)}`,
+      )
       .set('Authorization', `Bearer ${auth.token}`)
       .expect(200);
 

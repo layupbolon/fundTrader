@@ -47,9 +47,7 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-danger-50 text-danger-700 rounded-lg text-sm">
-              {error}
-            </div>
+            <div className="mb-4 p-3 bg-danger-50 text-danger-700 rounded-lg text-sm">{error}</div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5" data-testid="register-form">
@@ -84,7 +82,10 @@ export default function RegisterPage() {
               />
             </div>
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 确认密码
               </label>
               <input

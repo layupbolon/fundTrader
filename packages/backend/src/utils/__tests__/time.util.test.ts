@@ -3,45 +3,45 @@ import { isTradeTime, isWorkday, formatDate, sleep, configDayToJsDay } from '../
 describe('time.util', () => {
   describe('isTradeTime', () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should return false on Saturday', () => {
-      jest.setSystemTime(new Date('2026-02-28T10:00:00')); // Saturday
+      vi.setSystemTime(new Date('2026-02-28T10:00:00')); // Saturday
       expect(isTradeTime()).toBe(false);
     });
 
     it('should return false on Sunday', () => {
-      jest.setSystemTime(new Date('2026-03-01T10:00:00')); // Sunday
+      vi.setSystemTime(new Date('2026-03-01T10:00:00')); // Sunday
       expect(isTradeTime()).toBe(false);
     });
 
     it('should return true on weekday before 15:00', () => {
-      jest.setSystemTime(new Date('2026-02-25T14:30:00')); // Wednesday 14:30
+      vi.setSystemTime(new Date('2026-02-25T14:30:00')); // Wednesday 14:30
       expect(isTradeTime()).toBe(true);
     });
 
     it('should return true at exactly 15:00', () => {
-      jest.setSystemTime(new Date('2026-02-25T15:00:00')); // Wednesday 15:00
+      vi.setSystemTime(new Date('2026-02-25T15:00:00')); // Wednesday 15:00
       expect(isTradeTime()).toBe(true);
     });
 
     it('should return false after 15:00', () => {
-      jest.setSystemTime(new Date('2026-02-25T15:01:00')); // Wednesday 15:01
+      vi.setSystemTime(new Date('2026-02-25T15:01:00')); // Wednesday 15:01
       expect(isTradeTime()).toBe(false);
     });
 
     it('should return true on Monday morning', () => {
-      jest.setSystemTime(new Date('2026-02-23T09:30:00')); // Monday 09:30
+      vi.setSystemTime(new Date('2026-02-23T09:30:00')); // Monday 09:30
       expect(isTradeTime()).toBe(true);
     });
 
     it('should return true on Friday before 15:00', () => {
-      jest.setSystemTime(new Date('2026-02-27T14:59:00')); // Friday 14:59
+      vi.setSystemTime(new Date('2026-02-27T14:59:00')); // Friday 14:59
       expect(isTradeTime()).toBe(true);
     });
   });
@@ -68,10 +68,10 @@ describe('time.util', () => {
     });
 
     it('should use current date when no parameter provided', () => {
-      jest.useFakeTimers();
-      jest.setSystemTime(new Date('2026-02-25T10:00:00')); // Wednesday
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-02-25T10:00:00')); // Wednesday
       expect(isWorkday()).toBe(true);
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
   });
 
@@ -99,22 +99,22 @@ describe('time.util', () => {
 
   describe('sleep', () => {
     beforeEach(() => {
-      jest.useFakeTimers();
+      vi.useFakeTimers();
     });
 
     afterEach(() => {
-      jest.useRealTimers();
+      vi.useRealTimers();
     });
 
     it('should resolve after specified milliseconds', async () => {
       const promise = sleep(1000);
-      jest.advanceTimersByTime(1000);
+      vi.advanceTimersByTime(1000);
       await expect(promise).resolves.toBeUndefined();
     });
 
     it('should not resolve before specified time', async () => {
       const promise = sleep(1000);
-      jest.advanceTimersByTime(500);
+      vi.advanceTimersByTime(500);
 
       let resolved = false;
       promise.then(() => {

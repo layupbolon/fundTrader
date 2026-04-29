@@ -5,7 +5,7 @@ import { createE2EApp } from '../../create-e2e-app';
 import { resetDatabase, seedFund } from '../../db-utils';
 
 describe('API Smoke - Auth & Health', () => {
-  jest.setTimeout(30_000);
+  vi.setConfig({ testTimeout: 30_000 });
 
   let app: INestApplication;
   let dataSource: DataSource;

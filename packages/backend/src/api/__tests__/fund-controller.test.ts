@@ -20,8 +20,8 @@ describe('FundController', () => {
 
   beforeEach(async () => {
     fundRepository = {
-      findOne: jest.fn(),
-      findAndCount: jest.fn(),
+      findOne: vi.fn(),
+      findAndCount: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -38,7 +38,7 @@ describe('FundController', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('findAll', () => {

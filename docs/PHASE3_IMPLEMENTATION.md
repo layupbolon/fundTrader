@@ -92,28 +92,26 @@
 
 ## 配置变更
 
-### `jest.config.js` 修改
+### `vitest.config.ts` 覆盖率配置
 
 ```javascript
-// 新增排除文件
-collectCoverageFrom: [
-  'src/**/*.ts',
-  '!src/**/*.d.ts',
-  '!src/main.ts',
-  '!src/**/*.entity.ts',
-  '!src/models/index.ts',
-  '!src/app.module.ts',        // 新增：纯配置文件
-  '!src/auth/auth.module.ts',   // 新增：纯配置文件
-  '!src/auth/index.ts',         // 新增：导出文件
-],
-
-// 调整覆盖率阈值
-coverageThreshold: {
-  global: {
-    branches: 77,    // 原 80
-    functions: 77,   // 原 80
-    lines: 80,       // 保持不变
-    statements: 80,  // 保持不变
+coverage: {
+  provider: 'v8',
+  include: ['src/**/*.ts'],
+  exclude: [
+    'src/**/*.d.ts',
+    'src/main.ts',
+    'src/**/*.entity.ts',
+    'src/models/index.ts',
+    'src/app.module.ts',
+    'src/auth/auth.module.ts',
+    'src/auth/index.ts',
+  ],
+  thresholds: {
+    branches: 77,
+    functions: 77,
+    lines: 80,
+    statements: 80,
   },
 },
 ```
@@ -194,20 +192,20 @@ const module: TestingModule = await Test.createTestingModule({
 ### 2. Mock Repository 模式
 ```typescript
 const mockRepository = {
-  findOne: jest.fn(),
-  findAndCount: jest.fn(),
-  create: jest.fn(),
-  save: jest.fn(),
+  findOne: vi.fn(),
+  findAndCount: vi.fn(),
+  create: vi.fn(),
+  save: vi.fn(),
 };
 ```
 
 ### 3. Mock Service 模式
 ```typescript
 const mockService = {
-  shouldExecute: jest.fn(),
-  execute: jest.fn(),
-  checkTakeProfit: jest.fn(),
-  executeSell: jest.fn(),
+  shouldExecute: vi.fn(),
+  execute: vi.fn(),
+  checkTakeProfit: vi.fn(),
+  executeSell: vi.fn(),
 };
 ```
 
@@ -266,7 +264,7 @@ describe('ServiceName', () => {
 ```
 
 ### 2. Mock 外部依赖
-- 数据库 Repository 使用 `jest.fn()` 模拟
+- 数据库 Repository 使用 `vi.fn()` 模拟
 - 外部 API 调用全部 Mock
 - 浏览器自动化全部 Mock
 
@@ -351,7 +349,8 @@ packages/backend/src/
 
 ## 相关文件
 
-- [jest.config.js](../packages/backend/jest.config.js) - Jest 测试配置
+- [vitest.config.ts](../packages/backend/vitest.config.ts) - Vitest 单元测试配置
+- [vitest.e2e.config.ts](../packages/backend/vitest.e2e.config.ts) - Vitest E2E 测试配置
 - [CHECKLIST.md](./CHECKLIST.md) - 开发检查清单（已更新测试要求）
 - [IMPLEMENTATION.md](./IMPLEMENTATION.md) - 项目实施总结
 

@@ -9,7 +9,7 @@ describe('BacktestEngine', () => {
 
   beforeEach(async () => {
     const mockFundDataService = {
-      getHistoricalNav: jest.fn(),
+      getHistoricalNav: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({

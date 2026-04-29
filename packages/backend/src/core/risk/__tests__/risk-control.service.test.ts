@@ -25,45 +25,45 @@ describe('RiskControlService', () => {
 
   beforeEach(async () => {
     const mockRiskLimitRepository = {
-      find: jest.fn(),
-      findOne: jest.fn().mockResolvedValue(null),
-      create: jest.fn(),
-      save: jest.fn(),
-      update: jest.fn(),
-      remove: jest.fn(),
-      createQueryBuilder: jest.fn(),
+      find: vi.fn(),
+      findOne: vi.fn().mockResolvedValue(null),
+      create: vi.fn(),
+      save: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
+      createQueryBuilder: vi.fn(),
     };
 
     const mockBlacklistRepository = {
-      find: jest.fn(),
-      findOne: jest.fn().mockResolvedValue(null),
-      create: jest.fn(),
-      save: jest.fn(),
-      update: jest.fn(),
-      remove: jest.fn(),
+      find: vi.fn(),
+      findOne: vi.fn().mockResolvedValue(null),
+      create: vi.fn(),
+      save: vi.fn(),
+      update: vi.fn(),
+      remove: vi.fn(),
     };
 
     const mockPositionRepository = {
-      find: jest.fn(),
-      findOne: jest.fn().mockResolvedValue(null),
-      create: jest.fn(),
-      save: jest.fn(),
+      find: vi.fn(),
+      findOne: vi.fn().mockResolvedValue(null),
+      create: vi.fn(),
+      save: vi.fn(),
     };
 
     const mockQueryBuilder = {
-      select: jest.fn().mockReturnThis(),
-      addSelect: jest.fn().mockReturnThis(),
-      where: jest.fn().mockReturnThis(),
-      andWhere: jest.fn().mockReturnThis(),
-      getRawOne: jest.fn().mockResolvedValue({ totalAmount: null, count: null }),
+      select: vi.fn().mockReturnThis(),
+      addSelect: vi.fn().mockReturnThis(),
+      where: vi.fn().mockReturnThis(),
+      andWhere: vi.fn().mockReturnThis(),
+      getRawOne: vi.fn().mockResolvedValue({ totalAmount: null, count: null }),
     };
 
     const mockTransactionRepository = {
-      find: jest.fn(),
-      findOne: jest.fn().mockResolvedValue(null),
-      create: jest.fn(),
-      save: jest.fn(),
-      createQueryBuilder: jest.fn().mockReturnValue(mockQueryBuilder),
+      find: vi.fn(),
+      findOne: vi.fn().mockResolvedValue(null),
+      create: vi.fn(),
+      save: vi.fn(),
+      createQueryBuilder: vi.fn().mockReturnValue(mockQueryBuilder),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -96,7 +96,7 @@ describe('RiskControlService', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('checkTradeLimit', () => {
@@ -150,11 +150,11 @@ describe('RiskControlService', () => {
       riskLimitRepository.findOne.mockResolvedValue(null);
 
       const mockQueryBuilder = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ totalAmount: '1000', count: '2' }),
+        select: vi.fn().mockReturnThis(),
+        addSelect: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        getRawOne: vi.fn().mockResolvedValue({ totalAmount: '1000', count: '2' }),
       };
 
       transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
@@ -181,11 +181,11 @@ describe('RiskControlService', () => {
       riskLimitRepository.find.mockResolvedValue(limits);
 
       const mockQueryBuilder = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ totalAmount: '8000', count: '5' }),
+        select: vi.fn().mockReturnThis(),
+        addSelect: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        getRawOne: vi.fn().mockResolvedValue({ totalAmount: '8000', count: '5' }),
       };
 
       transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
@@ -213,11 +213,11 @@ describe('RiskControlService', () => {
       riskLimitRepository.find.mockResolvedValue(limits);
 
       const mockQueryBuilder = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ totalAmount: '0', count: '5' }),
+        select: vi.fn().mockReturnThis(),
+        addSelect: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        getRawOne: vi.fn().mockResolvedValue({ totalAmount: '0', count: '5' }),
       };
 
       transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
@@ -478,11 +478,11 @@ describe('RiskControlService', () => {
   describe('getTodayTradeStats', () => {
     it('should return today trade statistics', async () => {
       const mockQueryBuilder = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ totalAmount: '5000', count: '3' }),
+        select: vi.fn().mockReturnThis(),
+        addSelect: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        getRawOne: vi.fn().mockResolvedValue({ totalAmount: '5000', count: '3' }),
       };
 
       transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);
@@ -495,11 +495,11 @@ describe('RiskControlService', () => {
 
     it('should return zeros when no trades today', async () => {
       const mockQueryBuilder = {
-        select: jest.fn().mockReturnThis(),
-        addSelect: jest.fn().mockReturnThis(),
-        where: jest.fn().mockReturnThis(),
-        andWhere: jest.fn().mockReturnThis(),
-        getRawOne: jest.fn().mockResolvedValue({ totalAmount: null, count: null }),
+        select: vi.fn().mockReturnThis(),
+        addSelect: vi.fn().mockReturnThis(),
+        where: vi.fn().mockReturnThis(),
+        andWhere: vi.fn().mockReturnThis(),
+        getRawOne: vi.fn().mockResolvedValue({ totalAmount: null, count: null }),
       };
 
       transactionRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder as any);

@@ -35,17 +35,20 @@ export default function PositionList({ positions }: PositionListProps) {
               const sign = p.profit_rate >= 0 ? '+' : '';
               return (
                 <tr key={p.id} className="border-b border-gray-50 hover:bg-gray-50">
-                  <td className="px-5 py-3 font-medium text-gray-900">
-                    {p.fund?.name || '-'}
-                  </td>
+                  <td className="px-5 py-3 font-medium text-gray-900">{p.fund?.name || '-'}</td>
                   <td className="px-5 py-3 text-gray-500">{p.fund_code}</td>
                   <td className="px-5 py-3 text-right">{p.shares.toFixed(2)}</td>
                   <td className="px-5 py-3 text-right">¥{p.cost_basis.toFixed(4)}</td>
                   <td className="px-5 py-3 text-right">
-                    ¥{p.market_value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    ¥
+                    {p.market_value.toLocaleString('zh-CN', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
                   </td>
                   <td className={`px-5 py-3 text-right font-medium ${profitColor}`}>
-                    {sign}{(p.profit_rate * 100).toFixed(2)}%
+                    {sign}
+                    {(p.profit_rate * 100).toFixed(2)}%
                   </td>
                   <td className="px-5 py-3 text-center">
                     <QuickTrade fundCode={p.fund_code} fundName={p.fund?.name} />

@@ -28,12 +28,12 @@ describe('BacktestController', () => {
 
   beforeEach(async () => {
     backtestResultRepository = {
-      findOne: jest.fn(),
-      findAndCount: jest.fn(),
+      findOne: vi.fn(),
+      findAndCount: vi.fn(),
     };
 
     backtestEngine = {
-      runBacktest: jest.fn(),
+      runBacktest: vi.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -54,7 +54,7 @@ describe('BacktestController', () => {
   });
 
   afterEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe('findAll', () => {

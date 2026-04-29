@@ -50,14 +50,8 @@ export default function BacktestResultCard({ result }: BacktestResultCardProps) 
           value={`${(result.max_drawdown * 100).toFixed(2)}%`}
           color="text-danger-600"
         />
-        <Metric
-          label="夏普比率"
-          value={result.sharpe_ratio.toFixed(2)}
-        />
-        <Metric
-          label="交易次数"
-          value={String(result.trades_count)}
-        />
+        <Metric label="夏普比率" value={result.sharpe_ratio.toFixed(2)} />
+        <Metric label="交易次数" value={String(result.trades_count)} />
         <Metric
           label="最终价值"
           value={`¥${result.final_value.toLocaleString('zh-CN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}

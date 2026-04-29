@@ -8,7 +8,10 @@
     "build": "tsc",
     "watch": "tsc --watch"
   },
-  "keywords": ["shared", "types"],
+  "keywords": [
+    "shared",
+    "types"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {

@@ -101,15 +101,16 @@ export default function StrategyForm() {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <h1 className="text-xl font-bold text-gray-900 mb-6">
-        {isEdit ? '编辑策略' : '新建策略'}
-      </h1>
+      <h1 className="text-xl font-bold text-gray-900 mb-6">{isEdit ? '编辑策略' : '新建策略'}</h1>
 
       {error && (
         <div className="mb-4 p-3 bg-danger-50 text-danger-700 rounded-lg text-sm">{error}</div>
       )}
 
-      <form onSubmit={handleSubmit} className="bg-white rounded-xl border border-gray-200 p-6 space-y-5">
+      <form
+        onSubmit={handleSubmit}
+        className="bg-white rounded-xl border border-gray-200 p-6 space-y-5"
+      >
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">策略名称</label>
           <input
@@ -137,7 +138,9 @@ export default function StrategyForm() {
               className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
             >
               {Object.entries(TYPE_LABELS).map(([val, label]) => (
-                <option key={val} value={val}>{label}</option>
+                <option key={val} value={val}>
+                  {label}
+                </option>
               ))}
             </select>
           </div>
@@ -156,9 +159,7 @@ export default function StrategyForm() {
             className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none disabled:bg-gray-100 disabled:text-gray-500"
             placeholder="6 位数字，例如 110011"
           />
-          {isEdit && (
-            <p className="mt-1 text-xs text-gray-500">编辑时无法修改基金代码</p>
-          )}
+          {isEdit && <p className="mt-1 text-xs text-gray-500">编辑时无法修改基金代码</p>}
         </div>
 
         <div className="border-t border-gray-200 pt-5">
@@ -174,7 +175,9 @@ export default function StrategyForm() {
             onChange={(e) => setEnabled(e.target.checked)}
             className="h-4 w-4 text-primary-600 rounded border-gray-300"
           />
-          <label htmlFor="enabled" className="text-sm text-gray-700">创建后立即启用</label>
+          <label htmlFor="enabled" className="text-sm text-gray-700">
+            创建后立即启用
+          </label>
         </div>
 
         <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">

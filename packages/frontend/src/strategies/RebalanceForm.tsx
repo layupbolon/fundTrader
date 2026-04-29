@@ -24,9 +24,7 @@ export default function RebalanceForm({ config, onChange }: RebalanceFormProps) 
   }
 
   function updateAllocation(index: number, field: keyof Allocation, value: string | number) {
-    const updated = allocations.map((a, i) =>
-      i === index ? { ...a, [field]: value } : a,
-    );
+    const updated = allocations.map((a, i) => (i === index ? { ...a, [field]: value } : a));
     update('target_allocations', updated);
   }
 
@@ -35,7 +33,10 @@ export default function RebalanceForm({ config, onChange }: RebalanceFormProps) 
   }
 
   function removeAllocation(index: number) {
-    update('target_allocations', allocations.filter((_, i) => i !== index));
+    update(
+      'target_allocations',
+      allocations.filter((_, i) => i !== index),
+    );
   }
 
   return (
@@ -83,7 +84,12 @@ export default function RebalanceForm({ config, onChange }: RebalanceFormProps) 
                 className="text-gray-400 hover:text-danger-600 p-1"
               >
                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -98,7 +104,11 @@ export default function RebalanceForm({ config, onChange }: RebalanceFormProps) 
           step="1"
           min="1"
           max="50"
-          value={config.rebalance_threshold == null ? '' : ((config.rebalance_threshold as number) * 100).toFixed(0)}
+          value={
+            config.rebalance_threshold == null
+              ? ''
+              : ((config.rebalance_threshold as number) * 100).toFixed(0)
+          }
           onChange={(e) => update('rebalance_threshold', Number(e.target.value) / 100)}
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
           placeholder="例如 5"
@@ -113,7 +123,9 @@ export default function RebalanceForm({ config, onChange }: RebalanceFormProps) 
           className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 outline-none"
         >
           {Object.entries(FREQUENCY_LABELS).map(([val, label]) => (
-            <option key={val} value={val}>{label}</option>
+            <option key={val} value={val}>
+              {label}
+            </option>
           ))}
         </select>
       </div>

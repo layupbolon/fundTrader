@@ -79,7 +79,10 @@ export default function TakeProfitStopLossForm({ config, onChange }: TakeProfitS
           id="trailing_stop"
           checked={takeProfit.trailing_stop != null}
           onChange={(e) =>
-            updateTakeProfit('trailing_stop', e.target.checked ? (takeProfit.trailing_stop ?? 0.05) : undefined)
+            updateTakeProfit(
+              'trailing_stop',
+              e.target.checked ? (takeProfit.trailing_stop ?? 0.05) : undefined,
+            )
           }
           className="h-4 w-4 text-primary-600 rounded border-gray-300"
         />

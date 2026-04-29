@@ -18,7 +18,10 @@ test('should toggle, edit, and delete strategy', async ({ page }) => {
   await page.getByTestId('strategy-confirm-save-button').click();
   await expect(page).toHaveURL(/\/strategies$/);
 
-  const card = page.locator('[data-testid^="strategy-card-"]').filter({ hasText: strategyName }).first();
+  const card = page
+    .locator('[data-testid^="strategy-card-"]')
+    .filter({ hasText: strategyName })
+    .first();
   await expect(card).toBeVisible();
 
   await card.locator('[role="switch"]').click();

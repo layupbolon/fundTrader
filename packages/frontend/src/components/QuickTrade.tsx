@@ -70,7 +70,12 @@ export default function QuickTrade({ fundCode, fundName, onSuccess }: QuickTrade
                 className="text-gray-400 hover:text-gray-600"
               >
                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -78,7 +83,9 @@ export default function QuickTrade({ fundCode, fundName, onSuccess }: QuickTrade
             {fundName && (
               <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                 <p className="text-sm text-gray-500">交易基金</p>
-                <p className="text-sm font-medium text-gray-900">{fundName} ({fundCode})</p>
+                <p className="text-sm font-medium text-gray-900">
+                  {fundName} ({fundCode})
+                </p>
               </div>
             )}
 
@@ -124,9 +131,7 @@ export default function QuickTrade({ fundCode, fundName, onSuccess }: QuickTrade
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  交易金额
-                </label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">交易金额</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">¥</span>
                   <input

@@ -22,10 +22,7 @@ export class ApiError extends Error {
   }
 }
 
-export async function apiClient<T>(
-  path: string,
-  options: RequestInit = {},
-): Promise<T> {
+export async function apiClient<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -49,10 +46,7 @@ export async function apiClient<T>(
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new ApiError(
-      response.status,
-      body.message || `请求失败 (${response.status})`,
-    );
+    throw new ApiError(response.status, body.message || `请求失败 (${response.status})`);
   }
 
   if (response.status === 204) {

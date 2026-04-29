@@ -1,5 +1,10 @@
 import { apiClient } from './client';
-import type { PaginatedResponse, Strategy, CreateStrategyPayload, UpdateStrategyPayload } from './types';
+import type {
+  PaginatedResponse,
+  Strategy,
+  CreateStrategyPayload,
+  UpdateStrategyPayload,
+} from './types';
 
 export function fetchStrategies(page = 1, limit = 10): Promise<PaginatedResponse<Strategy>> {
   return apiClient<PaginatedResponse<Strategy>>(`/strategies?page=${page}&limit=${limit}`);
