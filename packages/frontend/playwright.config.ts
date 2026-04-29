@@ -33,6 +33,19 @@ function loadEnvFile(filePath: string): Record<string, string> {
 }
 
 const rootEnv = loadEnvFile(path.resolve(__dirname, '../../.env.e2e'));
+
+for (const proxyKey of [
+  'HTTP_PROXY',
+  'HTTPS_PROXY',
+  'http_proxy',
+  'https_proxy',
+  'npm_config_proxy',
+  'npm_config_https_proxy',
+]) {
+  delete process.env[proxyKey];
+}
+process.env.NO_PROXY = process.env.NO_PROXY || 'localhost,127.0.0.1,::1';
+
 const mergedEnv = { ...rootEnv, ...process.env };
 
 const backendEnv = {
@@ -52,11 +65,17 @@ const backendEnv = {
   SCHEDULER_ENABLED: 'false',
   BROKER_MOCK: 'true',
   TELEGRAM_POLLING_ENABLED: 'false',
+  TELEGRAM_BOT_TOKEN: '',
+  TELEGRAM_CHAT_ID: '',
+  FEISHU_APP_ID: '',
+  FEISHU_APP_SECRET: '',
+  FEISHU_USER_ID: '',
+  BULL_PREFIX: mergedEnv.BULL_PREFIX || 'fundtrader:e2e',
 };
 
 const frontendEnv = {
   ...mergedEnv,
-  VITE_API_PROXY_TARGET: mergedEnv.VITE_API_PROXY_TARGET || 'http://127.0.0.1:3000',
+  VITE_API_PROXY_TARGET: mergedEnv.VITE_API_PROXY_TARGET || 'http://localhost:3000',
 };
 
 export default defineConfig({
@@ -68,7 +87,7 @@ export default defineConfig({
     timeout: 10_000,
   },
   use: {
-    baseURL: 'http://127.0.0.1:3001',
+    baseURL: 'http://localhost:3001',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -77,17 +96,17 @@ export default defineConfig({
   webServer: [
     {
       command: 'pnpm --filter @fundtrader/backend start',
-      url: 'http://127.0.0.1:3000/api/health',
+      url: 'http://localhost:3000/api/health',
       env: backendEnv,
       timeout: 120_000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
     {
       command: 'pnpm --filter @fundtrader/frontend dev',
-      url: 'http://127.0.0.1:3001/login',
+      url: 'http://localhost:3001/login',
       env: frontendEnv,
       timeout: 120_000,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
     },
   ],
 });

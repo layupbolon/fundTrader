@@ -17,6 +17,12 @@ process.env.ENCRYPTION_SALT = process.env.ENCRYPTION_SALT || 'e2e_salt_at_least_
 process.env.SCHEDULER_ENABLED = process.env.SCHEDULER_ENABLED || 'false';
 process.env.BROKER_MOCK = process.env.BROKER_MOCK || 'true';
 process.env.TELEGRAM_POLLING_ENABLED = process.env.TELEGRAM_POLLING_ENABLED || 'false';
+process.env.TELEGRAM_BOT_TOKEN = '';
+process.env.TELEGRAM_CHAT_ID = '';
+process.env.FEISHU_APP_ID = '';
+process.env.FEISHU_APP_SECRET = '';
+process.env.FEISHU_USER_ID = '';
+process.env.BULL_PREFIX = 'fundtrader:e2e';
 
 process.env.ALLOWED_ORIGINS =
   process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:3001';

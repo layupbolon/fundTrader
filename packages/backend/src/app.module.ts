@@ -27,7 +27,12 @@ import {
 import { AuthModule, JwtAuthGuard } from './auth';
 
 // Services
-import { TiantianBrokerService } from './services/broker/tiantian.service';
+import {
+  BROKER_ADAPTER,
+  MockBrokerAdapter,
+  ReplayBrokerAdapter,
+  TiantianBrokerService,
+} from './services/broker';
 import { FundDataService } from './services/data/fund-data.service';
 import { NotifyService } from './services/notify/notify.service';
 import { TelegramService } from './services/notify/telegram.service';
@@ -138,6 +143,10 @@ import { BackupController } from './api/backup.controller';
           PortfolioSnapshot,
           OperationLog,
         ],
+        migrations:
+          process.env.NODE_ENV === 'test'
+            ? []
+            : [path.join(__dirname, 'database/migrations/*{.ts,.js}')],
         synchronize: process.env.NODE_ENV !== 'production',
         logging: process.env.NODE_ENV === 'development',
       }),
@@ -163,6 +172,7 @@ import { BackupController } from './api/backup.controller';
     BullModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
+        prefix: process.env.BULL_PREFIX || 'bull',
         redis: {
           host: configService.get('redis.host') || process.env.REDIS_HOST || 'localhost',
           port: parseInt(configService.get('redis.port') || process.env.REDIS_PORT || '6379'),
@@ -209,6 +219,22 @@ import { BackupController } from './api/backup.controller';
 
     // Services
     TiantianBrokerService,
+    MockBrokerAdapter,
+    ReplayBrokerAdapter,
+    {
+      provide: BROKER_ADAPTER,
+      useFactory: (
+        tiantian: TiantianBrokerService,
+        mock: MockBrokerAdapter,
+        replay: ReplayBrokerAdapter,
+      ) => {
+        const mode = process.env.BROKER_MODE || (process.env.BROKER_MOCK === 'true' ? 'mock' : '');
+        if (mode === 'mock' || mode === 'paper' || mode === 'dry-run') return mock;
+        if (mode === 'replay') return replay;
+        return tiantian;
+      },
+      inject: [TiantianBrokerService, MockBrokerAdapter, ReplayBrokerAdapter],
+    },
     FundDataService,
     NotifyService,
     TelegramService,

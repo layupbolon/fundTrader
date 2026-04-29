@@ -12,6 +12,7 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Inject,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -50,7 +51,7 @@ import { CurrentUser } from '../auth/user.decorator';
 import { validateStrategyConfig, normalizeStrategyConfig } from './dto/strategy-config';
 import { RiskControlService } from '../core/risk/risk-control.service';
 import { TradingConfirmationService } from '../core/trading/trading-confirmation.service';
-import { TiantianBrokerService } from '../services/broker/tiantian.service';
+import { BROKER_ADAPTER, BrokerAdapter } from '../services/broker';
 import { OperationLogService } from '../core/logger/operation-log.service';
 
 @ApiBearerAuth()
@@ -231,8 +232,11 @@ export class TransactionController {
     private positionRepository: Repository<Position>,
     private riskControlService: RiskControlService,
     private tradingConfirmationService: TradingConfirmationService,
-    private brokerService: TiantianBrokerService,
+    @Inject(BROKER_ADAPTER)
+    private brokerService: BrokerAdapter,
     private operationLogService: OperationLogService,
+    @InjectQueue('trading')
+    private tradingQueue: Queue,
   ) {}
 
   @Get()
@@ -359,14 +363,10 @@ export class TransactionController {
       };
     }
 
-    let orderId: string;
     let shares = createDto.shares;
     let amount = createDto.amount;
 
-    if (createDto.type === TransactionType.BUY) {
-      const order = await this.brokerService.buyFund(createDto.fund_code, amount);
-      orderId = order.id;
-    } else {
+    if (createDto.type === TransactionType.SELL) {
       const position = await this.positionRepository.findOne({
         where: { user_id: user.id, fund_code: createDto.fund_code },
       });
@@ -387,8 +387,6 @@ export class TransactionController {
         throw new BadRequestException('Sell shares exceed current position');
       }
 
-      const order = await this.brokerService.sellFund(createDto.fund_code, shares);
-      orderId = order.id;
       amount = createDto.amount || shares * Number(position.avg_price);
     }
 
@@ -398,22 +396,65 @@ export class TransactionController {
       type: createDto.type,
       amount,
       shares,
-      status: TransactionStatus.PENDING,
-      order_id: orderId,
+      status: TransactionStatus.PENDING_SUBMIT,
     });
     const saved = await this.transactionRepository.save(transaction);
+    let jobId: string | number;
+    try {
+      const job = await this.tradingQueue.add(
+        'submit-transaction',
+        { transaction_id: saved.id, triggered_by: user.id },
+        {
+          jobId: `submit-transaction:${saved.id}`,
+          attempts: 3,
+          backoff: { type: 'exponential', delay: 30_000 },
+          removeOnComplete: true,
+        },
+      );
+      jobId = job.id;
+    } catch (error) {
+      await this.transactionRepository.update(saved.id, {
+        status: TransactionStatus.FAILED,
+        confirmed_at: new Date(),
+      });
+      try {
+        await this.operationLogService.logUserAction(
+          user.id,
+          createDto.type === TransactionType.BUY
+            ? OperationType.TRADE_BUY
+            : OperationType.TRADE_SELL,
+          'trade',
+          `交易入队失败 ${saved.id}`,
+          {
+            fund_code: createDto.fund_code,
+            amount: saved.amount,
+            type: createDto.type,
+            shares: saved.shares,
+            old_status: saved.status,
+            new_status: TransactionStatus.FAILED,
+            reason: error instanceof Error ? error.message : 'queue_add_failed',
+          },
+        );
+      } catch (logError) {
+        console.error(`Failed to write operation log for queue failure ${saved.id}:`, logError);
+      }
+      throw error;
+    }
 
     await this.operationLogService.logUserAction(
       user.id,
       createDto.type === TransactionType.BUY ? OperationType.TRADE_BUY : OperationType.TRADE_SELL,
       'trade',
-      `创建交易 ${saved.id}`,
+      `创建交易意图 ${saved.id}`,
       {
         fund_code: createDto.fund_code,
         amount: saved.amount,
         type: createDto.type,
         shares: saved.shares,
-        order_id: saved.order_id,
+        old_status: null,
+        new_status: saved.status,
+        job_id: jobId,
+        reason: 'api_create_intent',
       },
     );
 
@@ -421,6 +462,7 @@ export class TransactionController {
       id: saved.id,
       status: saved.status,
       requires_confirmation: false,
+      job_id: jobId,
     };
   }
 
@@ -470,14 +512,42 @@ export class TransactionController {
       };
     }
 
-    if (![TransactionStatus.PENDING, TransactionStatus.SUBMITTED].includes(transaction.status)) {
+    if (
+      ![
+        TransactionStatus.PENDING_SUBMIT,
+        TransactionStatus.PENDING,
+        TransactionStatus.SUBMITTED,
+      ].includes(transaction.status)
+    ) {
       throw new BadRequestException(`Transaction status ${transaction.status} cannot be cancelled`);
+    }
+    if (transaction.status === TransactionStatus.PENDING_SUBMIT && !transaction.order_id) {
+      await this.transactionRepository.update(transaction.id, {
+        status: TransactionStatus.CANCELLED,
+        confirmed_at: new Date(),
+      });
+      await this.operationLogService.logUserAction(
+        user.id,
+        OperationType.TRADE_CANCEL,
+        'trade',
+        `取消待提交交易 ${transaction.id}`,
+        {
+          transaction_id: transaction.id,
+          old_status: transaction.status,
+          new_status: TransactionStatus.CANCELLED,
+          reason: 'cancel_before_broker_submit',
+        },
+      );
+      return { id: transaction.id, status: TransactionStatus.CANCELLED };
     }
     if (!transaction.order_id) {
       throw new BadRequestException('Transaction has no broker order id');
     }
 
-    await this.brokerService.cancelOrder(transaction.order_id);
+    await this.brokerService.cancelOrder(transaction.order_id, {
+      userId: user.id,
+      transactionId: transaction.id,
+    });
     await this.transactionRepository.update(transaction.id, {
       status: TransactionStatus.CANCELLED,
       confirmed_at: new Date(),
@@ -488,7 +558,12 @@ export class TransactionController {
       OperationType.TRADE_CANCEL,
       'trade',
       `撤销交易 ${transaction.id}`,
-      { transaction_id: transaction.id, order_id: transaction.order_id },
+      {
+        transaction_id: transaction.id,
+        order_id: transaction.order_id,
+        old_status: transaction.status,
+        new_status: TransactionStatus.CANCELLED,
+      },
     );
 
     return { id: transaction.id, status: TransactionStatus.CANCELLED };
@@ -546,18 +621,27 @@ export class TransactionController {
         continue;
       }
       try {
-        if (!transaction.order_id) {
-          throw new BadRequestException('Transaction has no broker order id');
-        }
         if (
-          ![TransactionStatus.PENDING, TransactionStatus.SUBMITTED].includes(transaction.status)
+          ![
+            TransactionStatus.PENDING_SUBMIT,
+            TransactionStatus.PENDING,
+            TransactionStatus.SUBMITTED,
+          ].includes(transaction.status)
         ) {
           throw new BadRequestException(
             `Transaction status ${transaction.status} cannot be cancelled`,
           );
         }
 
-        await this.brokerService.cancelOrder(transaction.order_id);
+        if (transaction.status !== TransactionStatus.PENDING_SUBMIT || transaction.order_id) {
+          if (!transaction.order_id) {
+            throw new BadRequestException('Transaction has no broker order id');
+          }
+          await this.brokerService.cancelOrder(transaction.order_id, {
+            userId: user.id,
+            transactionId: transaction.id,
+          });
+        }
         await this.transactionRepository.update(transaction.id, {
           status: TransactionStatus.CANCELLED,
           confirmed_at: new Date(),
@@ -568,7 +652,12 @@ export class TransactionController {
           OperationType.TRADE_CANCEL,
           'trade',
           `批量撤销交易 ${transaction.id}`,
-          { transaction_id: transaction.id, order_id: transaction.order_id },
+          {
+            transaction_id: transaction.id,
+            order_id: transaction.order_id,
+            old_status: transaction.status,
+            new_status: TransactionStatus.CANCELLED,
+          },
         );
 
         results.push({ id: transactionId, success: true, status: TransactionStatus.CANCELLED });
@@ -602,7 +691,10 @@ export class TransactionController {
       throw new BadRequestException('Transaction has no broker order id');
     }
 
-    const orderStatus = await this.brokerService.getOrderStatus(transaction.order_id);
+    const orderStatus = await this.brokerService.getOrderStatus(transaction.order_id, {
+      userId,
+      transactionId: transaction.id,
+    });
     const now = new Date();
 
     if (orderStatus.status === 'CONFIRMED') {
@@ -626,15 +718,22 @@ export class TransactionController {
       });
     }
 
+    const latest = await this.transactionRepository.findOne({ where: { id: transaction.id } });
+
     await this.operationLogService.logUserAction(
       userId,
       OperationType.MANUAL_OPERATION,
       'trade',
       `刷新交易状态 ${transaction.id}`,
-      { transaction_id: transaction.id, order_status: orderStatus.status },
+      {
+        transaction_id: transaction.id,
+        order_status: orderStatus.status,
+        old_status: transaction.status,
+        new_status: latest?.status || transaction.status,
+        broker_response: orderStatus,
+      },
     );
 
-    const latest = await this.transactionRepository.findOne({ where: { id: transaction.id } });
     return {
       id: transaction.id,
       status: latest?.status || transaction.status,

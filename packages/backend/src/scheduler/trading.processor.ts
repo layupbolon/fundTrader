@@ -1,6 +1,6 @@
 import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import {
@@ -15,9 +15,11 @@ import { AutoInvestStrategy } from '../core/strategy/auto-invest.strategy';
 import { TakeProfitStopLossStrategy } from '../core/strategy/take-profit-stop-loss.strategy';
 import { GridTradingStrategy } from '../core/strategy/grid-trading.strategy';
 import { RebalanceStrategy } from '../core/strategy/rebalance.strategy';
-import { TiantianBrokerService } from '../services/broker/tiantian.service';
+import { BROKER_ADAPTER, BrokerAdapter, BrokerOrder } from '../services/broker';
 import { NotifyService } from '../services/notify/notify.service';
 import { PositionService } from '../services/position/position.service';
+import { OperationLogService } from '../core/logger/operation-log.service';
+import { OperationType } from '../models/operation-log.entity';
 
 @Processor('trading')
 @Injectable()
@@ -33,10 +35,114 @@ export class TradingProcessor {
     private takeProfitStopLossStrategy: TakeProfitStopLossStrategy,
     private gridTradingStrategy: GridTradingStrategy,
     private rebalanceStrategy: RebalanceStrategy,
-    private brokerService: TiantianBrokerService,
+    @Inject(BROKER_ADAPTER)
+    private brokerService: BrokerAdapter,
     private notifyService: NotifyService,
     private positionService: PositionService,
+    private operationLogService: OperationLogService,
   ) {}
+
+  @Process('submit-transaction')
+  async handleSubmitTransaction(job: Job<{ transaction_id: string; triggered_by?: string }>) {
+    const transaction = await this.transactionRepository.findOne({
+      where: { id: job.data.transaction_id },
+    });
+    if (!transaction) {
+      return;
+    }
+    if (transaction.order_id) {
+      if (
+        [TransactionStatus.CREATED, TransactionStatus.PENDING_SUBMIT].includes(transaction.status)
+      ) {
+        await this.transactionRepository.update(transaction.id, {
+          status: TransactionStatus.SUBMITTED,
+        });
+      }
+      return;
+    }
+    if (
+      ![TransactionStatus.CREATED, TransactionStatus.PENDING_SUBMIT].includes(transaction.status)
+    ) {
+      return;
+    }
+
+    let order: BrokerOrder;
+    try {
+      order =
+        transaction.type === TransactionType.BUY
+          ? await this.brokerService.buyFund(transaction.fund_code, Number(transaction.amount), {
+              userId: transaction.user_id,
+              transactionId: transaction.id,
+            })
+          : await this.brokerService.sellFund(transaction.fund_code, Number(transaction.shares), {
+              userId: transaction.user_id,
+              transactionId: transaction.id,
+            });
+    } catch (error) {
+      const maxAttempts = job.opts.attempts || 1;
+      if (job.attemptsMade + 1 >= maxAttempts) {
+        await this.transactionRepository.update(transaction.id, {
+          status: TransactionStatus.FAILED,
+          confirmed_at: new Date(),
+        });
+        await this.logUserActionSafely(
+          transaction.user_id,
+          OperationType.TRADE_CONFIRM,
+          'trade',
+          `交易提交失败 ${transaction.id}`,
+          {
+            transaction_id: transaction.id,
+            old_status: transaction.status,
+            new_status: TransactionStatus.FAILED,
+            reason: error instanceof Error ? error.message : 'broker_submit_failed',
+          },
+        );
+      }
+      throw error;
+    }
+
+    try {
+      await this.transactionRepository.update(transaction.id, {
+        status: TransactionStatus.SUBMITTED,
+        order_id: order.id,
+      });
+    } catch (error) {
+      console.error(
+        `Broker submitted transaction ${transaction.id} as order ${order.id}, but local persistence failed. Suppressing Bull retry to avoid duplicate broker submit:`,
+        error,
+      );
+      await this.logUserActionSafely(
+        transaction.user_id,
+        OperationType.TRADE_CONFIRM,
+        'trade',
+        `交易提交本地持久化失败 ${transaction.id}`,
+        {
+          transaction_id: transaction.id,
+          order_id: order.id,
+          old_status: transaction.status,
+          new_status: transaction.status,
+          broker_response: order,
+          reason: error instanceof Error ? error.message : 'broker_order_persist_failed',
+        },
+      );
+      return;
+    }
+
+    await this.logUserActionSafely(
+      transaction.user_id,
+      OperationType.TRADE_CONFIRM,
+      'trade',
+      `交易提交到券商 ${transaction.id}`,
+      {
+        transaction_id: transaction.id,
+        order_id: order.id,
+        old_status: transaction.status,
+        new_status: TransactionStatus.SUBMITTED,
+        broker_response: order,
+        reason: 'broker_submit_success',
+      },
+    );
+  }
 
   @Process('check-auto-invest')
   async handleAutoInvest(_job: Job) {
@@ -160,7 +266,9 @@ export class TradingProcessor {
 
     const pendingTransactions = await this.transactionRepository
       .createQueryBuilder('t')
-      .where('t.status = :status', { status: TransactionStatus.PENDING })
+      .where('t.status IN (:...statuses)', {
+        statuses: [TransactionStatus.PENDING, TransactionStatus.SUBMITTED],
+      })
       .andWhere('t.submitted_at < :cutoff', { cutoff: oneDayAgo })
       .getMany();
 
@@ -171,7 +279,10 @@ export class TradingProcessor {
           continue;
         }
 
-        const orderStatus = await this.brokerService.getOrderStatus(transaction.order_id);
+        const orderStatus = await this.brokerService.getOrderStatus(transaction.order_id, {
+          userId: transaction.user_id,
+          transactionId: transaction.id,
+        });
 
         if (orderStatus.status === 'CONFIRMED') {
           await this.transactionRepository.update(transaction.id, {
@@ -182,6 +293,7 @@ export class TradingProcessor {
             shares: orderStatus.shares,
             price: orderStatus.price,
           });
+          await this.logStatusMigration(transaction, TransactionStatus.CONFIRMED, orderStatus);
 
           // 更新持仓
           if (transaction.type === TransactionType.BUY) {
@@ -210,6 +322,7 @@ export class TradingProcessor {
             status: TransactionStatus.FAILED,
             confirmed_at: new Date(),
           });
+          await this.logStatusMigration(transaction, TransactionStatus.FAILED, orderStatus);
 
           await this.notifyService.send({
             title: '交易确认失败',
@@ -243,6 +356,46 @@ export class TradingProcessor {
       await this.brokerService.keepAlive();
     } catch (error) {
       console.error('Failed to keep session alive:', error);
+    }
+  }
+
+  private async logStatusMigration(
+    transaction: Transaction,
+    newStatus: TransactionStatus,
+    brokerResponse: unknown,
+  ) {
+    await this.operationLogService.logUserAction(
+      transaction.user_id,
+      OperationType.TRADE_CONFIRM,
+      'trade',
+      `交易状态迁移 ${transaction.id}`,
+      {
+        transaction_id: transaction.id,
+        order_id: transaction.order_id,
+        old_status: transaction.status,
+        new_status: newStatus,
+        broker_response: brokerResponse,
+      },
+    );
+  }
+
+  private async logUserActionSafely(
+    userId: string,
+    operationType: OperationType,
+    category: string,
+    message: string,
+    metadata: Record<string, unknown>,
+  ) {
+    try {
+      await this.operationLogService.logUserAction(
+        userId,
+        operationType,
+        category,
+        message,
+        metadata,
+      );
+    } catch (error) {
+      console.error(`Failed to write operation log for ${message}:`, error);
     }
   }
 }

@@ -14,6 +14,7 @@ const StrategyForm = lazy(() => import('./strategies/StrategyForm'));
 const BacktestPage = lazy(() => import('./backtest/BacktestPage'));
 const AnalyticsPage = lazy(() => import('./analytics/AnalyticsPage'));
 const TransactionsPage = lazy(() => import('./transactions/TransactionsPage'));
+const OperationsPage = lazy(() => import('./operations/OperationsPage'));
 
 export default function App() {
   return (
@@ -47,6 +48,7 @@ export default function App() {
                 <Route path="/backtest" element={<BacktestPage />} />
                 <Route path="/analytics" element={<AnalyticsPage />} />
                 <Route path="/transactions" element={<TransactionsPage />} />
+                <Route path="/operations" element={<OperationsPage />} />
               </Route>
 
               {/* Fallback */}

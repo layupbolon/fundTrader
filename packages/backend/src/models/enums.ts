@@ -4,6 +4,8 @@ export enum TransactionType {
 }
 
 export enum TransactionStatus {
+  CREATED = 'CREATED',
+  PENDING_SUBMIT = 'PENDING_SUBMIT',
   PENDING = 'PENDING',
   SUBMITTED = 'SUBMITTED',
   CONFIRMED = 'CONFIRMED',

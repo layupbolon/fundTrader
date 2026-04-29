@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { CryptoUtil } from '../../utils';
+import {
+  BrokerAdapter,
+  BrokerContext,
+  BrokerOrder,
+  BrokerOrderStatus,
+  BrokerSession,
+} from './broker-adapter';
 
 /**
  * 会话信息接口
@@ -13,47 +20,6 @@ interface Session {
 
   /** 会话过期时间 */
   expiresAt: Date;
-}
-
-/**
- * 订单信息接口
- *
- * 交易订单的基本信息。
- */
-interface Order {
-  /** 订单号 */
-  id: string;
-
-  /** 基金代码 */
-  fundCode: string;
-
-  /** 交易金额或份额 */
-  amount: number;
-
-  /** 订单状态 */
-  status: string;
-}
-
-/**
- * 订单状态接口
- *
- * 查询订单时返回的状态信息。
- */
-interface OrderStatus {
-  /** 订单号 */
-  id: string;
-
-  /** 订单状态 */
-  status: 'PENDING' | 'CONFIRMED' | 'FAILED' | 'CANCELLED';
-
-  /** 确认份额（仅确认后有值） */
-  shares?: number;
-
-  /** 成交价格（仅确认后有值） */
-  price?: number;
-
-  /** 失败原因（仅失败时有值） */
-  reason?: string;
 }
 
 /**
@@ -99,7 +65,7 @@ interface OrderStatus {
  * console.log(`订单号: ${order.id}`);
  */
 @Injectable()
-export class TiantianBrokerService {
+export class TiantianBrokerService implements BrokerAdapter {
   /** 是否启用 mock broker（用于测试环境） */
   private readonly mockEnabled: boolean;
 
@@ -112,6 +78,9 @@ export class TiantianBrokerService {
   /** 会话信息 */
   private session: Session | null = null;
 
+  /** 按用户隔离的会话信息 */
+  private sessions = new Map<string, Session>();
+
   /** 加密工具实例 */
   private cryptoUtil?: CryptoUtil;
 
@@ -123,7 +92,13 @@ export class TiantianBrokerService {
    * @throws Error 如果 MASTER_KEY 环境变量未设置
    */
   constructor() {
-    this.mockEnabled = process.env.BROKER_MOCK === 'true';
+    const brokerMode = process.env.BROKER_MODE;
+    this.mockEnabled =
+      process.env.BROKER_MOCK === 'true' ||
+      brokerMode === 'mock' ||
+      brokerMode === 'paper' ||
+      brokerMode === 'dry-run' ||
+      brokerMode === 'replay';
     if (this.mockEnabled) {
       this.session = {
         cookies: [],
@@ -163,12 +138,13 @@ export class TiantianBrokerService {
    * const session = await broker.login('username', 'password');
    * console.log(`会话有效期至: ${session.expiresAt}`);
    */
-  async login(username: string, password: string): Promise<Session> {
+  async login(username: string, password: string, context?: BrokerContext): Promise<BrokerSession> {
     if (this.mockEnabled) {
       this.session = {
         cookies: [{ name: 'mock-session', value: `${username}:${password.length}` }],
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       };
+      this.sessions.set(this.getSessionKey(context), this.session);
       return this.session;
     }
 
@@ -206,6 +182,7 @@ export class TiantianBrokerService {
         cookies,
         expiresAt: new Date(Date.now() + 30 * 60 * 1000), // 30分钟后过期
       };
+      this.sessions.set(this.getSessionKey(context), this.session);
 
       return this.session;
     } catch (error) {
@@ -238,7 +215,7 @@ export class TiantianBrokerService {
    * const order = await broker.buyFund('000001', 500);
    * console.log(`订单号: ${order.id}`);
    */
-  async buyFund(fundCode: string, amount: number): Promise<Order> {
+  async buyFund(fundCode: string, amount: number, context?: BrokerContext): Promise<BrokerOrder> {
     if (this.mockEnabled) {
       return {
         id: `MOCK_BUY_${Date.now()}`,
@@ -248,7 +225,7 @@ export class TiantianBrokerService {
       };
     }
 
-    if (!this.isSessionValid()) {
+    if (!this.isSessionValid(context)) {
       throw new Error('会话已过期，请重新登录');
     }
 
@@ -306,7 +283,7 @@ export class TiantianBrokerService {
    * const order = await broker.sellFund('000001', 100.5);
    * console.log(`订单号: ${order.id}`);
    */
-  async sellFund(fundCode: string, shares: number): Promise<Order> {
+  async sellFund(fundCode: string, shares: number, context?: BrokerContext): Promise<BrokerOrder> {
     if (this.mockEnabled) {
       return {
         id: `MOCK_SELL_${Date.now()}`,
@@ -316,7 +293,7 @@ export class TiantianBrokerService {
       };
     }
 
-    if (!this.isSessionValid()) {
+    if (!this.isSessionValid(context)) {
       throw new Error('会话已过期，请重新登录');
     }
 
@@ -365,7 +342,7 @@ export class TiantianBrokerService {
    *   console.log(`确认份额: ${status.shares}`);
    * }
    */
-  async getOrderStatus(orderId: string): Promise<OrderStatus> {
+  async getOrderStatus(orderId: string, context?: BrokerContext): Promise<BrokerOrderStatus> {
     if (this.mockEnabled) {
       if (orderId.includes('FAILED')) {
         return { id: orderId, status: 'FAILED', reason: 'Mock failure' };
@@ -384,7 +361,7 @@ export class TiantianBrokerService {
       };
     }
 
-    if (!this.isSessionValid()) {
+    if (!this.isSessionValid(context)) {
       throw new Error('会话已过期，请重新登录');
     }
 
@@ -407,12 +384,15 @@ export class TiantianBrokerService {
     }
   }
 
-  async cancelOrder(orderId: string): Promise<{ id: string; status: 'CANCELLED' }> {
+  async cancelOrder(
+    orderId: string,
+    context?: BrokerContext,
+  ): Promise<{ id: string; status: 'CANCELLED' }> {
     if (this.mockEnabled) {
       return { id: orderId, status: 'CANCELLED' };
     }
 
-    if (!this.isSessionValid()) {
+    if (!this.isSessionValid(context)) {
       throw new Error('会话已过期，请重新登录');
     }
 
@@ -442,7 +422,7 @@ export class TiantianBrokerService {
    *   await broker.keepAlive();
    * }, 30 * 60 * 1000); // 每30分钟
    */
-  async keepAlive(): Promise<void> {
+  async keepAlive(context?: BrokerContext): Promise<void> {
     if (this.mockEnabled) {
       if (!this.session) {
         this.session = { cookies: [], expiresAt: new Date() };
@@ -451,7 +431,7 @@ export class TiantianBrokerService {
       return;
     }
 
-    if (!this.isSessionValid()) {
+    if (!this.isSessionValid(context)) {
       return;
     }
 
@@ -463,6 +443,7 @@ export class TiantianBrokerService {
 
       // 更新会话过期时间
       this.session.expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+      this.sessions.set(this.getSessionKey(context), this.session);
     } catch (error) {
       console.error('Keep alive failed:', error);
     }
@@ -481,6 +462,7 @@ export class TiantianBrokerService {
   async close(): Promise<void> {
     if (this.mockEnabled) {
       this.session = null;
+      this.sessions.clear();
       return;
     }
 
@@ -500,16 +482,21 @@ export class TiantianBrokerService {
    * @returns true 表示会话有效，false 表示会话无效或已过期
    * @private
    */
-  private isSessionValid(): boolean {
+  private isSessionValid(context?: BrokerContext): boolean {
     if (this.mockEnabled) {
       return true;
     }
 
-    if (!this.session) {
+    const session = this.sessions.get(this.getSessionKey(context)) || this.session;
+    if (!session) {
       return false;
     }
 
-    return new Date() < this.session.expiresAt;
+    return new Date() < session.expiresAt;
+  }
+
+  private getSessionKey(context?: BrokerContext): string {
+    return context?.userId || 'default';
   }
 
   /**

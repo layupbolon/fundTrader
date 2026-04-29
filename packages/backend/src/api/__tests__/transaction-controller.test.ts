@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { BadRequestException } from '@nestjs/common';
+import { getQueueToken } from '@nestjs/bull';
 import { Transaction, TransactionType, TransactionStatus } from '../../models';
 import { TransactionController } from '../controllers';
 import { PaginationDto } from '../pagination.dto';
@@ -8,7 +9,7 @@ import { Fund } from '../../models/fund.entity';
 import { Position } from '../../models/position.entity';
 import { RiskControlService } from '../../core/risk/risk-control.service';
 import { TradingConfirmationService } from '../../core/trading/trading-confirmation.service';
-import { TiantianBrokerService } from '../../services/broker/tiantian.service';
+import { BROKER_ADAPTER } from '../../services/broker';
 import { OperationLogService } from '../../core/logger/operation-log.service';
 
 describe('TransactionController', () => {
@@ -20,6 +21,7 @@ describe('TransactionController', () => {
   let tradingConfirmationService: any;
   let brokerService: any;
   let operationLogService: any;
+  let tradingQueue: any;
 
   const mockUser = { id: 'user-uuid-1', username: 'testuser' };
   const mockTransaction = {
@@ -65,6 +67,9 @@ describe('TransactionController', () => {
     operationLogService = {
       logUserAction: vi.fn().mockResolvedValue(undefined),
     };
+    tradingQueue = {
+      add: vi.fn().mockResolvedValue({ id: 'submit-job-1' }),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       controllers: [TransactionController],
@@ -90,12 +95,16 @@ describe('TransactionController', () => {
           useValue: tradingConfirmationService,
         },
         {
-          provide: TiantianBrokerService,
+          provide: BROKER_ADAPTER,
           useValue: brokerService,
         },
         {
           provide: OperationLogService,
           useValue: operationLogService,
+        },
+        {
+          provide: getQueueToken('trading'),
+          useValue: tradingQueue,
         },
       ],
     }).compile();
@@ -116,8 +125,7 @@ describe('TransactionController', () => {
         fund_code: '110011',
         type: TransactionType.BUY,
         amount: 1000,
-        status: TransactionStatus.PENDING,
-        order_id: 'order-buy-1',
+        status: TransactionStatus.PENDING_SUBMIT,
       });
       transactionRepository.save.mockResolvedValue({
         id: 'tx-new',
@@ -125,8 +133,7 @@ describe('TransactionController', () => {
         fund_code: '110011',
         type: TransactionType.BUY,
         amount: 1000,
-        status: TransactionStatus.PENDING,
-        order_id: 'order-buy-1',
+        status: TransactionStatus.PENDING_SUBMIT,
       });
 
       const result = await controller.create(
@@ -136,10 +143,16 @@ describe('TransactionController', () => {
 
       expect(result).toEqual({
         id: 'tx-new',
-        status: TransactionStatus.PENDING,
+        status: TransactionStatus.PENDING_SUBMIT,
         requires_confirmation: false,
+        job_id: 'submit-job-1',
       });
-      expect(brokerService.buyFund).toHaveBeenCalledWith('110011', 1000);
+      expect(brokerService.buyFund).not.toHaveBeenCalled();
+      expect(tradingQueue.add).toHaveBeenCalledWith(
+        'submit-transaction',
+        { transaction_id: 'tx-new', triggered_by: mockUser.id },
+        expect.objectContaining({ jobId: 'submit-transaction:tx-new', attempts: 3 }),
+      );
     });
 
     it('should create pending transaction when confirmation is required', async () => {

@@ -68,6 +68,7 @@ export interface Transaction {
   shares: number;
   fee: number;
   status: TransactionStatus;
+  order_id?: string | null;
   submitted_at: string;
   confirmed_at: string | null;
   created_at: string;

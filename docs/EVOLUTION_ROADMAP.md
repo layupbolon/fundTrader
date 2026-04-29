@@ -37,6 +37,8 @@ git diff --check
 
 ## 下一阶段执行顺序
 
+> 2026-04-29 迭代记录：Phase A/B/C/D/E 的首轮能力已落地。交易创建改为先写本地意图再由 Bull job 提交 broker；新增 broker adapter 抽象、mock/replay/paper 模式、迁移入口、部署预检、备份恢复校验、净值查询优化、批量 upsert、基金信息解析兜底、数据完整性检查和前端运维任务面板。后续重点转为真实券商页面选择器、长期 paper trading 观察和投研指标数据源深化。
+
 ### Phase A：交易状态机与可恢复性
 
 优先级：最高。

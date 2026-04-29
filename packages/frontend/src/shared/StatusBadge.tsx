@@ -1,6 +1,12 @@
 import { TransactionStatus } from '../api/types';
 
 const STATUS_STYLES: Record<TransactionStatus, { bg: string; text: string; label: string }> = {
+  [TransactionStatus.CREATED]: { bg: 'bg-gray-100', text: 'text-gray-700', label: '已创建' },
+  [TransactionStatus.PENDING_SUBMIT]: {
+    bg: 'bg-amber-100',
+    text: 'text-amber-700',
+    label: '待提交',
+  },
   [TransactionStatus.PENDING]: { bg: 'bg-gray-100', text: 'text-gray-700', label: '待处理' },
   [TransactionStatus.SUBMITTED]: { bg: 'bg-blue-100', text: 'text-blue-700', label: '已提交' },
   [TransactionStatus.CONFIRMED]: { bg: 'bg-green-100', text: 'text-green-700', label: '已确认' },

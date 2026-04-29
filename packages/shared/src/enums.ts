@@ -20,6 +20,8 @@ export enum TransactionType {
 
 // 交易状态
 export enum TransactionStatus {
+  CREATED = 'CREATED', // 已创建
+  PENDING_SUBMIT = 'PENDING_SUBMIT', // 等待提交
   PENDING = 'PENDING', // 待处理
   SUBMITTED = 'SUBMITTED', // 已提交
   CONFIRMED = 'CONFIRMED', // 已确认

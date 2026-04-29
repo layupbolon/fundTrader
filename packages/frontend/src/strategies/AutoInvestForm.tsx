@@ -15,7 +15,23 @@ export default function AutoInvestForm({ config, onChange }: AutoInvestFormProps
   const frequency = (config.frequency as InvestFrequency) || InvestFrequency.WEEKLY;
 
   function update(field: string, value: unknown) {
-    onChange({ ...config, frequency, [field]: value });
+    const nextFrequency = field === 'frequency' ? (value as InvestFrequency) : frequency;
+    const nextConfig = { ...config, frequency: nextFrequency, [field]: value };
+
+    if (nextFrequency === InvestFrequency.WEEKLY) {
+      const { day_of_month, ...weeklyConfig } = nextConfig;
+      onChange({ ...weeklyConfig, day_of_week: (weeklyConfig.day_of_week as number) ?? 1 });
+      return;
+    }
+
+    if (nextFrequency === InvestFrequency.MONTHLY) {
+      const { day_of_week, ...monthlyConfig } = nextConfig;
+      onChange(monthlyConfig);
+      return;
+    }
+
+    const { day_of_week, day_of_month, ...dailyConfig } = nextConfig;
+    onChange(dailyConfig);
   }
 
   return (

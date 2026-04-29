@@ -6,9 +6,10 @@ import { AutoInvestStrategy } from '../../core/strategy/auto-invest.strategy';
 import { TakeProfitStopLossStrategy } from '../../core/strategy/take-profit-stop-loss.strategy';
 import { GridTradingStrategy } from '../../core/strategy/grid-trading.strategy';
 import { RebalanceStrategy } from '../../core/strategy/rebalance.strategy';
-import { TiantianBrokerService } from '../../services/broker/tiantian.service';
+import { BROKER_ADAPTER } from '../../services/broker';
 import { NotifyService } from '../../services/notify/notify.service';
 import { PositionService } from '../../services/position/position.service';
+import { OperationLogService } from '../../core/logger/operation-log.service';
 
 describe('TradingProcessor', () => {
   let processor: TradingProcessor;
@@ -16,6 +17,7 @@ describe('TradingProcessor', () => {
   let brokerService: any;
   let notifyService: any;
   let positionService: any;
+  let operationLogService: any;
 
   beforeEach(async () => {
     const mockStrategyRepository = {
@@ -30,6 +32,7 @@ describe('TradingProcessor', () => {
       createQueryBuilder: vi.fn(),
       update: vi.fn(),
       find: vi.fn(),
+      findOne: vi.fn(),
     };
 
     brokerService = {
@@ -48,6 +51,9 @@ describe('TradingProcessor', () => {
       updatePositionOnBuy: vi.fn(),
       updatePositionOnSell: vi.fn(),
       refreshAllPositionValues: vi.fn(),
+    };
+    operationLogService = {
+      logUserAction: vi.fn().mockResolvedValue(undefined),
     };
 
     const mockAutoInvestStrategy = {
@@ -103,7 +109,7 @@ describe('TradingProcessor', () => {
           useValue: mockRebalanceStrategy,
         },
         {
-          provide: TiantianBrokerService,
+          provide: BROKER_ADAPTER,
           useValue: brokerService,
         },
         {
@@ -114,10 +120,61 @@ describe('TradingProcessor', () => {
           provide: PositionService,
           useValue: positionService,
         },
+        {
+          provide: OperationLogService,
+          useValue: operationLogService,
+        },
       ],
     }).compile();
 
     processor = module.get<TradingProcessor>(TradingProcessor);
+  });
+
+  describe('handleSubmitTransaction', () => {
+    it('should submit pending intent to broker and mark submitted', async () => {
+      transactionRepository.findOne.mockResolvedValue({
+        id: 'tx-intent-1',
+        user_id: 'user1',
+        fund_code: '000001',
+        type: TransactionType.BUY,
+        amount: 1000,
+        status: TransactionStatus.PENDING_SUBMIT,
+      });
+      brokerService.buyFund.mockResolvedValue({ id: 'order1', fundCode: '000001', amount: 1000 });
+
+      await processor.handleSubmitTransaction({
+        data: { transaction_id: 'tx-intent-1', triggered_by: 'user1' },
+        opts: { attempts: 3 },
+        attemptsMade: 0,
+      } as any);
+
+      expect(brokerService.buyFund).toHaveBeenCalledWith('000001', 1000, {
+        userId: 'user1',
+        transactionId: 'tx-intent-1',
+      });
+      expect(transactionRepository.update).toHaveBeenCalledWith('tx-intent-1', {
+        status: TransactionStatus.SUBMITTED,
+        order_id: 'order1',
+      });
+      expect(operationLogService.logUserAction).toHaveBeenCalled();
+    });
+
+    it('should not resubmit already submitted transaction with order id', async () => {
+      transactionRepository.findOne.mockResolvedValue({
+        id: 'tx-intent-2',
+        order_id: 'order2',
+        status: TransactionStatus.SUBMITTED,
+      });
+
+      await processor.handleSubmitTransaction({
+        data: { transaction_id: 'tx-intent-2' },
+        opts: { attempts: 3 },
+        attemptsMade: 0,
+      } as any);
+
+      expect(brokerService.buyFund).not.toHaveBeenCalled();
+      expect(transactionRepository.update).not.toHaveBeenCalled();
+    });
   });
 
   describe('handleConfirmPendingTransactions', () => {

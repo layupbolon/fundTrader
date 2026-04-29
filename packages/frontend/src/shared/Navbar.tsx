@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { path: '/backtest', label: '策略回测' },
   { path: '/analytics', label: '收益分析' },
   { path: '/transactions', label: '交易管理' },
+  { path: '/operations', label: '运维任务' },
 ];
 
 function navTestId(path: string): string {

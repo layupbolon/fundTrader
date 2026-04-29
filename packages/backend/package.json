@@ -16,6 +16,10 @@
     "test:e2e:pr": "vitest run -c vitest.e2e.config.ts test/e2e/api/smoke",
     "test:e2e:nightly": "vitest run -c vitest.e2e.config.ts",
     "test:e2e:seed": "ts-node test/e2e/seed.ts",
+    "migration:run": "typeorm-ts-node-commonjs -d src/database/data-source.ts migration:run",
+    "migration:revert": "typeorm-ts-node-commonjs -d src/database/data-source.ts migration:revert",
+    "deploy:preflight": "ts-node --transpile-only scripts/preflight-check.ts",
+    "backup:verify": "ts-node --transpile-only scripts/verify-backup-restore.ts",
     "migrate:backtest-user-id": "ts-node --transpile-only scripts/migrate-backtest-user-id.ts"
   },
   "keywords": [

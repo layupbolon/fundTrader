@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import axios from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { Fund, FundNav } from '../../models';
 import { formatDate } from '../../utils';
 
@@ -181,14 +181,14 @@ export class FundDataService {
    */
   async getHistoricalNav(fundCode: string, startDate: Date, endDate: Date): Promise<FundNav[]> {
     // 先尝试从数据库获取
-    let navs = await this.fundNavRepository.find({
+    const navs = await this.fundNavRepository.find({
       where: {
         fund_code: fundCode,
+        date: Between(startDate, endDate),
       },
       order: { date: 'ASC' },
     });
 
-    // 过滤日期范围
     const filteredNavs = navs.filter((nav) => {
       const navDate = new Date(nav.date);
       return navDate >= startDate && navDate <= endDate;
@@ -199,15 +199,14 @@ export class FundDataService {
       await this.syncHistoricalNav(fundCode, startDate, endDate);
 
       // 同步后重新查询
-      navs = await this.fundNavRepository.find({
+      const syncedNavs = await this.fundNavRepository.find({
         where: {
           fund_code: fundCode,
+          date: Between(startDate, endDate),
         },
         order: { date: 'ASC' },
       });
-
-      // 再次过滤日期范围
-      return navs.filter((nav) => {
+      return syncedNavs.filter((nav) => {
         const navDate = new Date(nav.date);
         return navDate >= startDate && navDate <= endDate;
       });
@@ -247,20 +246,14 @@ export class FundDataService {
       console.log(`Fetched ${historicalData.length} records from API`);
 
       if (historicalData.length > 0) {
-        // 批量插入，使用 upsert 避免重复
-        // upsert: 如果记录已存在则更新，不存在则插入
-        for (const data of historicalData) {
-          await this.fundNavRepository.upsert(
-            {
-              fund_code: fundCode,
-              nav: data.nav,
-              acc_nav: data.accNav,
-              date: data.date,
-              growth_rate: data.growthRate,
-            },
-            ['fund_code', 'date'], // 唯一键：基金代码 + 日期
-          );
-        }
+        const rows = historicalData.map((data) => ({
+          fund_code: fundCode,
+          nav: data.nav,
+          acc_nav: data.accNav,
+          date: data.date,
+          growth_rate: data.growthRate,
+        }));
+        await this.fundNavRepository.upsert(rows, ['fund_code', 'date']);
         console.log(`Synced ${historicalData.length} historical nav records for fund ${fundCode}`);
       } else {
         console.warn(`No historical data fetched from API for ${fundCode}`);
@@ -310,15 +303,22 @@ export class FundDataService {
     try {
       // 从东方财富API获取基金信息
       const url = `https://fund.eastmoney.com/${fundCode}.html`;
-      await axios.get(url, { timeout: 10000 });
+      const response = await axios.get(url, { timeout: 10000 });
+      const html = String(response.data || '');
+      const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
+      const nameFromTitle = titleMatch?.[1]?.split(/[-_]/)[0]?.trim();
+      const managerMatch =
+        html.match(/基金经理[：:\s]*<\/?[^>]*>\s*<[^>]+>([^<]+)</i) ||
+        html.match(/基金经理[：:\s]*([^<\s]+)/i);
+      const typeMatch =
+        html.match(/基金类型[：:\s]*<\/?[^>]*>\s*<[^>]+>([^<]+)</i) ||
+        html.match(/基金类型[：:\s]*([^<\s]+)/i);
 
-      // 简化实现：实际需要解析HTML提取真实数据
-      // TODO: 实现完整的 HTML 解析逻辑
       return {
         code: fundCode,
-        name: `基金${fundCode}`,
-        type: '混合型',
-        manager: '未知',
+        name: nameFromTitle || `基金${fundCode}`,
+        type: typeMatch?.[1]?.trim() || '混合型',
+        manager: managerMatch?.[1]?.trim() || '未知',
       };
     } catch (error) {
       console.error(`Failed to fetch fund info for ${fundCode}:`, error);
@@ -437,5 +437,31 @@ export class FundDataService {
       console.error(`Failed to fetch historical nav for ${fundCode}:`, error);
       throw error;
     }
+  }
+
+  async checkNavIntegrity(
+    fundCode: string,
+    lookbackDays = 30,
+  ): Promise<{
+    fund_code: string;
+    latest_date?: Date;
+    stale: boolean;
+    abnormal_jumps: Array<{ date: Date; growth_rate: number }>;
+  }> {
+    const endDate = new Date();
+    const startDate = new Date();
+    startDate.setDate(endDate.getDate() - lookbackDays);
+    const navs = await this.getHistoricalNav(fundCode, startDate, endDate);
+    const latest = navs[navs.length - 1];
+    const abnormalJumps = navs
+      .filter((nav) => Math.abs(Number(nav.growth_rate || 0)) >= 0.1)
+      .map((nav) => ({ date: nav.date, growth_rate: Number(nav.growth_rate) }));
+
+    return {
+      fund_code: fundCode,
+      latest_date: latest?.date,
+      stale: !latest || Date.now() - new Date(latest.date).getTime() > 5 * 24 * 60 * 60 * 1000,
+      abnormal_jumps: abnormalJumps,
+    };
   }
 }
