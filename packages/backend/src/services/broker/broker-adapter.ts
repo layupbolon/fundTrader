@@ -16,6 +16,7 @@ export interface BrokerOrder {
   fundCode: string;
   amount: number;
   status: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface BrokerOrderStatus {

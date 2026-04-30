@@ -53,12 +53,22 @@ export class MockBrokerAdapter implements BrokerAdapter {
     amount: number,
     context?: BrokerContext,
   ): BrokerOrder {
+    const mode =
+      process.env.BROKER_MODE === 'paper' ? 'paper' : context?.dryRun ? 'dry-run' : 'mock';
     const suffix = context?.transactionId || Date.now().toString();
+    const runId = `${mode}-${suffix}`;
     return {
-      id: `${context?.dryRun ? 'DRY_RUN' : 'MOCK'}_${side}_${suffix}`,
+      id: `${mode.toUpperCase()}_${side}_${suffix}`,
       fundCode,
       amount,
       status: 'PENDING',
+      metadata: {
+        mode,
+        runId,
+        userId: context?.userId,
+        transactionId: context?.transactionId,
+        createdAt: new Date().toISOString(),
+      },
     };
   }
 }

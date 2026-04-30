@@ -83,6 +83,75 @@ class OperationStatsResponse {
   byModule: Record<string, number>;
 }
 
+class PaperTradingRunEventResponse {
+  @ApiProperty({ description: '操作日志 ID' })
+  logId: string;
+
+  @ApiPropertyOptional({ description: '交易 ID' })
+  transactionId?: string;
+
+  @ApiPropertyOptional({ description: '券商订单号' })
+  orderId?: string;
+
+  @ApiProperty({ description: '事件描述' })
+  description: string;
+
+  @ApiPropertyOptional({ description: '事件原因' })
+  reason?: string;
+
+  @ApiPropertyOptional({ description: '交易状态' })
+  status?: string;
+
+  @ApiProperty({ description: '是否需要人工接管' })
+  manualInterventionRequired: boolean;
+
+  @ApiPropertyOptional({ description: '券商失败证据', type: Object })
+  brokerEvidence?: {
+    capturedAt?: string;
+    operation?: string;
+    hasScreenshot?: boolean;
+    domSummaryPreview?: string;
+  };
+
+  @ApiProperty({ description: '事件时间' })
+  createdAt: Date;
+}
+
+class PaperTradingRunResponse {
+  @ApiProperty({ description: 'Paper trading 运行 ID' })
+  runId: string;
+
+  @ApiPropertyOptional({ description: '交易 ID' })
+  transactionId?: string;
+
+  @ApiPropertyOptional({ description: '券商订单号' })
+  orderId?: string;
+
+  @ApiPropertyOptional({ description: '券商订单创建时间' })
+  brokerOrderCreatedAt?: string;
+
+  @ApiProperty({ description: '提交成功事件数' })
+  submittedCount: number;
+
+  @ApiProperty({ description: '失败事件数' })
+  failedCount: number;
+
+  @ApiProperty({ description: '人工接管事件数' })
+  manualInterventionCount: number;
+
+  @ApiProperty({ description: '首次观测时间' })
+  firstSeenAt: Date;
+
+  @ApiProperty({ description: '最近观测时间' })
+  lastSeenAt: Date;
+
+  @ApiPropertyOptional({ description: '最近事件原因' })
+  latestReason?: string;
+
+  @ApiProperty({ description: '事件列表', type: [PaperTradingRunEventResponse] })
+  events: PaperTradingRunEventResponse[];
+}
+
 /**
  * 日志控制器
  *
@@ -152,16 +221,23 @@ export class LogController {
     });
   }
 
-  /**
-   * 根据 ID 查询操作日志详情
-   */
-  @Get(':id')
-  @ApiOperation({ summary: '查询操作日志详情' })
-  @ApiParam({ name: 'id', description: '日志 ID', type: String })
-  @ApiResponse({ status: 200, type: OperationLog })
-  @ApiResponse({ status: 404, description: '日志未找到' })
-  async findById(@Param('id', ParseUUIDPipe) id: string): Promise<OperationLog | null> {
-    return this.logService.findById(id);
+  @Get('paper-trading/runs')
+  @ApiOperation({ summary: '查询 paper trading 运行记录' })
+  @ApiQuery({ name: 'days', required: false, type: Number, description: '回看天数，默认 7 天' })
+  @ApiQuery({ name: 'limit', required: false, type: Number, description: '返回 run 数量，默认 20' })
+  @ApiResponse({
+    status: 200,
+    description: '返回 paper trading 运行记录汇总',
+    type: [PaperTradingRunResponse],
+  })
+  async findPaperTradingRuns(
+    @Query('days') days: string = '7',
+    @Query('limit') limit: string = '20',
+  ): Promise<PaperTradingRunResponse[]> {
+    return this.logService.findPaperTradingRuns(
+      this.parsePositiveInteger(days, 7),
+      this.parsePositiveInteger(limit, 20),
+    );
   }
 
   /**
@@ -192,6 +268,18 @@ export class LogController {
   }
 
   /**
+   * 根据 ID 查询操作日志详情
+   */
+  @Get(':id')
+  @ApiOperation({ summary: '查询操作日志详情' })
+  @ApiParam({ name: 'id', description: '日志 ID', type: String })
+  @ApiResponse({ status: 200, type: OperationLog })
+  @ApiResponse({ status: 404, description: '日志未找到' })
+  async findById(@Param('id', ParseUUIDPipe) id: string): Promise<OperationLog | null> {
+    return this.logService.findById(id);
+  }
+
+  /**
    * 手动创建操作日志记录
    *
    * 用于记录系统自动执行的操作
@@ -210,5 +298,13 @@ export class LogController {
       context: dto.context,
       status: OperationStatus.SUCCESS,
     });
+  }
+
+  private parsePositiveInteger(value: string | number | undefined, fallback: number): number {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      return fallback;
+    }
+    return Math.floor(parsed);
   }
 }

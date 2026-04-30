@@ -37,7 +37,17 @@ git diff --check
 
 ## 下一阶段执行顺序
 
-> 2026-04-29 迭代记录：Phase A/B/C/D/E 的首轮能力已落地。交易创建改为先写本地意图再由 Bull job 提交 broker；新增 broker adapter 抽象、mock/replay/paper 模式、迁移入口、部署预检、备份恢复校验、净值查询优化、批量 upsert、基金信息解析兜底、数据完整性检查和前端运维任务面板。当前又补齐 Nest/Winston 日志适配，避免启动和请求日志被误判为非法 winston level。后续重点转为真实券商页面选择器、长期 paper trading 观察和投研指标数据源深化。
+> 2026-04-29 迭代记录：Phase A/B/C/D/E 的首轮能力已落地。交易创建改为先写本地意图再由 Bull job 提交 broker；新增 broker adapter 抽象、mock/replay/paper 模式、迁移入口、部署预检、备份恢复校验、净值查询优化、批量 upsert、基金信息解析兜底、数据完整性检查和前端运维任务面板。当前又补齐 Nest/Winston 日志适配，避免启动和请求日志被误判为非法 winston level。
+>
+> 2026-04-29 继续迭代记录：Phase B 继续生产化。`TiantianBrokerService` 已支持集中化 URL / selector 配置、失败截图与 DOM 摘要证据、验证码 / 安全验证等人工接管识别；交易提交失败审计会记录 `manual_intervention_required` 和 `broker_evidence`；`BROKER_MODE=paper` 的订单返回 `metadata.mode/runId/userId/transactionId/createdAt`，便于长期 paper trading 观察。下一步重点仍是真实券商页面 selector 校准和 paper trading 长时间运行记录分析。
+>
+> 2026-04-30 继续迭代记录：Phase B 的 paper trading 观察链路继续补强。交易提交成功和本地持久化失败审计现在会将 broker 返回的 `metadata` 提升为 `broker_mode`、`paper_trading_run_id`、`broker_order_created_at` 等字段，同时保留完整 `broker_response`，方便后续在 `operation_logs.context` 中按 paper run 聚合复盘。下一步重点仍是真实券商页面 selector 校准，以及基于 operation logs 的长时间 paper trading 运行记录分析。
+>
+> 2026-04-30 继续迭代记录 2：已增加 paper trading 运行记录聚合查询，后端可按 `operation_logs.context.broker_mode=paper` 汇总最近运行的提交、失败和人工接管事件；前端运维任务面板增加最近 7 天 paper trading 观察区，可刷新查看 `runId`、交易 / 订单标识、提交数、失败数、人工接管数和最近原因。该能力仍只读审计日志，不新增交易表字段或迁移。
+>
+> 2026-04-30 继续迭代记录 3：Phase C 部署预检脚本补齐异常路径清理。PostgreSQL 与 Redis 预检现在通过 `finally` 关闭连接，避免连接失败或 ping/query 异常时依赖进程退出回收资源。
+>
+> 2026-04-30 继续迭代记录 4：Phase B paper trading 观察区继续增强。后端 `paper-trading/runs` 事件响应会透出 `broker_evidence` 的截图路径、DOM 摘要、采集时间和操作名；前端运维任务面板支持展开单个 run 查看事件明细、失败原因、人工接管标记和券商失败证据。同时修正日志控制器静态路由顺序，避免 `/logs/user/:userId`、`/logs/stats/range` 被 `:id` 路由抢占。
 
 ### Phase A：交易状态机与可恢复性
 
@@ -92,6 +102,10 @@ pnpm test
    - 会话过期、验证码、登录失败要有明确状态
 4. 增加 dry-run / paper trading 模式：
    - 服务器长期运行前先模拟完整交易链路
+5. 真实页面 selector 校准：
+   - 通过 `TIANTIAN_LOGIN_URL`、`TIANTIAN_HOME_URL`、`TIANTIAN_BUY_URL_TEMPLATE`、`TIANTIAN_SELL_URL_TEMPLATE`、`TIANTIAN_ORDER_URL_TEMPLATE` 覆盖页面入口
+   - 通过 `TIANTIAN_SELECTOR_*` 覆盖登录、买入、卖出、查单、撤单相关选择器
+   - 失败证据默认写入 `BROKER_ARTIFACT_DIR` 或 `storage/broker-artifacts`
 
 验收标准：
 

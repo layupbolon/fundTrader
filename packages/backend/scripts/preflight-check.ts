@@ -48,9 +48,12 @@ async function checkDatabase() {
     password: process.env.DB_PASSWORD || 'postgres',
     database: process.env.DB_DATABASE || 'fundtrader',
   });
-  await client.connect();
-  await client.query('select 1');
-  await client.end();
+  try {
+    await client.connect();
+    await client.query('select 1');
+  } finally {
+    await client.end().catch(() => undefined);
+  }
 }
 
 async function checkRedis() {
@@ -60,9 +63,12 @@ async function checkRedis() {
     lazyConnect: true,
     maxRetriesPerRequest: 0,
   });
-  await redis.connect();
-  await redis.ping();
-  redis.disconnect();
+  try {
+    await redis.connect();
+    await redis.ping();
+  } finally {
+    redis.disconnect();
+  }
 }
 
 async function checkBackupDir() {

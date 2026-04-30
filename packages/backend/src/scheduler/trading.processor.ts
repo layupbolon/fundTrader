@@ -2,7 +2,7 @@ import { Process, Processor } from '@nestjs/bull';
 import { Job } from 'bull';
 import { Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import {
   Strategy,
   Position,
@@ -15,7 +15,7 @@ import { AutoInvestStrategy } from '../core/strategy/auto-invest.strategy';
 import { TakeProfitStopLossStrategy } from '../core/strategy/take-profit-stop-loss.strategy';
 import { GridTradingStrategy } from '../core/strategy/grid-trading.strategy';
 import { RebalanceStrategy } from '../core/strategy/rebalance.strategy';
-import { BROKER_ADAPTER, BrokerAdapter, BrokerOrder } from '../services/broker';
+import { BROKER_ADAPTER, BrokerAdapter, BrokerOrder, hasBrokerEvidence } from '../services/broker';
 import { NotifyService } from '../services/notify/notify.service';
 import { PositionService } from '../services/position/position.service';
 import { OperationLogService } from '../core/logger/operation-log.service';
@@ -65,6 +65,17 @@ export class TradingProcessor {
     ) {
       return;
     }
+    const claimResult = await this.transactionRepository.update(
+      {
+        id: transaction.id,
+        status: In([TransactionStatus.CREATED, TransactionStatus.PENDING_SUBMIT]),
+        order_id: IsNull(),
+      },
+      { status: TransactionStatus.PENDING },
+    );
+    if (claimResult.affected !== 1) {
+      return;
+    }
 
     let order: BrokerOrder;
     try {
@@ -95,8 +106,16 @@ export class TradingProcessor {
             old_status: transaction.status,
             new_status: TransactionStatus.FAILED,
             reason: error instanceof Error ? error.message : 'broker_submit_failed',
+            manual_intervention_required: hasBrokerEvidence(error)
+              ? error.manualInterventionRequired === true
+              : false,
+            broker_evidence: hasBrokerEvidence(error) ? error.evidence : undefined,
           },
         );
+      } else {
+        await this.transactionRepository.update(transaction.id, {
+          status: TransactionStatus.PENDING_SUBMIT,
+        });
       }
       throw error;
     }
@@ -121,7 +140,7 @@ export class TradingProcessor {
           order_id: order.id,
           old_status: transaction.status,
           new_status: transaction.status,
-          broker_response: order,
+          ...this.buildBrokerAuditContext(order),
           reason: error instanceof Error ? error.message : 'broker_order_persist_failed',
         },
       );
@@ -138,7 +157,7 @@ export class TradingProcessor {
         order_id: order.id,
         old_status: transaction.status,
         new_status: TransactionStatus.SUBMITTED,
-        broker_response: order,
+        ...this.buildBrokerAuditContext(order),
         reason: 'broker_submit_success',
       },
     );
@@ -397,5 +416,15 @@ export class TradingProcessor {
     } catch (error) {
       console.error(`Failed to write operation log for ${message}:`, error);
     }
+  }
+
+  private buildBrokerAuditContext(order: BrokerOrder): Record<string, unknown> {
+    const metadata = order.metadata || {};
+    return {
+      broker_response: order,
+      broker_mode: metadata.mode,
+      paper_trading_run_id: metadata.mode === 'paper' ? metadata.runId : undefined,
+      broker_order_created_at: metadata.createdAt,
+    };
   }
 }

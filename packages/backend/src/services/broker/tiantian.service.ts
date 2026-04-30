@@ -1,4 +1,6 @@
 import { Injectable } from '@nestjs/common';
+import * as fs from 'fs';
+import * as path from 'path';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { CryptoUtil } from '../../utils';
 import {
@@ -8,6 +10,12 @@ import {
   BrokerOrderStatus,
   BrokerSession,
 } from './broker-adapter';
+import { BrokerFailureEvidence, BrokerOperationError } from './broker-error';
+import {
+  buildTiantianBrokerConfig,
+  formatBrokerUrl,
+  TiantianBrokerConfig,
+} from './tiantian-broker.config';
 
 /**
  * 会话信息接口
@@ -66,6 +74,9 @@ interface Session {
  */
 @Injectable()
 export class TiantianBrokerService implements BrokerAdapter {
+  /** 天天基金页面 URL、选择器和证据目录配置 */
+  private readonly config: TiantianBrokerConfig;
+
   /** 是否启用 mock broker（用于测试环境） */
   private readonly mockEnabled: boolean;
 
@@ -92,6 +103,7 @@ export class TiantianBrokerService implements BrokerAdapter {
    * @throws Error 如果 MASTER_KEY 环境变量未设置
    */
   constructor() {
+    this.config = buildTiantianBrokerConfig(process.env);
     const brokerMode = process.env.BROKER_MODE;
     this.mockEnabled =
       process.env.BROKER_MOCK === 'true' ||
@@ -160,16 +172,16 @@ export class TiantianBrokerService implements BrokerAdapter {
 
       // 访问登录页面
       // waitUntil: 'networkidle2' 等待网络空闲
-      await this.page.goto('https://trade.1234567.com.cn/login', {
+      await this.page.goto(this.config.urls.login, {
         waitUntil: 'networkidle2',
       });
 
       // 填写登录表单
-      await this.page.type('#username', username);
-      await this.page.type('#password', password);
+      await this.page.type(this.config.selectors.usernameInput, username);
+      await this.page.type(this.config.selectors.passwordInput, password);
 
       // 点击登录按钮
-      await this.page.click('#loginBtn');
+      await this.page.click(this.config.selectors.loginButton);
 
       // 等待登录完成
       await this.page.waitForNavigation({ waitUntil: 'networkidle2' });
@@ -187,7 +199,7 @@ export class TiantianBrokerService implements BrokerAdapter {
       return this.session;
     } catch (error) {
       console.error('Login failed:', error);
-      throw new Error('登录失败');
+      throw await this.createBrokerError('登录失败', 'login', error, context);
     }
   }
 
@@ -231,21 +243,21 @@ export class TiantianBrokerService implements BrokerAdapter {
 
     try {
       // 访问买入页面
-      await this.page.goto(`https://trade.1234567.com.cn/buy/${fundCode}`, {
+      await this.page.goto(formatBrokerUrl(this.config.urls.buy, { fundCode }), {
         waitUntil: 'networkidle2',
       });
 
       // 填写买入金额
-      await this.page.type('#amount', amount.toString());
+      await this.page.type(this.config.selectors.amountInput, amount.toString());
 
       // 点击买入按钮
-      await this.page.click('#buyBtn');
+      await this.page.click(this.config.selectors.buyButton);
 
       // 等待订单确认
-      await this.page.waitForSelector('.order-success', { timeout: 10000 });
+      await this.page.waitForSelector(this.config.selectors.orderSuccess, { timeout: 10000 });
 
       // 获取订单号
-      const orderId = await this.page.$eval('.order-id', (el) => el.textContent);
+      const orderId = await this.page.$eval(this.config.selectors.orderId, (el) => el.textContent);
 
       return {
         id: orderId || `ORDER_${Date.now()}`,
@@ -255,7 +267,7 @@ export class TiantianBrokerService implements BrokerAdapter {
       };
     } catch (error) {
       console.error('Buy fund failed:', error);
-      throw new Error('买入失败');
+      throw await this.createBrokerError('买入失败', 'buyFund', error, context);
     }
   }
 
@@ -299,21 +311,21 @@ export class TiantianBrokerService implements BrokerAdapter {
 
     try {
       // 访问卖出页面
-      await this.page.goto(`https://trade.1234567.com.cn/sell/${fundCode}`, {
+      await this.page.goto(formatBrokerUrl(this.config.urls.sell, { fundCode }), {
         waitUntil: 'networkidle2',
       });
 
       // 填写卖出份额
-      await this.page.type('#shares', shares.toString());
+      await this.page.type(this.config.selectors.sharesInput, shares.toString());
 
       // 点击卖出按钮
-      await this.page.click('#sellBtn');
+      await this.page.click(this.config.selectors.sellButton);
 
       // 等待订单确认
-      await this.page.waitForSelector('.order-success', { timeout: 10000 });
+      await this.page.waitForSelector(this.config.selectors.orderSuccess, { timeout: 10000 });
 
       // 获取订单号
-      const orderId = await this.page.$eval('.order-id', (el) => el.textContent);
+      const orderId = await this.page.$eval(this.config.selectors.orderId, (el) => el.textContent);
 
       return {
         id: orderId || `ORDER_${Date.now()}`,
@@ -323,7 +335,7 @@ export class TiantianBrokerService implements BrokerAdapter {
       };
     } catch (error) {
       console.error('Sell fund failed:', error);
-      throw new Error('卖出失败');
+      throw await this.createBrokerError('卖出失败', 'sellFund', error, context);
     }
   }
 
@@ -367,12 +379,15 @@ export class TiantianBrokerService implements BrokerAdapter {
 
     try {
       // 访问订单详情页面
-      await this.page.goto(`https://trade.1234567.com.cn/order/${orderId}`, {
+      await this.page.goto(formatBrokerUrl(this.config.urls.order, { orderId }), {
         waitUntil: 'networkidle2',
       });
 
       // 获取订单状态
-      const status = await this.page.$eval('.order-status', (el) => el.textContent);
+      const status = await this.page.$eval(
+        this.config.selectors.orderStatus,
+        (el) => el.textContent,
+      );
 
       return {
         id: orderId,
@@ -380,7 +395,7 @@ export class TiantianBrokerService implements BrokerAdapter {
       };
     } catch (error) {
       console.error('Get order status failed:', error);
-      throw new Error('查询订单状态失败');
+      throw await this.createBrokerError('查询订单状态失败', 'getOrderStatus', error, context);
     }
   }
 
@@ -397,16 +412,16 @@ export class TiantianBrokerService implements BrokerAdapter {
     }
 
     try {
-      await this.page.goto(`https://trade.1234567.com.cn/order/${orderId}`, {
+      await this.page.goto(formatBrokerUrl(this.config.urls.order, { orderId }), {
         waitUntil: 'networkidle2',
       });
-      await this.page.click('#cancelBtn');
-      await this.page.waitForSelector('.cancel-success', { timeout: 10000 });
+      await this.page.click(this.config.selectors.cancelButton);
+      await this.page.waitForSelector(this.config.selectors.cancelSuccess, { timeout: 10000 });
 
       return { id: orderId, status: 'CANCELLED' };
     } catch (error) {
       console.error('Cancel order failed:', error);
-      throw new Error('撤单失败');
+      throw await this.createBrokerError('撤单失败', 'cancelOrder', error, context);
     }
   }
 
@@ -437,7 +452,7 @@ export class TiantianBrokerService implements BrokerAdapter {
 
     try {
       // 访问首页保持会话活跃
-      await this.page.goto('https://trade.1234567.com.cn/', {
+      await this.page.goto(this.config.urls.home, {
         waitUntil: 'networkidle2',
       });
 
@@ -497,6 +512,73 @@ export class TiantianBrokerService implements BrokerAdapter {
 
   private getSessionKey(context?: BrokerContext): string {
     return context?.userId || 'default';
+  }
+
+  private async createBrokerError(
+    message: string,
+    operation: string,
+    error: unknown,
+    context?: BrokerContext,
+  ): Promise<BrokerOperationError> {
+    const evidence = await this.captureFailureEvidence(operation, context);
+    return new BrokerOperationError(message, {
+      manualInterventionRequired: this.requiresManualIntervention(evidence),
+      evidence,
+      originalMessage: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  private async captureFailureEvidence(
+    operation: string,
+    context?: BrokerContext,
+  ): Promise<BrokerFailureEvidence> {
+    const capturedAt = new Date().toISOString();
+    const evidence: BrokerFailureEvidence = { capturedAt, operation };
+    if (!this.page) {
+      return evidence;
+    }
+
+    const artifactDir = path.resolve(process.cwd(), this.config.artifactDir);
+    const artifactName = [
+      operation,
+      this.sanitizeArtifactSegment(context?.userId || 'default'),
+      this.sanitizeArtifactSegment(context?.transactionId || Date.now().toString()),
+    ].join('-');
+
+    try {
+      fs.mkdirSync(artifactDir, { recursive: true });
+      evidence.screenshotPath = path.join(artifactDir, `${artifactName}.png`);
+      await this.page.screenshot({ path: evidence.screenshotPath, fullPage: true });
+    } catch (screenshotError) {
+      console.error('Capture broker screenshot failed:', screenshotError);
+    }
+
+    try {
+      evidence.domSummary = this.summarizeDom(await this.page.content());
+    } catch (contentError) {
+      console.error('Capture broker DOM failed:', contentError);
+    }
+
+    return evidence;
+  }
+
+  private requiresManualIntervention(evidence: BrokerFailureEvidence): boolean {
+    const summary = evidence.domSummary || '';
+    return this.config.manualInterventionKeywords.some((keyword) => summary.includes(keyword));
+  }
+
+  private summarizeDom(html: string): string {
+    return html
+      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 500);
+  }
+
+  private sanitizeArtifactSegment(value: string): string {
+    return value.replace(/[^a-zA-Z0-9_-]/g, '_').slice(0, 80);
   }
 
   /**

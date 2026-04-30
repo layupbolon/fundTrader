@@ -6,6 +6,8 @@ const puppeteerMocks = vi.hoisted(() => {
     waitForNavigation: vi.fn().mockResolvedValue(undefined),
     waitForSelector: vi.fn().mockResolvedValue(undefined),
     cookies: vi.fn().mockResolvedValue([{ name: 'session', value: 'abc' }]),
+    screenshot: vi.fn().mockResolvedValue(undefined),
+    content: vi.fn().mockResolvedValue('<html><body>交易成功</body></html>'),
     $eval: vi.fn().mockResolvedValue('ORDER_123'),
   };
 
@@ -48,6 +50,7 @@ describe('TiantianBrokerService', () => {
 
   beforeEach(async () => {
     vi.resetModules();
+    vi.clearAllMocks();
     process.env = {
       ...originalEnv,
       MASTER_KEY: 'test-master-key-that-is-at-least-32-chars-long',
@@ -99,6 +102,24 @@ describe('TiantianBrokerService', () => {
       expect(mock.__mockPage.type).toHaveBeenCalledWith('#password', 'mypass');
     });
 
+    it('should use configured login URL and selectors', async () => {
+      process.env.TIANTIAN_LOGIN_URL = 'https://trade.example.com/custom-login';
+      process.env.TIANTIAN_SELECTOR_USERNAME = 'input[data-testid="username"]';
+      process.env.TIANTIAN_SELECTOR_PASSWORD = 'input[data-testid="password"]';
+      process.env.TIANTIAN_SELECTOR_LOGIN_BUTTON = 'button[data-testid="submit"]';
+
+      const service = new TiantianBrokerService();
+      await service.login('myuser', 'mypass');
+
+      const mock = getPuppeteerMock();
+      expect(mock.__mockPage.goto).toHaveBeenCalledWith('https://trade.example.com/custom-login', {
+        waitUntil: 'networkidle2',
+      });
+      expect(mock.__mockPage.type).toHaveBeenCalledWith('input[data-testid="username"]', 'myuser');
+      expect(mock.__mockPage.type).toHaveBeenCalledWith('input[data-testid="password"]', 'mypass');
+      expect(mock.__mockPage.click).toHaveBeenCalledWith('button[data-testid="submit"]');
+    });
+
     it('should throw on login failure', async () => {
       getPuppeteerMock().__mockPage.waitForNavigation.mockRejectedValueOnce(new Error('timeout'));
 
@@ -143,6 +164,31 @@ describe('TiantianBrokerService', () => {
       await service.login('user', 'pass');
 
       await expect(service.buyFund('000001', 500)).rejects.toThrow('买入失败');
+    });
+
+    it('should attach screenshot and DOM summary when manual intervention is required', async () => {
+      getPuppeteerMock().__mockPage.waitForSelector.mockRejectedValueOnce(new Error('timeout'));
+      getPuppeteerMock().__mockPage.content.mockResolvedValueOnce(
+        '<html><body>请输入验证码后继续交易</body></html>',
+      );
+
+      const service = new TiantianBrokerService();
+      await service.login('user', 'pass', { userId: 'user1' });
+
+      let capturedError: any;
+      try {
+        await service.buyFund('000001', 500, { userId: 'user1', transactionId: 'tx1' });
+      } catch (error) {
+        capturedError = error;
+      }
+
+      expect(capturedError.message).toBe('买入失败');
+      expect(capturedError.manualInterventionRequired).toBe(true);
+      expect(capturedError.evidence.screenshotPath).toContain('tx1');
+      expect(capturedError.evidence.domSummary).toContain('请输入验证码');
+      expect(getPuppeteerMock().__mockPage.screenshot).toHaveBeenCalledWith(
+        expect.objectContaining({ fullPage: true, path: expect.stringContaining('tx1') }),
+      );
     });
   });
 

@@ -42,6 +42,39 @@ export interface OperationLogFilter {
   sortOrder?: 'ASC' | 'DESC';
 }
 
+export interface PaperTradingRunEvent {
+  logId: string;
+  transactionId?: string;
+  orderId?: string;
+  description: string;
+  reason?: string;
+  status?: string;
+  manualInterventionRequired: boolean;
+  brokerEvidence?: PaperTradingBrokerEvidence;
+  createdAt: Date;
+}
+
+export interface PaperTradingBrokerEvidence {
+  capturedAt?: string;
+  operation?: string;
+  hasScreenshot?: boolean;
+  domSummaryPreview?: string;
+}
+
+export interface PaperTradingRunSummary {
+  runId: string;
+  transactionId?: string;
+  orderId?: string;
+  brokerOrderCreatedAt?: string;
+  submittedCount: number;
+  failedCount: number;
+  manualInterventionCount: number;
+  firstSeenAt: Date;
+  lastSeenAt: Date;
+  latestReason?: string;
+  events: PaperTradingRunEvent[];
+}
+
 /**
  * 操作日志服务
  *
@@ -266,6 +299,83 @@ export class OperationLogService {
       }));
   }
 
+  async findPaperTradingRuns(
+    days: number = 7,
+    limit: number = 20,
+  ): Promise<PaperTradingRunSummary[]> {
+    const since = new Date();
+    since.setDate(since.getDate() - Math.max(1, Math.min(days, 365)));
+
+    const logs = await this.operationLogRepository
+      .createQueryBuilder('log')
+      .where("log.context ->> 'broker_mode' = :mode", { mode: 'paper' })
+      .andWhere('log.module = :module', { module: 'trade' })
+      .andWhere('log.created_at >= :since', { since })
+      .orderBy('log.created_at', 'DESC')
+      .limit(Math.max(1, Math.min(limit * 10, 500)))
+      .getMany();
+
+    const runs = new Map<string, PaperTradingRunSummary>();
+
+    for (const log of logs) {
+      const context = (log.context || {}) as Record<string, unknown>;
+      const transactionId = this.readString(context.transaction_id);
+      const orderId = this.readString(context.order_id);
+      const runId =
+        this.readString(context.paper_trading_run_id) || orderId || transactionId || log.id;
+      const reason = this.readString(context.reason);
+      const status = this.readString(context.new_status);
+      const manualInterventionRequired = context.manual_intervention_required === true;
+      const createdAt = log.created_at;
+      const existing = runs.get(runId);
+      const event: PaperTradingRunEvent = {
+        logId: log.id,
+        transactionId,
+        orderId,
+        description: log.description,
+        reason,
+        status,
+        manualInterventionRequired,
+        brokerEvidence: this.readBrokerEvidence(context.broker_evidence),
+        createdAt,
+      };
+
+      if (!existing) {
+        runs.set(runId, {
+          runId,
+          transactionId,
+          orderId,
+          brokerOrderCreatedAt: this.readString(context.broker_order_created_at),
+          submittedCount: reason === 'broker_submit_success' ? 1 : 0,
+          failedCount: this.isPaperFailure(reason, status) ? 1 : 0,
+          manualInterventionCount: manualInterventionRequired ? 1 : 0,
+          firstSeenAt: createdAt,
+          lastSeenAt: createdAt,
+          latestReason: reason,
+          events: [event],
+        });
+        continue;
+      }
+
+      existing.transactionId ||= transactionId;
+      existing.orderId ||= orderId;
+      existing.brokerOrderCreatedAt ||= this.readString(context.broker_order_created_at);
+      existing.firstSeenAt =
+        createdAt.getTime() < existing.firstSeenAt.getTime() ? createdAt : existing.firstSeenAt;
+      existing.lastSeenAt =
+        createdAt.getTime() > existing.lastSeenAt.getTime() ? createdAt : existing.lastSeenAt;
+      existing.latestReason ||= reason;
+      existing.submittedCount += reason === 'broker_submit_success' ? 1 : 0;
+      existing.failedCount += this.isPaperFailure(reason, status) ? 1 : 0;
+      existing.manualInterventionCount += manualInterventionRequired ? 1 : 0;
+      existing.events.push(event);
+    }
+
+    return Array.from(runs.values())
+      .sort((left, right) => right.lastSeenAt.getTime() - left.lastSeenAt.getTime())
+      .slice(0, Math.max(1, Math.min(limit, 100)));
+  }
+
   /**
    * 根据 ID 查找操作日志
    *
@@ -277,6 +387,49 @@ export class OperationLogService {
       where: { id },
       relations: ['user'],
     });
+  }
+
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private readBrokerEvidence(value: unknown): PaperTradingBrokerEvidence | undefined {
+    if (!value || typeof value !== 'object') {
+      return undefined;
+    }
+
+    const evidence = value as Record<string, unknown>;
+    const domSummaryPreview =
+      this.createDomSummaryPreview(evidence.domSummary) ||
+      this.createDomSummaryPreview(evidence.domSummaryPreview);
+    const brokerEvidence: PaperTradingBrokerEvidence = {
+      capturedAt: this.readString(evidence.capturedAt),
+      operation: this.readString(evidence.operation),
+      hasScreenshot:
+        typeof evidence.hasScreenshot === 'boolean'
+          ? evidence.hasScreenshot
+          : Boolean(this.readString(evidence.screenshotPath)),
+      domSummaryPreview,
+    };
+
+    return Object.values(brokerEvidence).some(Boolean) ? brokerEvidence : undefined;
+  }
+
+  private createDomSummaryPreview(value: unknown): string | undefined {
+    const text = this.readString(value);
+    if (!text) {
+      return undefined;
+    }
+
+    return text.replace(/\s+/g, ' ').trim().slice(0, 160);
+  }
+
+  private isPaperFailure(reason?: string, status?: string): boolean {
+    return (
+      status === 'FAILED' ||
+      reason === 'broker_submit_failed' ||
+      reason === 'broker_order_persist_failed'
+    );
   }
 
   /**

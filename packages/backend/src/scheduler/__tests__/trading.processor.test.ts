@@ -140,6 +140,7 @@ describe('TradingProcessor', () => {
         amount: 1000,
         status: TransactionStatus.PENDING_SUBMIT,
       });
+      transactionRepository.update.mockResolvedValueOnce({ affected: 1 }).mockResolvedValueOnce({});
       brokerService.buyFund.mockResolvedValue({ id: 'order1', fundCode: '000001', amount: 1000 });
 
       await processor.handleSubmitTransaction({
@@ -152,11 +153,118 @@ describe('TradingProcessor', () => {
         userId: 'user1',
         transactionId: 'tx-intent-1',
       });
-      expect(transactionRepository.update).toHaveBeenCalledWith('tx-intent-1', {
+      expect(transactionRepository.update).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          id: 'tx-intent-1',
+          status: expect.anything(),
+          order_id: expect.anything(),
+        }),
+        { status: TransactionStatus.PENDING },
+      );
+      expect(transactionRepository.update).toHaveBeenNthCalledWith(2, 'tx-intent-1', {
         status: TransactionStatus.SUBMITTED,
         order_id: 'order1',
       });
       expect(operationLogService.logUserAction).toHaveBeenCalled();
+    });
+
+    it('should expose paper trading run metadata in audit context', async () => {
+      transactionRepository.findOne.mockResolvedValue({
+        id: 'tx-paper',
+        user_id: 'user1',
+        fund_code: '000001',
+        type: TransactionType.BUY,
+        amount: 1000,
+        status: TransactionStatus.PENDING_SUBMIT,
+      });
+      transactionRepository.update.mockResolvedValueOnce({ affected: 1 }).mockResolvedValueOnce({});
+      brokerService.buyFund.mockResolvedValue({
+        id: 'PAPER_BUY_tx-paper',
+        fundCode: '000001',
+        amount: 1000,
+        status: 'PENDING',
+        metadata: {
+          mode: 'paper',
+          runId: 'paper-tx-paper',
+          userId: 'user1',
+          transactionId: 'tx-paper',
+          createdAt: '2026-04-30T01:00:00.000Z',
+        },
+      });
+
+      await processor.handleSubmitTransaction({
+        data: { transaction_id: 'tx-paper', triggered_by: 'user1' },
+        opts: { attempts: 3 },
+        attemptsMade: 0,
+      } as any);
+
+      expect(operationLogService.logUserAction).toHaveBeenCalledWith(
+        'user1',
+        expect.any(String),
+        'trade',
+        '交易提交到券商 tx-paper',
+        expect.objectContaining({
+          broker_mode: 'paper',
+          paper_trading_run_id: 'paper-tx-paper',
+          broker_order_created_at: '2026-04-30T01:00:00.000Z',
+          broker_response: expect.objectContaining({
+            id: 'PAPER_BUY_tx-paper',
+          }),
+        }),
+      );
+    });
+
+    it('should not call broker when transaction claim fails', async () => {
+      transactionRepository.findOne.mockResolvedValue({
+        id: 'tx-claimed-by-other-worker',
+        user_id: 'user1',
+        fund_code: '000001',
+        type: TransactionType.BUY,
+        amount: 1000,
+        status: TransactionStatus.PENDING_SUBMIT,
+      });
+      transactionRepository.update.mockResolvedValueOnce({ affected: 0 });
+
+      await processor.handleSubmitTransaction({
+        data: { transaction_id: 'tx-claimed-by-other-worker', triggered_by: 'user1' },
+        opts: { attempts: 3 },
+        attemptsMade: 0,
+      } as any);
+
+      expect(transactionRepository.update).toHaveBeenCalledTimes(1);
+      expect(brokerService.buyFund).not.toHaveBeenCalled();
+      expect(brokerService.sellFund).not.toHaveBeenCalled();
+      expect(operationLogService.logUserAction).not.toHaveBeenCalled();
+    });
+
+    it('should release claimed transaction back to pending submit before retry', async () => {
+      transactionRepository.findOne.mockResolvedValue({
+        id: 'tx-retry',
+        user_id: 'user1',
+        fund_code: '000001',
+        type: TransactionType.BUY,
+        amount: 1000,
+        status: TransactionStatus.PENDING_SUBMIT,
+      });
+      transactionRepository.update.mockResolvedValueOnce({ affected: 1 }).mockResolvedValueOnce({});
+      brokerService.buyFund.mockRejectedValue(new Error('temporary broker error'));
+
+      await expect(
+        processor.handleSubmitTransaction({
+          data: { transaction_id: 'tx-retry', triggered_by: 'user1' },
+          opts: { attempts: 3 },
+          attemptsMade: 0,
+        } as any),
+      ).rejects.toThrow('temporary broker error');
+
+      expect(transactionRepository.update).toHaveBeenNthCalledWith(1, expect.any(Object), {
+        status: TransactionStatus.PENDING,
+      });
+      expect(transactionRepository.update).toHaveBeenNthCalledWith(2, 'tx-retry', {
+        status: TransactionStatus.PENDING_SUBMIT,
+      });
+      expect(operationLogService.logUserAction).not.toHaveBeenCalled();
     });
 
     it('should not resubmit already submitted transaction with order id', async () => {
@@ -174,6 +282,47 @@ describe('TradingProcessor', () => {
 
       expect(brokerService.buyFund).not.toHaveBeenCalled();
       expect(transactionRepository.update).not.toHaveBeenCalled();
+    });
+
+    it('should audit broker failures that require manual intervention', async () => {
+      const brokerError = new Error('买入失败') as any;
+      brokerError.manualInterventionRequired = true;
+      brokerError.evidence = {
+        screenshotPath: '/tmp/broker-artifacts/tx-manual.png',
+        domSummary: '请输入验证码后继续交易',
+      };
+      transactionRepository.findOne.mockResolvedValue({
+        id: 'tx-manual',
+        user_id: 'user1',
+        fund_code: '000001',
+        type: TransactionType.BUY,
+        amount: 1000,
+        status: TransactionStatus.PENDING_SUBMIT,
+      });
+      transactionRepository.update.mockResolvedValueOnce({ affected: 1 }).mockResolvedValueOnce({});
+      brokerService.buyFund.mockRejectedValue(brokerError);
+
+      await expect(
+        processor.handleSubmitTransaction({
+          data: { transaction_id: 'tx-manual', triggered_by: 'user1' },
+          opts: { attempts: 1 },
+          attemptsMade: 0,
+        } as any),
+      ).rejects.toThrow('买入失败');
+
+      expect(operationLogService.logUserAction).toHaveBeenCalledWith(
+        'user1',
+        expect.any(String),
+        'trade',
+        '交易提交失败 tx-manual',
+        expect.objectContaining({
+          manual_intervention_required: true,
+          broker_evidence: {
+            screenshotPath: '/tmp/broker-artifacts/tx-manual.png',
+            domSummary: '请输入验证码后继续交易',
+          },
+        }),
+      );
     });
   });
 

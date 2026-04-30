@@ -6,6 +6,7 @@ import {
   type OperationJobResult,
 } from '../api/operations';
 import { ApiError } from '../api/client';
+import PaperTradingRunsPanel from './PaperTradingRunsPanel';
 
 type OperationAction = {
   id: string;
@@ -87,6 +88,8 @@ export default function OperationsPage() {
           );
         })}
       </div>
+
+      <PaperTradingRunsPanel />
     </div>
   );
 }
